@@ -172,4 +172,12 @@ config S5PV210_PM
 	help
 	  Power Management code common to S5PV210
 
+config MACH_S5PC110_CRESPO
+	bool "S5PC110_CRESPO"
+	select CPU_S5PV210
+	select S3C_DEV_WDT
+	help
+	  Machine support for Samsung CRESPO
+	  S5PC110(MCP) is one of package option of S5PV210
+
 endif
