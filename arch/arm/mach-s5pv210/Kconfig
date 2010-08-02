@@ -183,6 +183,7 @@ config MACH_S5PC110_CRESPO
 	select S3C_DEV_WDT
 	select S3C_DEV_I2C1
 	select S3C_DEV_I2C2
+	select S5P_DEV_CSIS0
 	select S5P_SETUP_MIPIPHY
 	help
 	  Machine support for Samsung CRESPO
