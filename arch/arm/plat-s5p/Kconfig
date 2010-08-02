@@ -102,3 +102,20 @@ config S5P_DEV_FB
 	default y
 	help
 	  Compile in platform device definitions for FIMD controller
+
+config S5P_HIGH_RES_TIMERS
+	bool "HRtimer and Dynamic Tick support"
+	select GENERIC_CLOCKEVENTS
+	select HIGH_RES_TIMERS
+	select HRT_RTC
+	select NO_HZ
+	default n
+	help
+	  Support for HRtimer and Dynamic Tick system.
+
+config HRT_RTC
+	bool
+	depends on S5P_HIGH_RES_TIMERS
+	default y
+	help
+	  RTC and System timer are used as HRT

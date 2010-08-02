@@ -42,6 +42,7 @@
 #include <plat/cpu.h>
 #include <plat/fb.h>
 #include <plat/iic.h>
+#include <plat/s5p-time.h>
 
 #include <plat/gpio-cfg.h>
 
@@ -2734,6 +2735,10 @@ EXPORT_SYMBOL(s3c_config_sleep_gpio);
 
 
 static struct platform_device *herring_devices[] __initdata = {
+
+#ifdef CONFIG_RTC_DRV_S3C
+	&s5p_device_rtc,
+#endif
 	&s5pv210_device_iis0,
 	&s5pv210_device_ac97,
 	&s3c_device_wdt,
@@ -2834,6 +2839,9 @@ static void __init herring_map_io(void)
 	s5p_init_io(NULL, 0, S5P_VA_CHIPID);
 	s3c24xx_init_clocks(24000000);
 	s3c24xx_init_uarts(herring_uartcfgs, ARRAY_SIZE(herring_uartcfgs));
+#ifndef CONFIG_S5P_HIGH_RES_TIMERS
+	s5p_set_timer_source(S5P_PWM3, S5P_PWM4);
+#endif
 	s5pv210_reserve_bootmem();
 
 #ifdef CONFIG_MTD_ONENAND
@@ -3206,7 +3214,11 @@ MACHINE_START(HERRING, "herring")
 	.init_irq	= s5pv210_init_irq,
 	.map_io		= herring_map_io,
 	.init_machine	= herring_machine_init,
+#ifdef CONFIG_S5P_HIGH_RES_TIMERS
 	.timer		= &s5p_systimer,
+#else
+	.timer		= &s5p_timer,
+#endif
 MACHINE_END
 
 void s3c_setup_uart_cfg_gpio(unsigned char port)

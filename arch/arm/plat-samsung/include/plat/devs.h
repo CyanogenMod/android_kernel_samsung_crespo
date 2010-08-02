@@ -142,6 +142,7 @@ extern struct platform_device s5p_device_mipi_csis1;
 extern struct platform_device s5p_device_ehci;
 
 extern struct platform_device exynos4_device_sysmmu;
+extern struct platform_device s5p_device_rtc;
 
 /* s3c2440 specific devices */
 
