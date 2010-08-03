@@ -184,6 +184,8 @@ config MACH_S5PC110_CRESPO
 	select S3C_DEV_I2C1
 	select S3C_DEV_I2C2
 	select S5P_DEV_ONENAND
+	select HAVE_PWM
+	select SAMSUNG_DEV_PWM
 	select S5P_DEV_CSIS0
 	select S5P_SETUP_MIPIPHY
 	help
@@ -217,5 +219,20 @@ config S5PV210_SETUP_FIMC2
 	default y
 	help
 	  Common setup code for FIMC controller 2.
+
+config ANDROID_PMEM_MEMSIZE_PMEM
+	int "ANDROID PMEM support for CRESPO"
+	depends on ANDROID_PMEM
+	default "16384"
+
+config ANDROID_PMEM_MEMSIZE_PMEM_GPU1
+	int "ANDROID PMEM support for CRESPO GPU"
+	depends on ANDROID_PMEM
+	default "10240"
+
+config ANDROID_PMEM_MEMSIZE_PMEM_ADSP
+	int "ANDROID PMEM support for CRESPO ADSP"
+	depends on ANDROID_PMEM
+	default "1024"
 
 endif
