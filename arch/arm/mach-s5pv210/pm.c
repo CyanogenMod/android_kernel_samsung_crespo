@@ -130,6 +130,11 @@ static void s5pv210_pm_prepare(void)
 	tmp |= S5P_OTHER_SYSC_INTOFF;
 	__raw_writel(tmp, S5P_OTHERS);
 
+	__raw_writel(0xffffffff, (VA_VIC0 + VIC_INT_ENABLE_CLEAR));
+	__raw_writel(0xffffffff, (VA_VIC1 + VIC_INT_ENABLE_CLEAR));
+	__raw_writel(0xffffffff, (VA_VIC2 + VIC_INT_ENABLE_CLEAR));
+	__raw_writel(0xffffffff, (VA_VIC3 + VIC_INT_ENABLE_CLEAR));
+
 	s3c_pm_do_save(s5pv210_core_save, ARRAY_SIZE(s5pv210_core_save));
 }
 

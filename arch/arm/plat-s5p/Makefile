@@ -42,9 +42,10 @@ obj-$(CONFIG_S5P_SETUP_MIPIPHY)	+= setup-mipiphy.o
 
 # PM support
 
+# PM support
+
 obj-$(CONFIG_PM)		+= pm.o
 obj-$(CONFIG_PM)		+= irq-pm.o
-obj-$(CONFIG_PM)		+= sleep.o
 
 ifdef CONFIG_S5P_HIGH_RES_TIMERS
 ifdef CONFIG_HRT_RTC
