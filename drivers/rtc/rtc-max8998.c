@@ -241,6 +241,35 @@ static irqreturn_t max8998_rtc_alarm_irq(int irq, void *data)
 	return IRQ_HANDLED;
 }
 
+static struct device *max8998_rtc_dev;
+int max8998_rtc_read_time_hack(struct rtc_time *tm)
+{
+	int ret;
+
+	pr_debug("%s \n", __func__);
+
+	if (WARN_ON(!max8998_rtc_dev))
+		return -ENODEV;
+
+	ret = max8998_rtc_read_time(max8998_rtc_dev, tm);
+
+	pr_debug("read %s time %02d.%02d.%02d %02d/%02d/%02d\n",__func__,
+		 tm->tm_year, tm->tm_mon, tm->tm_mday,
+		 tm->tm_hour, tm->tm_min, tm->tm_sec);
+	return ret;
+}
+
+int max8998_rtc_set_time_hack(struct rtc_time *tm)
+{
+	if (WARN_ON(!max8998_rtc_dev))
+		return -ENODEV;
+
+	pr_debug("%s  %02d.%02d.%02d %02d/%02d/%02d\n",__func__,
+		 tm->tm_year, tm->tm_mon, tm->tm_mday,
+		 tm->tm_hour, tm->tm_min, tm->tm_sec);
+	return max8998_rtc_set_time(max8998_rtc_dev, tm);
+}
+
 static const struct rtc_class_ops max8998_rtc_ops = {
 	.read_time = max8998_rtc_read_time,
 	.set_time = max8998_rtc_set_time,
@@ -290,6 +319,8 @@ static int __devinit max8998_rtc_probe(struct platform_device *pdev)
 				" RTC updates will be extremely slow.\n");
 	}
 
+	max8998_rtc_dev = info->dev;
+
 	return 0;
 
 out_rtc:
@@ -303,6 +334,7 @@ static int __devexit max8998_rtc_remove(struct platform_device *pdev)
 	struct max8998_rtc_info *info = platform_get_drvdata(pdev);
 
 	if (info) {
+		max8998_rtc_dev = NULL;
 		free_irq(info->irq, info);
 		rtc_device_unregister(info->rtc_dev);
 		kfree(info);

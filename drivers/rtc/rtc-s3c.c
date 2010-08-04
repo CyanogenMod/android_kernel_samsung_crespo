@@ -20,17 +20,21 @@
 #include <linux/init.h>
 #include <linux/platform_device.h>
 #include <linux/interrupt.h>
+#include <linux/device.h>
 #include <linux/rtc.h>
 #include <linux/bcd.h>
 #include <linux/clk.h>
 #include <linux/log2.h>
 #include <linux/slab.h>
+#include <linux/uaccess.h>
+#include <linux/io.h>
 
 #include <mach/hardware.h>
-#include <asm/uaccess.h>
-#include <asm/io.h>
 #include <asm/irq.h>
+#include <asm/mach/time.h>
 #include <plat/regs-rtc.h>
+
+#include "rtc-s3c.h"
 
 enum s3c_cpu_type {
 	TYPE_S3C2410,
@@ -51,6 +55,9 @@ static enum s3c_cpu_type s3c_rtc_cpu_type;
 
 static DEFINE_SPINLOCK(s3c_rtc_pie_lock);
 
+static void s3c_rtc_enable(struct device *dev, int en);
+
+static int s3c_rtc_settime(struct device *dev, struct rtc_time *tm);
 /* IRQ Handlers */
 
 static irqreturn_t s3c_rtc_alarmirq(int irq, void *id)
@@ -59,23 +66,23 @@ static irqreturn_t s3c_rtc_alarmirq(int irq, void *id)
 
 	rtc_update_irq(rdev, 1, RTC_AF | RTC_IRQF);
 
-	if (s3c_rtc_cpu_type == TYPE_S3C64XX)
-		writeb(S3C2410_INTP_ALM, s3c_rtc_base + S3C2410_INTP);
+	writeb(S3C2410_INTP_ALM, s3c_rtc_base + S3C2410_INTP);
 
 	return IRQ_HANDLED;
 }
 
+#ifndef CONFIG_HRT_RTC
 static irqreturn_t s3c_rtc_tickirq(int irq, void *id)
 {
 	struct rtc_device *rdev = id;
 
 	rtc_update_irq(rdev, 1, RTC_PF | RTC_IRQF);
 
-	if (s3c_rtc_cpu_type == TYPE_S3C64XX)
-		writeb(S3C2410_INTP_TIC, s3c_rtc_base + S3C2410_INTP);
+	writeb(S3C2410_INTP_TIC, s3c_rtc_base + S3C2410_INTP);
 
 	return IRQ_HANDLED;
 }
+#endif
 
 /* Update control registers */
 static int s3c_rtc_setaie(struct device *dev, unsigned int enabled)
@@ -106,7 +113,7 @@ static int s3c_rtc_setfreq(struct device *dev, int freq)
 	spin_lock_irq(&s3c_rtc_pie_lock);
 
 	if (s3c_rtc_cpu_type == TYPE_S3C2410) {
-		tmp = readb(s3c_rtc_base + S3C2410_TICNT);
+		tmp = readw(s3c_rtc_base + S3C2410_TICNT);
 		tmp &= S3C2410_TICNT_ENABLE;
 	}
 
@@ -125,13 +132,20 @@ static int s3c_rtc_gettime(struct device *dev, struct rtc_time *rtc_tm)
 	unsigned int have_retried = 0;
 	void __iomem *base = s3c_rtc_base;
 
+	s3c_rtc_enable(dev, 1);
  retry_get_time:
+	rtc_tm->tm_sec  = readb(base + S3C2410_RTCSEC);
 	rtc_tm->tm_min  = readb(base + S3C2410_RTCMIN);
 	rtc_tm->tm_hour = readb(base + S3C2410_RTCHOUR);
 	rtc_tm->tm_mday = readb(base + S3C2410_RTCDATE);
 	rtc_tm->tm_mon  = readb(base + S3C2410_RTCMON);
+
+#if defined(CONFIG_CPU_S5PV210)
+	rtc_tm->tm_year = readl(base + S3C2410_RTCYEAR);
+#else
 	rtc_tm->tm_year = readb(base + S3C2410_RTCYEAR);
-	rtc_tm->tm_sec  = readb(base + S3C2410_RTCSEC);
+#endif
+
 
 	/* the only way to work out wether the system was mid-update
 	 * when we read it is to check the second counter, and if it
@@ -142,6 +156,7 @@ static int s3c_rtc_gettime(struct device *dev, struct rtc_time *rtc_tm)
 		have_retried = 1;
 		goto retry_get_time;
 	}
+	s3c_rtc_enable(dev, 0);
 
 	pr_debug("read time %04d.%02d.%02d %02d:%02d:%02d\n",
 		 1900 + rtc_tm->tm_year, rtc_tm->tm_mon, rtc_tm->tm_mday,
@@ -152,9 +167,14 @@ static int s3c_rtc_gettime(struct device *dev, struct rtc_time *rtc_tm)
 	rtc_tm->tm_hour = bcd2bin(rtc_tm->tm_hour);
 	rtc_tm->tm_mday = bcd2bin(rtc_tm->tm_mday);
 	rtc_tm->tm_mon = bcd2bin(rtc_tm->tm_mon);
+#if defined(CONFIG_CPU_S5PV210)
+	rtc_tm->tm_year = bcd2bin(rtc_tm->tm_year & 0xff) +
+			  bcd2bin(rtc_tm->tm_year >> 8) * 100;
+#else
 	rtc_tm->tm_year = bcd2bin(rtc_tm->tm_year);
-
 	rtc_tm->tm_year += 100;
+#endif
+
 	rtc_tm->tm_mon -= 1;
 
 	return rtc_valid_tm(rtc_tm);
@@ -163,7 +183,12 @@ static int s3c_rtc_gettime(struct device *dev, struct rtc_time *rtc_tm)
 static int s3c_rtc_settime(struct device *dev, struct rtc_time *tm)
 {
 	void __iomem *base = s3c_rtc_base;
+#if defined(CONFIG_CPU_S5PV210)
+	int year = tm->tm_year;
+	int year100;
+#else
 	int year = tm->tm_year - 100;
+#endif
 
 	pr_debug("set time %04d.%02d.%02d %02d:%02d:%02d\n",
 		 1900 + tm->tm_year, tm->tm_mon, tm->tm_mday,
@@ -171,17 +196,38 @@ static int s3c_rtc_settime(struct device *dev, struct rtc_time *tm)
 
 	/* we get around y2k by simply not supporting it */
 
+
+#if defined(CONFIG_CPU_S5PV210)
+	if (year < 0 || year >= 1000) {
+		dev_err(dev, "rtc only supports 0~999 years\n");
+#else
 	if (year < 0 || year >= 100) {
 		dev_err(dev, "rtc only supports 100 years\n");
+#endif
 		return -EINVAL;
 	}
+
+	s3c_rtc_enable(dev, 1);
 
 	writeb(bin2bcd(tm->tm_sec),  base + S3C2410_RTCSEC);
 	writeb(bin2bcd(tm->tm_min),  base + S3C2410_RTCMIN);
 	writeb(bin2bcd(tm->tm_hour), base + S3C2410_RTCHOUR);
 	writeb(bin2bcd(tm->tm_mday), base + S3C2410_RTCDATE);
 	writeb(bin2bcd(tm->tm_mon + 1), base + S3C2410_RTCMON);
+
+#if defined(CONFIG_CPU_S5PV210)
+	year100 = year/100;
+	year = year%100;
+	year = bin2bcd(year) | ((bin2bcd(year100)) << 8);
+	year = (0x00000fff & year);
+	pr_debug("year %x\n", year);
+	writel(year, base + S3C2410_RTCYEAR);
+#else
 	writeb(bin2bcd(year), base + S3C2410_RTCYEAR);
+#endif
+	s3c_rtc_enable(dev, 0);
+
+	max8998_rtc_set_time_hack(tm);
 
 	return 0;
 }
@@ -192,12 +238,21 @@ static int s3c_rtc_getalarm(struct device *dev, struct rtc_wkalrm *alrm)
 	void __iomem *base = s3c_rtc_base;
 	unsigned int alm_en;
 
+	s3c_rtc_enable(dev, 1);
+
 	alm_tm->tm_sec  = readb(base + S3C2410_ALMSEC);
 	alm_tm->tm_min  = readb(base + S3C2410_ALMMIN);
 	alm_tm->tm_hour = readb(base + S3C2410_ALMHOUR);
 	alm_tm->tm_mon  = readb(base + S3C2410_ALMMON);
 	alm_tm->tm_mday = readb(base + S3C2410_ALMDATE);
+#if defined(CONFIG_CPU_S5PV210)
+	alm_tm->tm_year = readl(base + S3C2410_ALMYEAR);
+	alm_tm->tm_year = (0x00000fff & alm_tm->tm_year);
+#else
 	alm_tm->tm_year = readb(base + S3C2410_ALMYEAR);
+#endif
+
+	s3c_rtc_enable(dev, 0);
 
 	alm_en = readb(base + S3C2410_RTCALM);
 
@@ -238,10 +293,16 @@ static int s3c_rtc_getalarm(struct device *dev, struct rtc_wkalrm *alrm)
 		alm_tm->tm_mon = -1;
 	}
 
-	if (alm_en & S3C2410_RTCALM_YEAREN)
+	if (alm_en & S3C2410_RTCALM_YEAREN) {
+#if defined(CONFIG_CPU_S5PV210)
+		alm_tm->tm_year = bcd2bin(alm_tm->tm_year & 0xff) +
+			  bcd2bin(alm_tm->tm_year >> 8) * 100;
+#else
 		alm_tm->tm_year = bcd2bin(alm_tm->tm_year);
-	else
+#endif
+	} else {
 		alm_tm->tm_year = -1;
+	}
 
 	return 0;
 }
@@ -252,11 +313,20 @@ static int s3c_rtc_setalarm(struct device *dev, struct rtc_wkalrm *alrm)
 	void __iomem *base = s3c_rtc_base;
 	unsigned int alrm_en;
 
+#if defined(CONFIG_CPU_S5PV210)
+	int year = tm->tm_year;
+	int year100;
+#else
+	int year = tm->tm_year - 100;
+#endif
+
 	pr_debug("s3c_rtc_setalarm: %d, %04d.%02d.%02d %02d:%02d:%02d\n",
 		 alrm->enabled,
 		 1900 + tm->tm_year, tm->tm_mon, tm->tm_mday,
 		 tm->tm_hour, tm->tm_min, tm->tm_sec);
 
+
+	s3c_rtc_enable(dev, 1);
 
 	alrm_en = readb(base + S3C2410_RTCALM) & S3C2410_RTCALM_ALMEN;
 	writeb(0x00, base + S3C2410_RTCALM);
@@ -276,6 +346,35 @@ static int s3c_rtc_setalarm(struct device *dev, struct rtc_wkalrm *alrm)
 		writeb(bin2bcd(tm->tm_hour), base + S3C2410_ALMHOUR);
 	}
 
+	if (tm->tm_mday >= 0) {
+		alrm_en |= S3C2410_RTCALM_DAYEN;
+		writeb(bin2bcd(tm->tm_mday), base + S3C2410_ALMDATE);
+	}
+
+	if (tm->tm_mon < 13 && tm->tm_mon >= 0) {
+		alrm_en |= S3C2410_RTCALM_MONEN;
+		writeb(bin2bcd(tm->tm_mon + 1), base + S3C2410_ALMMON);
+	}
+
+#if defined(CONFIG_CPU_S5PV210)
+	if (year < 1000 && year >= 0) {
+		alrm_en |= S3C2410_RTCALM_YEAREN;
+		year100 = year/100;
+		year = year%100;
+		year = bin2bcd(year) | ((bin2bcd(year100)) << 8);
+		year = (0x00000fff & year);
+		pr_debug("year %x\n", year);
+		writel(year, base + S3C2410_ALMYEAR);
+	}
+#else
+	if (year < 100 && year >= 0) {
+		alrm_en |= S3C2410_RTCALM_YEAREN;
+		writeb(bin2bcd(year), base + S3C2410_ALMYEAR);
+	}
+#endif
+
+	s3c_rtc_enable(dev, 0);
+
 	pr_debug("setting S3C2410_RTCALM to %08x\n", alrm_en);
 
 	writeb(alrm_en, base + S3C2410_RTCALM);
@@ -287,17 +386,10 @@ static int s3c_rtc_setalarm(struct device *dev, struct rtc_wkalrm *alrm)
 
 static int s3c_rtc_proc(struct device *dev, struct seq_file *seq)
 {
-	unsigned int ticnt;
+	unsigned int ticnt = readw(s3c_rtc_base + S3C2410_TICNT);
 
-	if (s3c_rtc_cpu_type == TYPE_S3C64XX) {
-		ticnt = readw(s3c_rtc_base + S3C2410_RTCCON);
-		ticnt &= S3C64XX_RTCCON_TICEN;
-	} else {
-		ticnt = readb(s3c_rtc_base + S3C2410_TICNT);
-		ticnt &= S3C2410_TICNT_ENABLE;
-	}
-
-	seq_printf(seq, "periodic_IRQ\t: %s\n", ticnt  ? "yes" : "no");
+	seq_printf(seq, "periodic_IRQ\t: %s\n",
+		     (ticnt & S3C2410_TICNT_ENABLE) ? "yes" : "no");
 	return 0;
 }
 
@@ -315,6 +407,7 @@ static int s3c_rtc_open(struct device *dev)
 		return ret;
 	}
 
+#ifndef CONFIG_HRT_RTC
 	ret = request_irq(s3c_rtc_tickno, s3c_rtc_tickirq,
 			  IRQF_DISABLED,  "s3c2410-rtc tick", rtc_dev);
 
@@ -322,12 +415,15 @@ static int s3c_rtc_open(struct device *dev)
 		dev_err(dev, "IRQ%d error %d\n", s3c_rtc_tickno, ret);
 		goto tick_err;
 	}
+#endif
 
 	return ret;
 
+#ifndef CONFIG_HRT_RTC
  tick_err:
 	free_irq(s3c_rtc_alarmno, rtc_dev);
 	return ret;
+#endif
 }
 
 static void s3c_rtc_release(struct device *dev)
@@ -335,10 +431,14 @@ static void s3c_rtc_release(struct device *dev)
 	struct platform_device *pdev = to_platform_device(dev);
 	struct rtc_device *rtc_dev = platform_get_drvdata(pdev);
 
+#ifndef CONFIG_HRT_RTC
 	/* do not clear AIE here, it may be needed for wake */
 
 	free_irq(s3c_rtc_alarmno, rtc_dev);
 	free_irq(s3c_rtc_tickno, rtc_dev);
+#endif
+	free_irq(s3c_rtc_alarmno, rtc_dev);
+
 }
 
 static const struct rtc_class_ops s3c_rtcops = {
@@ -352,7 +452,7 @@ static const struct rtc_class_ops s3c_rtcops = {
 	.alarm_irq_enable = s3c_rtc_setaie,
 };
 
-static void s3c_rtc_enable(struct platform_device *pdev, int en)
+static void s3c_rtc_enable(struct device *dev, int en)
 {
 	void __iomem *base = s3c_rtc_base;
 	unsigned int tmp;
@@ -362,21 +462,17 @@ static void s3c_rtc_enable(struct platform_device *pdev, int en)
 
 	if (!en) {
 		tmp = readw(base + S3C2410_RTCCON);
-		if (s3c_rtc_cpu_type == TYPE_S3C64XX)
-			tmp &= ~S3C64XX_RTCCON_TICEN;
-		tmp &= ~S3C2410_RTCCON_RTCEN;
-		writew(tmp, base + S3C2410_RTCCON);
-
-		if (s3c_rtc_cpu_type == TYPE_S3C2410) {
-			tmp = readb(base + S3C2410_TICNT);
-			tmp &= ~S3C2410_TICNT_ENABLE;
-			writeb(tmp, base + S3C2410_TICNT);
-		}
+#ifdef CONFIG_HRT_RTC
+		writew(tmp & ~(S3C2410_RTCCON_RTCEN), base + S3C2410_RTCCON);
+#else
+		writew(tmp & ~(S3C2410_RTCCON_RTCEN | S3C_RTCCON_TICEN),
+			     base + S3C2410_RTCCON);
+#endif /* CONFIG_HRT_RTC */
 	} else {
 		/* re-enable the device, and check it is ok */
 
 		if ((readw(base+S3C2410_RTCCON) & S3C2410_RTCCON_RTCEN) == 0) {
-			dev_info(&pdev->dev, "rtc disabled, re-enabling\n");
+			dev_info(dev, "rtc disabled, re-enabling\n");
 
 			tmp = readw(base + S3C2410_RTCCON);
 			writew(tmp | S3C2410_RTCCON_RTCEN,
@@ -384,7 +480,7 @@ static void s3c_rtc_enable(struct platform_device *pdev, int en)
 		}
 
 		if ((readw(base + S3C2410_RTCCON) & S3C2410_RTCCON_CNTSEL)) {
-			dev_info(&pdev->dev, "removing RTCCON_CNTSEL\n");
+			dev_info(dev, "removing RTCCON_CNTSEL\n");
 
 			tmp = readw(base + S3C2410_RTCCON);
 			writew(tmp & ~S3C2410_RTCCON_CNTSEL,
@@ -392,7 +488,7 @@ static void s3c_rtc_enable(struct platform_device *pdev, int en)
 		}
 
 		if ((readw(base + S3C2410_RTCCON) & S3C2410_RTCCON_CLKRST)) {
-			dev_info(&pdev->dev, "removing RTCCON_CLKRST\n");
+			dev_info(dev, "removing RTCCON_CLKRST\n");
 
 			tmp = readw(base + S3C2410_RTCCON);
 			writew(tmp & ~S3C2410_RTCCON_CLKRST,
@@ -426,7 +522,13 @@ static int __devinit s3c_rtc_probe(struct platform_device *pdev)
 	struct rtc_device *rtc;
 	struct rtc_time rtc_tm;
 	struct resource *res;
+	unsigned char bcd_tmp, bcd_loop;
 	int ret;
+	struct rtc_time tm;
+	int year;
+#if defined(CONFIG_CPU_S5PV210)
+	int year100;
+#endif
 
 	pr_debug("%s: probe=%p\n", __func__, pdev);
 
@@ -484,12 +586,75 @@ static int __devinit s3c_rtc_probe(struct platform_device *pdev)
 
 	/* check to see if everything is setup correctly */
 
-	s3c_rtc_enable(pdev, 1);
 
 	pr_debug("s3c2410_rtc: RTCCON=%02x\n",
 		 readw(s3c_rtc_base + S3C2410_RTCCON));
+#ifdef CONFIG_PM
+	s3c_rtc_setfreq(&pdev->dev, 0);
+#else
+	s3c_rtc_setfreq(&pdev->dev, 1);
+#endif
 
 	device_init_wakeup(&pdev->dev, 1);
+
+
+	s3c_rtc_cpu_type = platform_get_device_id(pdev)->driver_data;
+
+	max8998_rtc_read_time_hack(&tm);
+
+	/* update time from pmic */
+
+
+#if defined(CONFIG_CPU_S5PV210)
+	year = tm.tm_year;
+#else
+	year = tm.tm_year - 100;
+#endif
+
+#if defined(CONFIG_CPU_S5PV210)
+	if (year < 0 || year >= 1000) {
+		dev_err(&pdev->dev, "rtc only supports 0 ~ 999 years\n");
+#else
+	if (year < 0 || year >= 100) {
+		dev_err(&pdev->dev, "rtc only supports 100 years\n");
+#endif
+		/* Set the default time. 2010:1:1:12:0:0 */
+		year = 110;
+		tm.tm_mon = 0;
+		tm.tm_mday = 1;
+		tm.tm_hour = 12;
+		tm.tm_min = 0;
+		tm.tm_sec = 0;
+	}
+
+	s3c_rtc_enable(&pdev->dev, 1);
+
+	writeb(bin2bcd(tm.tm_sec),  s3c_rtc_base + S3C2410_RTCSEC);
+	writeb(bin2bcd(tm.tm_min),  s3c_rtc_base + S3C2410_RTCMIN);
+	writeb(bin2bcd(tm.tm_hour), s3c_rtc_base + S3C2410_RTCHOUR);
+	writeb(bin2bcd(tm.tm_mday), s3c_rtc_base + S3C2410_RTCDATE);
+	writeb(bin2bcd(tm.tm_mon + 1), s3c_rtc_base + S3C2410_RTCMON);
+
+#if defined(CONFIG_CPU_S5PV210)
+	year100 = year/100;
+	year = year%100;
+	year = bin2bcd(year) | ((bin2bcd(year100)) << 8);
+	year = (0x00000fff & year);
+	pr_debug("year %x\n", year);
+	writel(year, s3c_rtc_base + S3C2410_RTCYEAR);
+#else
+	writeb(bin2bcd(year), s3c_rtc_base + S3C2410_RTCYEAR);
+#endif
+
+	/* check rtc time */
+	for (bcd_loop = S3C2410_RTCSEC; bcd_loop <= S3C2410_RTCYEAR
+					; bcd_loop += 0x4)	{
+		bcd_tmp = readw(s3c_rtc_base + bcd_loop);
+		if (((bcd_tmp & 0xf) > 0x9) || ((bcd_tmp & 0xf0) > 0x90))
+			writew(0, s3c_rtc_base + bcd_loop);
+	}
+
+	s3c_rtc_enable(&pdev->dev, 0);
 
 	/* register RTC and exit */
 
@@ -500,25 +665,6 @@ static int __devinit s3c_rtc_probe(struct platform_device *pdev)
 		dev_err(&pdev->dev, "cannot attach rtc\n");
 		ret = PTR_ERR(rtc);
 		goto err_nortc;
-	}
-
-	s3c_rtc_cpu_type = platform_get_device_id(pdev)->driver_data;
-
-	/* Check RTC Time */
-
-	s3c_rtc_gettime(NULL, &rtc_tm);
-
-	if (rtc_valid_tm(&rtc_tm)) {
-		rtc_tm.tm_year	= 100;
-		rtc_tm.tm_mon	= 0;
-		rtc_tm.tm_mday	= 1;
-		rtc_tm.tm_hour	= 0;
-		rtc_tm.tm_min	= 0;
-		rtc_tm.tm_sec	= 0;
-
-		s3c_rtc_settime(NULL, &rtc_tm);
-
-		dev_warn(&pdev->dev, "warning: invalid RTC value so initializing it\n");
 	}
 
 	if (s3c_rtc_cpu_type == TYPE_S3C64XX)
@@ -533,7 +679,6 @@ static int __devinit s3c_rtc_probe(struct platform_device *pdev)
 	return 0;
 
  err_nortc:
-	s3c_rtc_enable(pdev, 0);
 	clk_disable(rtc_clk);
 	clk_put(rtc_clk);
 
@@ -551,17 +696,15 @@ static int __devinit s3c_rtc_probe(struct platform_device *pdev)
 
 /* RTC Power management control */
 
-static int ticnt_save, ticnt_en_save;
+static int ticnt_save;
 
 static int s3c_rtc_suspend(struct platform_device *pdev, pm_message_t state)
 {
+	struct timespec time;
+
+	time.tv_nsec = 0;
 	/* save TICNT for anyone using periodic interrupts */
-	ticnt_save = readb(s3c_rtc_base + S3C2410_TICNT);
-	if (s3c_rtc_cpu_type == TYPE_S3C64XX) {
-		ticnt_en_save = readw(s3c_rtc_base + S3C2410_RTCCON);
-		ticnt_en_save &= S3C64XX_RTCCON_TICEN;
-	}
-	s3c_rtc_enable(pdev, 0);
+	ticnt_save = readl(s3c_rtc_base + S3C2410_TICNT);
 
 	if (device_may_wakeup(&pdev->dev) && !wake_en) {
 		if (enable_irq_wake(s3c_rtc_alarmno) == 0)
@@ -575,14 +718,11 @@ static int s3c_rtc_suspend(struct platform_device *pdev, pm_message_t state)
 
 static int s3c_rtc_resume(struct platform_device *pdev)
 {
-	unsigned int tmp;
+	struct timespec time;
 
-	s3c_rtc_enable(pdev, 1);
-	writeb(ticnt_save, s3c_rtc_base + S3C2410_TICNT);
-	if (s3c_rtc_cpu_type == TYPE_S3C64XX && ticnt_en_save) {
-		tmp = readw(s3c_rtc_base + S3C2410_RTCCON);
-		writew(tmp | ticnt_en_save, s3c_rtc_base + S3C2410_RTCCON);
-	}
+	time.tv_nsec = 0;
+
+	writel(ticnt_save, s3c_rtc_base + S3C2410_TICNT);
 
 	if (device_may_wakeup(&pdev->dev) && wake_en) {
 		disable_irq_wake(s3c_rtc_alarmno);
@@ -621,7 +761,8 @@ static struct platform_driver s3c_rtc_driver = {
 	},
 };
 
-static char __initdata banner[] = "S3C24XX RTC, (c) 2004,2006 Simtec Electronics\n";
+static char __initdata banner[] = "S3C24XX RTC, (c) 2004,2006 "
+				  "Simtec Electronics\n";
 
 static int __init s3c_rtc_init(void)
 {
