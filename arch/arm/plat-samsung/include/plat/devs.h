@@ -97,6 +97,8 @@ extern struct platform_device s5p_device_onenand;
 
 extern struct platform_device s3c_device_usbgadget;
 extern struct platform_device s3c_device_usb_hsudc;
+extern struct platform_device s3c_device_android_usb;
+extern struct platform_device s3c_device_usb_mass_storage;
 extern struct platform_device s3c_device_usb_hsotg;
 
 extern struct platform_device s5pv210_device_ac97;
