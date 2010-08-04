@@ -48,6 +48,12 @@ static inline s3c_gpio_pull_t s3c_gpio_do_getpull(struct s3c_gpio_chip *chip,
 	return chip->config->get_pull(chip, off);
 }
 
+static inline int s3c_gpio_do_setpin(struct s3c_gpio_chip *chip,
+				      unsigned int off, s3c_gpio_pull_t level)
+{
+	return (chip->config->set_pin)(chip, off, level);
+}
+
 /**
  * s3c_gpio_setcfg_s3c24xx - S3C24XX style GPIO configuration.
  * @chip: The gpio chip that is being configured.
