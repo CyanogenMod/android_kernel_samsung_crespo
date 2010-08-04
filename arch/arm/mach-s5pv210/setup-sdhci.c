@@ -24,7 +24,6 @@
 #include <plat/sdhci.h>
 
 #include <plat/gpio-cfg.h>
-#include <mach/gpio-bank.h>
 #include <mach/regs-gpio.h>
 #include <mach/gpio.h>
 
