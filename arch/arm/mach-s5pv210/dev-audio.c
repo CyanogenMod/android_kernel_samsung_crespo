@@ -63,13 +63,13 @@ static struct resource s5pv210_iis0_resource[] = {
 		.flags = IORESOURCE_MEM,
 	},
 	[1] = {
-		.start = DMACH_I2S0_TX,
-		.end   = DMACH_I2S0_TX,
+		.start = DMACH_I2S0_OUT,
+		.end   = DMACH_I2S0_OUT,
 		.flags = IORESOURCE_DMA,
 	},
 	[2] = {
-		.start = DMACH_I2S0_RX,
-		.end   = DMACH_I2S0_RX,
+		.start = DMACH_I2S0_IN,
+		.end   = DMACH_I2S0_IN,
 		.flags = IORESOURCE_DMA,
 	},
 	[3] = {
@@ -80,8 +80,8 @@ static struct resource s5pv210_iis0_resource[] = {
 };
 
 struct platform_device s5pv210_device_iis0 = {
-	.name = "samsung-i2s",
-	.id = 0,
+	.name		  = "s5pc1xx-iis",
+	.id		  = 0,
 	.num_resources	  = ARRAY_SIZE(s5pv210_iis0_resource),
 	.resource	  = s5pv210_iis0_resource,
 	.dev = {
