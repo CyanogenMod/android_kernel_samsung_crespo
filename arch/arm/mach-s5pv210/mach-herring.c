@@ -2838,6 +2838,7 @@ static void __init herring_map_io(void)
 {
 	s5p_init_io(NULL, 0, S5P_VA_CHIPID);
 	s3c24xx_init_clocks(24000000);
+	s5pv210_gpiolib_init();
 	s3c24xx_init_uarts(herring_uartcfgs, ARRAY_SIZE(herring_uartcfgs));
 #ifndef CONFIG_S5P_HIGH_RES_TIMERS
 	s5p_set_timer_source(S5P_PWM3, S5P_PWM4);
