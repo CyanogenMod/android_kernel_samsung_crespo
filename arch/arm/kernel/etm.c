@@ -299,7 +299,7 @@ static void etm_dump(void)
 	etb_lock(t);
 }
 
-static void sysrq_etm_dump(int key, struct tty_struct *tty)
+static void sysrq_etm_dump(int key)
 {
 	if (!mutex_trylock(&tracer.mutex)) {
 		printk(KERN_INFO "Tracing hardware busy\n");
