@@ -575,16 +575,16 @@ static struct clk init_clocks[] = {
 		.parent		= &clk_hclk_msys.clk,
 		.enable		= s5pv210_clk_ip0_ctrl,
 		.ctrlbit	= (1<<16),
-	}, { 
+	}, {
 		.name		= "i2s_v50",
 		.id		= 0,
 		.parent		= &clk_p,
 		.enable		= s5pv210_clk_ip3_ctrl,
-		.ctrlbit	= S5P_CLKGATE_IP3_I2S0 | S5P_CLKGATE_IP3_PCM0, /* I2S0 is v5.0 */
-	},{	
-		.name           = "clk_out",
-        	.id             = -1,
-        	.ops		= &s5pc11x_clkout_ops,
+		.ctrlbit	= S5P_CLKGATE_IP3_I2S0 | S5P_CLKGATE_IP3_PCM0,
+	}, {
+		.name		= "clk_out",
+		.id		= -1,
+		.ops		= &s5pc11x_clkout_ops,
 	},
 };
 
@@ -683,61 +683,51 @@ static struct clksrc_sources clkset_sclk_mixer = {
 
 static int s5pc11x_clk_out_set_rate(struct clk *clk, unsigned long rate)
 {
-        u32 val = 0, div = 0, rate_div = 1;
-        int err = -EINVAL;
-        if(rate && clk->parent)
-        {
-                if(clk->parent == &clk_fout_apll)
-                        rate_div = 4;
-                if(clk->parent == &clk_fout_mpll)
-                        rate_div = 2;
+	u32 val = 0, div = 0, rate_div = 1;
+	int err = -EINVAL;
 
-                div = clk_get_rate(clk->parent) / rate/ rate_div;
-                val = __raw_readl(S5P_CLK_OUT);
-                val &= (~(0xF << 20));
-                val |= (div - 1) << 20;
-                __raw_writel(val, S5P_CLK_OUT);
-                err = 0;
-        }
-        return err;
+	if (rate && clk->parent) {
+		if (clk->parent == &clk_fout_apll)
+			rate_div = 4;
+		if (clk->parent == &clk_fout_mpll)
+			rate_div = 2;
+
+		div = clk_get_rate(clk->parent) / rate / rate_div;
+		val = __raw_readl(S5P_CLK_OUT);
+		val &= (~(0xF << 20));
+		val |= (div - 1) << 20;
+		__raw_writel(val, S5P_CLK_OUT);
+		err = 0;
+	}
+	return err;
 }
 
 static int s5pc11x_clk_out_set_parent(struct clk *clk, struct clk *parent)
 {
-        u32 val = 0;
-        int err = 0;
-        clk->parent = parent;
-        val = __raw_readl(S5P_CLK_OUT);
+	u32 val = 0;
+	int err = 0;
+	clk->parent = parent;
+	val = __raw_readl(S5P_CLK_OUT);
 
-        if(parent == &clk_fout_apll)// rate is APLL/4
-	{
-                val = val & (~(0x1F << 12));
-                val |= (0x0 << 12);
-        }
-        else if(parent == &clk_fout_mpll)// rate is MPLL/2
-	{
-                val = val & (~(0x1F << 12));
-                val |= (0x1 << 12);
-        }
-        else if(parent == &clk_fout_epll)
-        {
-                val = val & (~(0x1F << 12));
-                val |= (0x2 << 12);
-        }
-        else if(parent == &clk_sclk_vpll.clk) 
-        {
-                val = val & (~(0x1F << 12));
-                val |= (0x3 << 12);
-        }
-        else
-        {
-                err = -EINVAL;
-        }
+	if (parent == &clk_fout_apll) {
+		val = val & (~(0x1F << 12));
+		val |= (0x0 << 12);
+	} else if (parent == &clk_fout_mpll) {
+		val = val & (~(0x1F << 12));
+		val |= (0x1 << 12);
+	} else if (parent == &clk_fout_epll) {
+		val = val & (~(0x1F << 12));
+		val |= (0x2 << 12);
+	} else if (parent == &clk_sclk_vpll.clk) {
+		val = val & (~(0x1F << 12));
+		val |= (0x3 << 12);
+	} else {
+		err = -EINVAL;
+	}
 
-        __raw_writel(val, S5P_CLK_OUT);
-        return err;
+	__raw_writel(val, S5P_CLK_OUT);
+	return err;
 }
-
 
 static struct clk *clkset_sclk_audio0_list[] = {
 	[0] = &clk_ext_xtal_mux,
@@ -814,8 +804,8 @@ static struct clksrc_clk clk_dout_audio_bus_clk_i2s = {
 	.clk		= {
 		.name		= "dout_audio_bus_clk_i2s",
 		.id		= -1,
-		.parent 	= &clk_mout_audss,
-		.enable 	= s5pv210_clk_audss_ctrl,
+		.parent		= &clk_mout_audss,
+		.enable		= s5pv210_clk_audss_ctrl,
 		.ctrlbit	= (1 << 5),
 	},
 	.reg_div	= { .reg = S5P_CLKDIV_AUDSS, .shift = 0, .size = 4 },
@@ -1202,25 +1192,26 @@ static struct clksrc_clk clksrcs[] = {
 		.reg_div = { .reg = S5P_CLK_DIV5, .shift = 12, .size = 4 },
 	}, {
 		.clk		= {
-			.name		= "sclk_mdnie",	//"mdnie_sel"
+			.name		= "sclk_mdnie",
 			.id		= -1,
 			.enable		= s5pv210_clk_mask1_ctrl,
 			.ctrlbit	= (1 << 0),
 		},
 		.sources	= &clkset_group2,
-		.reg_src	= { .reg = S5P_CLK_SRC3, .shift = 0, .size = 4 },
+		.reg_src	= { .reg = S5P_CLK_SRC3, .shift = 0,
+				    .size = 4 },
 		.reg_div = { .reg = S5P_CLK_DIV3, .shift = 0, .size = 4 },
 	}, {
 		.clk		= {
-			.name		= "sclk_mdnie_pwm",	//"mdnie_pwmclk_sel"
+			.name		= "sclk_mdnie_pwm",
 			.id		= -1,
 			.enable		= s5pv210_clk_mask1_ctrl,
 			.ctrlbit	= (1 << 1),
 		},
 		.sources	= &clkset_group2,
-		.reg_src	= { .reg = S5P_CLK_SRC3, .shift = 4, .size = 4 },
+		.reg_src	= { .reg = S5P_CLK_SRC3, .shift = 4,
+				    .size = 4 },
 		.reg_div = { .reg = S5P_CLK_DIV3, .shift = 4, .size = 4 },
-
 	},
 };
 
@@ -1403,43 +1394,33 @@ void __init_or_cpufreq s5pv210_setup_clocks(void)
 	/*Assign clock source and rates for IP's*/
 	for (ptr = 0; ptr < ARRAY_SIZE(clksrcs); ptr++) {
 		pclkSrc = &clksrcs[ptr];
-		if(!strcmp(pclkSrc->clk.name, "sclk_mdnie"))
-		{
+		if (!strcmp(pclkSrc->clk.name, "sclk_mdnie")) {
 			clk_set_parent(&pclkSrc->clk, &clk_mout_mpll.clk);
-			clk_set_rate(&pclkSrc->clk, 167*MHZ);  //clk_mdnie_sel.clk
-		}
-		else if(!strcmp(pclkSrc->clk.name, "sclk_mmc"))
-		{
+			clk_set_rate(&pclkSrc->clk, 167*MHZ);
+		} else if (!strcmp(pclkSrc->clk.name, "sclk_mmc")) {
 			clk_set_parent(&pclkSrc->clk, &clk_mout_mpll.clk);
 
-			if(pclkSrc->clk.id == 0) 
+			if (pclkSrc->clk.id == 0)
 				clk_set_rate(&pclkSrc->clk, 52*MHZ);
 			else
 				clk_set_rate(&pclkSrc->clk, 50*MHZ);
-		}
-		else if(!strcmp(pclkSrc->clk.name, "sclk_spi"))//spi0, spi1
-		{
+		} else if (!strcmp(pclkSrc->clk.name, "sclk_spi")) {
 			clk_set_parent(&pclkSrc->clk, &clk_mout_epll.clk);
-		}
-		else if(!strcmp(pclkSrc->clk.name, "sclk_cam")&& (pclkSrc->clk.id == 0))//cam0
-		{
+		} else if (!strcmp(pclkSrc->clk.name, "sclk_cam") &&
+			   (pclkSrc->clk.id == 0)) {
 			clk_set_parent(&pclkSrc->clk, &clk_xusbxti);
-		}
-		else if(!strcmp(pclkSrc->clk.name, "sclk_g2d"))
-		{
+		} else if (!strcmp(pclkSrc->clk.name, "sclk_g2d")) {
 			clk_set_parent(&pclkSrc->clk, &clk_mout_mpll.clk);
 			clk_set_rate(&pclkSrc->clk, 250*MHZ);
-		}
-		else if(!strcmp(pclkSrc->clk.name, "uclk1"))
-		{
+		} else if (!strcmp(pclkSrc->clk.name, "uclk1")) {
 			clk_set_parent(&pclkSrc->clk, &clk_mout_mpll.clk);
 
-			if(pclkSrc->clk.id == 0)
+			if (pclkSrc->clk.id == 0)
 				clk_set_rate(&pclkSrc->clk, 133400000);
 			else
 				clk_set_rate(&pclkSrc->clk, 66700000);
 		}
-		/*Display the clock source*/
+		/* Display the clock source */
 		s3c_set_clksrc(pclkSrc, true);
 	}
 }
