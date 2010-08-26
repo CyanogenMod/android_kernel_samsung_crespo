@@ -97,21 +97,21 @@ static struct android_usb_product usb_products[] = {
 	},
 	*/
 };
-// serial number should be changed as real device for commercial release
-static char device_serial[MAX_USB_SERIAL_NUM]="0123456789ABCDEF";
+
+static char device_serial[MAX_USB_SERIAL_NUM] = "0123456789ABCDEF";
 /* standard android USB platform data */
 
-// Information should be changed as real product for commercial release
+/* Information should be changed as real product for commercial release */
 static struct android_usb_platform_data android_usb_pdata = {
 	.vendor_id		= S3C_VENDOR_ID,
 	.product_id		= S3C_PRODUCT_ID,
-	.manufacturer_name	= "Samsung",//"Samsung",
-	.product_name		= "Samsung S5PC110",//"Samsung SMDKV210",
+	.manufacturer_name	= "Samsung",
+	.product_name		= "Samsung S5PC110",
 	.serial_number		= device_serial,
-	.num_products 		= ARRAY_SIZE(usb_products),
-	.products 		= usb_products,
-	.num_functions 		= ARRAY_SIZE(usb_functions_all),
-	.functions 		= usb_functions_all,
+	.num_products		= ARRAY_SIZE(usb_products),
+	.products		= usb_products,
+	.num_functions		= ARRAY_SIZE(usb_functions_all),
+	.functions		= usb_functions_all,
 };
 
 struct platform_device s3c_device_android_usb = {
@@ -121,22 +121,22 @@ struct platform_device s3c_device_android_usb = {
 		.platform_data	= &android_usb_pdata,
 	},
 };
-EXPORT_SYMBOL(s3c_device_android_usb);
 
 static struct usb_mass_storage_platform_data ums_pdata = {
-	.vendor			= "Android   ",//"Samsung",
-	.product		= "UMS Composite",//"SMDKV210",
+	.vendor			= "Android",
+	.product		= "UMS Composite",
 	.release		= 1,
 	.nluns			= 1,
 };
-struct platform_device s3c_device_usb_mass_storage= {
+
+struct platform_device s3c_device_usb_mass_storage = {
 	.name	= "usb_mass_storage",
 	.id	= -1,
 	.dev	= {
 		.platform_data = &ums_pdata,
 	},
 };
-EXPORT_SYMBOL(s3c_device_usb_mass_storage);
+
 /* RTC */
 static struct resource s5p_rtc_resource[] = {
 	[0] = {
@@ -287,11 +287,7 @@ void __init s3cfb_set_platdata(struct s3c_platform_fb *pd)
 		npd->nr_buffers[npd->default_win] = CONFIG_FB_S3C_NR_BUFFERS;
 
 		s3cfb_get_clk_name(npd->clk_name);
-		//npd->cfg_gpio = s3cfb_cfg_gpio;
-		//npd->backlight_onoff = s3cfb_backlight_onoff;
 		npd->backlight_onoff = NULL;
-		//npd->reset_lcd = s3cfb_reset_lcd;
-		//npd->reset_lcd =NULL;
 		npd->clk_on = s3cfb_clk_on;
 		npd->clk_off = s3cfb_clk_off;
 
@@ -491,7 +487,6 @@ struct platform_device s3c_device_jpeg = {
 	.num_resources    = ARRAY_SIZE(s3c_jpeg_resource),
 	.resource         = s3c_jpeg_resource,
 };
-EXPORT_SYMBOL(s3c_device_jpeg);
 #endif /* CONFIG_VIDEO_JPEG_V2 */
 
 #ifdef CONFIG_VIDEO_ROTATOR
@@ -515,7 +510,6 @@ struct platform_device s5p_device_rotator = {
 	.num_resources	= ARRAY_SIZE(s5p_rotator_resource),
 	.resource	= s5p_rotator_resource
 };
-EXPORT_SYMBOL(s5p_device_rotator);
 #endif
 
 #ifdef CONFIG_VIDEO_TV20
@@ -569,7 +563,6 @@ struct platform_device s5p_device_tvout = {
 	.num_resources  = ARRAY_SIZE(s5p_tvout_resources),
 	.resource       = s5p_tvout_resources,
 };
-EXPORT_SYMBOL(s5p_device_tvout);
 
 /* CEC */
 static struct resource s5p_cec_resources[] = {
@@ -591,14 +584,12 @@ struct platform_device s5p_device_cec = {
 	.num_resources  = ARRAY_SIZE(s5p_cec_resources),
 	.resource       = s5p_cec_resources,
 };
-EXPORT_SYMBOL(s5p_device_cec);
 
 /* HPD */
 struct platform_device s5p_device_hpd = {
 	.name           = "s5p-hpd",
 	.id             = -1,
 };
-EXPORT_SYMBOL(s5p_device_hpd);
 #endif
 
 #ifdef CONFIG_USB_SUPPORT
@@ -629,7 +620,6 @@ struct platform_device s3c_device_usb_ehci = {
 		.coherent_dma_mask = 0xffffffffUL
 	}
 };
-EXPORT_SYMBOL(s3c_device_usb_ehci);
 #endif /* CONFIG_USB_ARCH_HAS_EHCI */
 
 #ifdef CONFIG_USB_ARCH_HAS_OHCI
@@ -659,7 +649,6 @@ struct platform_device s3c_device_usb_ohci = {
 		.coherent_dma_mask = 0xffffffffUL
 	}
 };
-EXPORT_SYMBOL(s3c_device_usb_ohci);
 #endif /* CONFIG_USB_ARCH_HAS_EHCI */
 
 /* USB Device (Gadget)*/
@@ -682,6 +671,5 @@ struct platform_device s3c_device_usbgadget = {
 	.num_resources	= ARRAY_SIZE(s3c_usbgadget_resource),
 	.resource	= s3c_usbgadget_resource,
 };
-EXPORT_SYMBOL(s3c_device_usbgadget);
 #endif
 
