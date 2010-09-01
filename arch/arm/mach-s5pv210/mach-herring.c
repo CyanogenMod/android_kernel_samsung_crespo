@@ -1312,6 +1312,12 @@ static struct i2c_board_info i2c_devs10[] __initdata = {
 	},
 };
 
+static struct i2c_board_info i2c_devs5[] __initdata = {
+	{
+		I2C_BOARD_INFO("kr3dm", 0x09),
+	},
+};
+
 static struct i2c_board_info i2c_devs7[] __initdata = {
 	{
 		I2C_BOARD_INFO("fsa9480", 0x4A >> 1),
@@ -2496,6 +2502,7 @@ static struct platform_device *herring_devices[] __initdata = {
 	&s3c_device_i2c2,
 #endif
 	&herring_i2c4_device,
+	&herring_i2c5_device,  /* accel sensor */
 	&herring_i2c6_device,
 	&herring_i2c7_device,
 	&herring_i2c9_device,  /* max1704x:fuel_guage */
@@ -2775,6 +2782,8 @@ static void __init herring_machine_init(void)
 	i2c_register_board_info(1, i2c_devs1, ARRAY_SIZE(i2c_devs1));
 	i2c_register_board_info(2, i2c_devs2, ARRAY_SIZE(i2c_devs2));
 	i2c_register_board_info(4, i2c_devs4, ARRAY_SIZE(i2c_devs4));
+	/* accel sensor */
+	i2c_register_board_info(5, i2c_devs5, ARRAY_SIZE(i2c_devs5));
 	i2c_register_board_info(6, i2c_devs6, ARRAY_SIZE(i2c_devs6));
 	/* Touch Key */
 	i2c_register_board_info(10, i2c_devs10, ARRAY_SIZE(i2c_devs10));
