@@ -27,8 +27,6 @@
 #include <mach/regs-gpio.h>
 #include <mach/gpio.h>
 
-extern unsigned int HWREV;
-
 /* clock sources for the mmc bus clock, order as for the ctrl2[5..4] */
 
 char *s5pv210_hsmmc_clksrcs[4] = {
