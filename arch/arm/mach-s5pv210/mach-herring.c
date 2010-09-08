@@ -49,6 +49,10 @@
 #include <mach/media.h>
 #endif
 
+#ifdef CONFIG_S5PV210_POWER_DOMAIN
+#include <mach/power-domain.h>
+#endif
+
 #include <plat/regs-serial.h>
 #include <plat/s5pv210.h>
 #include <plat/devs.h>
@@ -2541,6 +2545,15 @@ static struct platform_device *herring_devices[] __initdata = {
 #endif
 
 	&sec_device_battery,
+
+#ifdef CONFIG_S5PV210_POWER_DOMAIN
+	&s5pv210_pd_audio,
+	&s5pv210_pd_cam,
+	&s5pv210_pd_tv,
+	&s5pv210_pd_lcd,
+	&s5pv210_pd_mfc,
+#endif
+
 #ifdef CONFIG_ANDROID_PMEM
 	&pmem_device,
 	&pmem_gpu1_device,
