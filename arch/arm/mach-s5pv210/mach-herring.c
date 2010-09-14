@@ -49,9 +49,9 @@
 
 #ifdef CONFIG_ANDROID_PMEM
 #include <linux/android_pmem.h>
+#endif
 #include <plat/media.h>
 #include <mach/media.h>
-#endif
 
 #ifdef CONFIG_S5PV210_POWER_DOMAIN
 #include <mach/power-domain.h>
@@ -203,6 +203,90 @@ static struct s3c2410_uartcfg herring_uartcfgs[] __initdata = {
 		.ucon		= S5PV210_UCON_DEFAULT,
 		.ulcon		= S5PV210_ULCON_DEFAULT,
 		.ufcon		= S5PV210_UFCON_DEFAULT,
+	},
+};
+
+#define  S5PV210_VIDEO_SAMSUNG_MEMSIZE_FIMC0 (6144 * SZ_1K)
+#define  S5PV210_VIDEO_SAMSUNG_MEMSIZE_FIMC1 (9900 * SZ_1K)
+#define  S5PV210_VIDEO_SAMSUNG_MEMSIZE_FIMC2 (6144 * SZ_1K)
+#define  S5PV210_VIDEO_SAMSUNG_MEMSIZE_MFC0 (36864 * SZ_1K)
+#define  S5PV210_VIDEO_SAMSUNG_MEMSIZE_MFC1 (36864 * SZ_1K)
+#define  S5PV210_VIDEO_SAMSUNG_MEMSIZE_FIMD (4800 * SZ_1K)
+#define  S5PV210_ANDROID_PMEM_MEMSIZE_PMEM (1024 * SZ_1K)
+#define  S5PV210_ANDROID_PMEM_MEMSIZE_PMEM_GPU1 (8192 * SZ_1K)
+#define  S5PV210_ANDROID_PMEM_MEMSIZE_PMEM_ADSP (3600 * SZ_1K)
+#define  S5PV210_VIDEO_SAMSUNG_MEMSIZE_JPEG (8192 * SZ_1K)
+
+static struct s5p_media_device herring_media_devs[] = {
+	[0] = {
+		.id = S5P_MDEV_MFC,
+		.name = "mfc",
+		.bank = 0,
+		.memsize = S5PV210_VIDEO_SAMSUNG_MEMSIZE_MFC0,
+		.paddr = 0,
+	},
+	[1] = {
+		.id = S5P_MDEV_MFC,
+		.name = "mfc",
+		.bank = 1,
+		.memsize = S5PV210_VIDEO_SAMSUNG_MEMSIZE_MFC1,
+		.paddr = 0,
+	},
+	[2] = {
+		.id = S5P_MDEV_FIMC0,
+		.name = "fimc0",
+		.bank = 1,
+		.memsize = S5PV210_VIDEO_SAMSUNG_MEMSIZE_FIMC0,
+		.paddr = 0,
+	},
+	[3] = {
+		.id = S5P_MDEV_FIMC1,
+		.name = "fimc1",
+		.bank = 1,
+		.memsize = S5PV210_VIDEO_SAMSUNG_MEMSIZE_FIMC1,
+		.paddr = 0,
+	},
+	[4] = {
+		.id = S5P_MDEV_FIMC2,
+		.name = "fimc2",
+		.bank = 1,
+		.memsize = S5PV210_VIDEO_SAMSUNG_MEMSIZE_FIMC2,
+		.paddr = 0,
+	},
+	[5] = {
+		.id = S5P_MDEV_PMEM,
+		.name = "pmem",
+		.memsize = S5PV210_ANDROID_PMEM_MEMSIZE_PMEM,
+		.paddr = 0,
+		.bank = 0, /* OneDRAM */
+	},
+	[6] = {
+		.id = S5P_MDEV_PMEM_GPU1,
+		.name = "pmem_gpu1",
+		.memsize = S5PV210_ANDROID_PMEM_MEMSIZE_PMEM_GPU1,
+		.paddr = 0,
+		.bank = 0, /* OneDRAM */
+	},
+	[7] = {
+		.id = S5P_MDEV_PMEM_ADSP,
+		.name = "pmem_adsp",
+		.memsize = S5PV210_ANDROID_PMEM_MEMSIZE_PMEM_ADSP,
+		.paddr = 0,
+		.bank = 0, /* OneDRAM */
+	},
+	[8] = {
+		.id = S5P_MDEV_JPEG,
+		.name = "jpeg",
+		.bank = 0,
+		.memsize = S5PV210_VIDEO_SAMSUNG_MEMSIZE_JPEG,
+		.paddr = 0,
+	},
+	[9] = {
+		.id = S5P_MDEV_FIMD,
+		.name = "fimd",
+		.bank = 1,
+		.memsize = S5PV210_VIDEO_SAMSUNG_MEMSIZE_FIMD,
+		.paddr = 0,
 	},
 };
 
@@ -2786,8 +2870,7 @@ static void __init herring_map_io(void)
 #ifndef CONFIG_S5P_HIGH_RES_TIMERS
 	s5p_set_timer_source(S5P_PWM3, S5P_PWM4);
 #endif
-	s5p_reserve_bootmem();
-
+	s5p_reserve_bootmem(herring_media_devs, ARRAY_SIZE(herring_media_devs));
 #ifdef CONFIG_MTD_ONENAND
 	s5p_device_onenand.name = "s5pc110-onenand";
 #endif
