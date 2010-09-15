@@ -28,6 +28,8 @@ obj-$(CONFIG_MACH_GONI)		+= mach-goni.o
 obj-$(CONFIG_MACH_TORBRECK)	+= mach-torbreck.o
 obj-$(CONFIG_MACH_S5PC110_CRESPO)	+= mach-herring.o herring-rfkill.o
 
+obj-$(CONFIG_CRESPO_LEGACY_MODEM)	+= dev-herring-phone.o
+
 # device support
 
 obj-y				+= dev-audio.o
