@@ -46,6 +46,7 @@ struct clk {
 	unsigned long         ctrlbit;
 
 	struct clk_ops		*ops;
+	struct device		*dev;
 	int		    (*enable)(struct clk *, int enable);
 #if defined(CONFIG_PM_DEBUG) && defined(CONFIG_DEBUG_FS)
 	struct dentry		*dent;	/* For visible tree hierarchy */
