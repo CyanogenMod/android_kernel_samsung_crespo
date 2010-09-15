@@ -798,6 +798,7 @@ static int tl2796_reset_lcd(struct platform_device *pdev)
 
 static int tl2796_backlight_on(struct platform_device *pdev)
 {
+	return 0;
 }
 
 static struct s3c_platform_fb tl2796_data __initdata = {
@@ -2833,67 +2834,6 @@ static struct platform_device *herring_devices[] __initdata = {
 
 unsigned int HWREV;
 EXPORT_SYMBOL(HWREV);
-
-static int read_hwversion(void)
-{
-	int err;
-	int hwver = -1;
-	int hwver_0 = -1;
-	int hwver_1 = -1;
-	int hwver_2 = -1;
-
-	err = gpio_request(S5PV210_GPJ0(2), "HWREV_MODE0");
-
-	if (err) {
-		printk(KERN_ERR "failed to request GPJ0(2) for "
-				"HWREV_MODE0\n");
-		return err;
-	}
-	err = gpio_request(S5PV210_GPJ0(3), "HWREV_MODE1");
-
-	if (err) {
-		printk(KERN_ERR "failed to request GPJ0(3) for "
-				"HWREV_MODE1\n");
-		return err;
-	}
-	err = gpio_request(S5PV210_GPJ0(4), "HWREV_MODE2");
-
-	if (err) {
-		printk(KERN_ERR "failed to request GPJ0(4) for "
-				"HWREV_MODE2\n");
-		return err;
-	}
-
-	gpio_direction_input(S5PV210_GPJ0(2));
-	gpio_direction_input(S5PV210_GPJ0(3));
-	gpio_direction_input(S5PV210_GPJ0(4));
-
-	hwver_0 = gpio_get_value(S5PV210_GPJ0(2));
-	hwver_1 = gpio_get_value(S5PV210_GPJ0(3));
-	hwver_2 = gpio_get_value(S5PV210_GPJ0(4));
-
-	gpio_free(S5PV210_GPJ0(2));
-	gpio_free(S5PV210_GPJ0(3));
-	gpio_free(S5PV210_GPJ0(4));
-
-	if ((hwver_0 == 0) && (hwver_1 == 1) && (hwver_2 == 0)) {
-		hwver = 2;
-		printk("+++++++++[I9000 Rev0.1 board]++++++++ hwver_0: %d, \
-			hwver_1: %d, hwver_2: %d\n", hwver_0, hwver_1, hwver_2);
-	} else if ((hwver_0 == 1) && (hwver_1 == 0) && (hwver_2 == 1)) {
-		hwver = 2;
-		printk("+++++++++[B5 board]++++++++ hwver_0: %d, \
-			hwver_1: %d, hwver_2: %d\n", hwver_0, hwver_1, hwver_2);
-	} else if ((hwver_0 == 0) && (hwver_1 == 1) && (hwver_2 == 1)) {
-		hwver = 2;
-		printk("+++++++++[ARIES B5 board]++++++++ hwver_0: %d, \
-			hwver_1: %d, hwver_2: %d\n", hwver_0, hwver_1, hwver_2);
-	} else {
-		hwver = 0;
-	}
-
-	return hwver;
-}
 
 static void __init herring_map_io(void)
 {
