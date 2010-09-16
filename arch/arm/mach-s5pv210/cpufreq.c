@@ -16,6 +16,7 @@
 #include <linux/err.h>
 #include <linux/clk.h>
 #include <linux/io.h>
+#include <linux/suspend.h>
 #include <linux/regulator/consumer.h>
 #include <linux/cpufreq.h>
 
@@ -554,6 +555,27 @@ static int __init s5pv210_cpu_init(struct cpufreq_policy *policy)
 	return cpufreq_frequency_table_cpuinfo(policy, s5pv210_freq_table);
 }
 
+static int s5pv210_cpufreq_notifier_event(struct notifier_block *this,
+		unsigned long event, void *ptr)
+{
+	int ret;
+
+	switch (event) {
+	case PM_SUSPEND_PREPARE:
+		ret = cpufreq_driver_target(cpufreq_cpu_get(0), SLEEP_FREQ,
+				DISABLE_FURTHER_CPUFREQ);
+		if (ret < 0)
+			return NOTIFY_BAD;
+		return NOTIFY_OK;
+	case PM_POST_RESTORE:
+	case PM_POST_SUSPEND:
+		cpufreq_driver_target(cpufreq_cpu_get(0), SLEEP_FREQ,
+				ENABLE_FURTHER_CPUFREQ);
+		return NOTIFY_OK;
+	}
+	return NOTIFY_DONE;
+}
+
 static struct cpufreq_driver s5pv210_driver = {
 	.flags		= CPUFREQ_STICKY,
 	.verify		= s5pv210_verify_speed,
@@ -565,6 +587,10 @@ static struct cpufreq_driver s5pv210_driver = {
 	.suspend	= s5pv210_cpufreq_suspend,
 	.resume		= s5pv210_cpufreq_resume,
 #endif
+};
+
+static struct notifier_block s5pv210_cpufreq_notifier = {
+	.notifier_call = s5pv210_cpufreq_notifier_event,
 };
 
 static int __init s5pv210_cpufreq_init(void)
@@ -584,6 +610,7 @@ error:
 	pr_warn("Cannot get vddarm or vddint. CPUFREQ Will not"
 		       " change the voltage.\n");
 finish:
+	register_pm_notifier(&s5pv210_cpufreq_notifier);
 
 	return cpufreq_register_driver(&s5pv210_driver);
 }
