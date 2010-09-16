@@ -259,4 +259,8 @@ config S5PV210_SETUP_FIMC2
 	help
 	  Common setup code for FIMC controller 2.
 
+config WIFI_CONTROL_FUNC
+       bool "Enable WiFi control function abstraction"
+       help
+         Enables Power/Reset/Carddetect function abstraction
 endif
