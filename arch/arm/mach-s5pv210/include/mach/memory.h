@@ -29,8 +29,6 @@
 
 #define MAX_PHYSMEM_BITS	31
 #define SECTION_SIZE_BITS	28
-
-#if defined(CONFIG_MACH_S5PC110_CRESPO)
 #define NODE_MEM_SIZE_BITS   28
- #endif
+
 #endif /* __ASM_ARCH_MEMORY_H */

@@ -203,8 +203,8 @@ config S5PV210_PM
 	help
 	  Power Management code common to S5PV210
 
-config MACH_S5PC110_CRESPO
-	bool "S5PC110_CRESPO"
+config MACH_HERRING
+	bool "Herring"
 	select CPU_S5PV210
 	select S3C_DEV_WDT
 	select S3C_DEV_I2C1
@@ -221,8 +221,7 @@ config MACH_S5PC110_CRESPO
 	select S5P_DEV_CSIS0
 	select S5P_SETUP_MIPIPHY
 	help
-	  Machine support for Samsung CRESPO
-	  S5PC110(MCP) is one of package option of S5PV210
+	  Machine support for Herring
 
 config S5PV210_SETUP_FB
 	bool

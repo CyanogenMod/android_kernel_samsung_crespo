@@ -45,6 +45,11 @@ void s5pv210_setup_sdhci0_cfg_gpio(struct platform_device *dev, int width)
 		s3c_gpio_setpull(S5PV210_GPG0(2), S3C_GPIO_PULL_UP);
 		s3c_gpio_cfgpin(S5PV210_GPG0(2), S3C_GPIO_SFN(2));
 	}
+
+	if (machine_is_herring()) {
+		gpio_direction_output(S5PV210_GPJ2(7), 1);
+		s3c_gpio_setpull(S5PV210_GPJ2(7), S3C_GPIO_PULL_NONE);
+	}
 }
 
 void s5pv210_setup_sdhci1_cfg_gpio(struct platform_device *dev, int width)
