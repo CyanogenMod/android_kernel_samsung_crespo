@@ -21,6 +21,7 @@
 #include <plat/irqs.h>
 #include <plat/pm.h>
 #include <mach/map.h>
+#include <plat/irq-pm.h>
 
 #include <mach/regs-gpio.h>
 #include <mach/regs-irq.h>
@@ -41,17 +42,49 @@ int s3c_irq_wake(struct irq_data *data, unsigned int state)
 	unsigned long irqbit;
 
 	switch (data->irq) {
-	case IRQ_RTC_TIC:
 	case IRQ_RTC_ALARM:
-		irqbit = 1 << (data->irq + 1 - IRQ_RTC_ALARM);
-		if (!state)
-			s3c_irqwake_intmask |= irqbit;
-		else
-			s3c_irqwake_intmask &= ~irqbit;
+		irqbit = 1 << 1;
+		break;
+	case IRQ_RTC_TIC:
+		irqbit = 1 << 2;
+		break;
+	case IRQ_ADC:
+		irqbit = 1 << 3;
+		break;
+	case IRQ_ADC1:
+		irqbit = 1 << 4;
+		break;
+	case IRQ_KEYPAD:
+		irqbit = 1 << 5;
+		break;
+	case IRQ_HSMMC0:
+		irqbit = 1 << 9;
+		break;
+	case IRQ_HSMMC1:
+		irqbit = 1 << 10;
+		break;
+	case IRQ_HSMMC2:
+		irqbit = 1 << 11;
+		break;
+	case IRQ_HSMMC3:
+		irqbit = 1 << 12;
+		break;
+	case IRQ_I2S0:
+		irqbit = 1 << 13;
+		break;
+	case IRQ_SYSTIMER:
+		irqbit = 1 << 14;
+		break;
+	case IRQ_CEC:
+		irqbit = 1 << 15;
 		break;
 	default:
 		return -ENOENT;
 	}
+	if (!state)
+		s3c_irqwake_intmask |= irqbit;
+	else
+		s3c_irqwake_intmask &= ~irqbit;
 	return 0;
 }
 

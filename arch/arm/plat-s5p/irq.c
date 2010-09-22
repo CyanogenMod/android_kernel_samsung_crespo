@@ -24,6 +24,23 @@
 #include <plat/cpu.h>
 #include <plat/irq-vic-timer.h>
 #include <plat/irq-uart.h>
+#include <plat/irq-pm.h>
+
+/* Wakeup source */
+static int wakeup_source[] = {
+	IRQ_RTC_ALARM,
+	IRQ_RTC_TIC,
+	IRQ_ADC,
+	IRQ_ADC1,
+	IRQ_KEYPAD,
+	IRQ_HSMMC0,
+	IRQ_HSMMC1,
+	IRQ_HSMMC2,
+	IRQ_HSMMC3,
+	IRQ_I2S0,
+	IRQ_SYSTIMER,
+	IRQ_CEC
+};
 
 /*
  * Note, we make use of the fact that the parent IRQs, IRQ_UART[0..3]
@@ -56,9 +73,10 @@ static struct s3c_uart_irq uart_irqs[] = {
 
 void __init s5p_init_irq(u32 *vic, u32 num_vic)
 {
-#ifdef CONFIG_ARM_VIC
+	struct irq_chip *chip;
 	int irq;
 
+#ifdef CONFIG_ARM_VIC
 	/* initialize the VICs */
 	for (irq = 0; irq < num_vic; irq++)
 		vic_init(VA_VIC(irq), VIC_BASE(irq), vic[irq], 0);
@@ -67,4 +85,10 @@ void __init s5p_init_irq(u32 *vic, u32 num_vic)
 	s3c_init_vic_timer_irq(5, IRQ_TIMER0);
 
 	s3c_init_uart_irqs(uart_irqs, ARRAY_SIZE(uart_irqs));
+
+	/* Register wakeup source. */
+	for (irq = 0; irq < ARRAY_SIZE(wakeup_source); irq++) {
+		chip = irq_get_chip(wakeup_source[irq]);
+		chip->irq_set_wake = s3c_irq_wake;
+	}
 }
