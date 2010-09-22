@@ -37,19 +37,29 @@ static inline void s5p_irq_eint_mask(struct irq_data *data)
 	__raw_writel(mask, S5P_EINT_MASK(EINT_REG_NR(data->irq)));
 }
 
-static void s5p_irq_eint_unmask(struct irq_data *data)
-{
-	u32 mask;
-
-	mask = __raw_readl(S5P_EINT_MASK(EINT_REG_NR(data->irq)));
-	mask &= ~(eint_irq_to_bit(data->irq));
-	__raw_writel(mask, S5P_EINT_MASK(EINT_REG_NR(data->irq)));
-}
-
 static inline void s5p_irq_eint_ack(struct irq_data *data)
 {
 	__raw_writel(eint_irq_to_bit(data->irq),
 		     S5P_EINT_PEND(EINT_REG_NR(data->irq)));
+}
+
+static void s5p_irq_eint_unmask(struct irq_data *data)
+{
+	u32 mask;
+
+	/* for level triggered interrupts, masking doesn't prevent
+	 * the interrupt from becoming pending again.  by the time
+	 * the handler (either irq or thread) can do its thing to clear
+	 * the interrupt, it's too late because it could be pending
+	 * already.  we have to ack it here, after the handler runs,
+	 * or else we get a false interrupt.
+	 */
+	if (irqd_is_level_type(data))
+		s5p_irq_eint_ack(data);
+
+	mask = __raw_readl(S5P_EINT_MASK(EINT_REG_NR(data->irq)));
+	mask &= ~(eint_irq_to_bit(data->irq));
+	__raw_writel(mask, S5P_EINT_MASK(EINT_REG_NR(data->irq)));
 }
 
 static void s5p_irq_eint_maskack(struct irq_data *data)
