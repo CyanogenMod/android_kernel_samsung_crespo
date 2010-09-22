@@ -22,9 +22,12 @@
 
 #include <mach/gpio.h>
 #include <plat/gpio-cfg.h>
+#include <plat/irq-eint-group.h>
 #include <mach/regs-gpio.h>
 
 #define S5PV210_EINT_MAX_SOURCES	8
+
+static DEFINE_SPINLOCK(eint_group_lock);
 
 struct s5pv210_eint_group_t {
 	int		sources;
@@ -34,6 +37,8 @@ struct s5pv210_eint_group_t {
 	void __iomem	*pend_reg;
 	int		mask_ofs;
 	int		pend_ofs;
+	unsigned int	int_con;
+	unsigned int	int_mask;
 
 	/* start offset in control register for each source */
 	int		cont_map[S5PV210_EINT_MAX_SOURCES];
@@ -48,6 +53,8 @@ static struct s5pv210_eint_group_t eint_groups[] = {
 		.pend_reg	= 0x0,
 		.mask_ofs	= 0,
 		.pend_ofs	= 0,
+		.int_con	= 0x0,
+		.int_mask	= 0xff,
 		.cont_map	= {
 			-1, -1, -1, -1, -1, -1, -1, -1,
 		},
@@ -60,6 +67,8 @@ static struct s5pv210_eint_group_t eint_groups[] = {
 		.pend_reg	= S5PV210_GPA0_INT_PEND,
 		.mask_ofs	= 0,
 		.pend_ofs	= 0,
+		.int_con	= 0x0,
+		.int_mask	= 0xff,
 		.cont_map	= {
 			0, 4, 8, 12, 16, 20, 24, 28,
 		},
@@ -72,6 +81,8 @@ static struct s5pv210_eint_group_t eint_groups[] = {
 		.pend_reg	= S5PV210_GPA1_INT_PEND,
 		.mask_ofs	= 0,
 		.pend_ofs	= 0,
+		.int_con	= 0x0,
+		.int_mask	= 0xff,
 		.cont_map	= {
 			0, 4, 8, 12, -1, -1, -1, -1,
 		},
@@ -84,6 +95,8 @@ static struct s5pv210_eint_group_t eint_groups[] = {
 		.pend_reg	= S5PV210_GPB_INT_PEND,
 		.mask_ofs	= 0,
 		.pend_ofs	= 0,
+		.int_con	= 0x0,
+		.int_mask	= 0xff,
 		.cont_map	= {
 			0, 4, 8, 12, 16, 20, 24, 28,
 		},
@@ -96,6 +109,8 @@ static struct s5pv210_eint_group_t eint_groups[] = {
 		.pend_reg	= S5PV210_GPC0_INT_PEND,
 		.mask_ofs	= 0,
 		.pend_ofs	= 0,
+		.int_con	= 0x0,
+		.int_mask	= 0xff,
 		.cont_map	= {
 			0, 4, 8, 12, 16, -1, -1, -1,
 		},
@@ -108,6 +123,8 @@ static struct s5pv210_eint_group_t eint_groups[] = {
 		.pend_reg	= S5PV210_GPC1_INT_PEND,
 		.mask_ofs	= 0,
 		.pend_ofs	= 0,
+		.int_con	= 0x0,
+		.int_mask	= 0xff,
 		.cont_map	= {
 			0, 4, 8, 12, 16, -1, -1, -1,
 		},
@@ -120,6 +137,8 @@ static struct s5pv210_eint_group_t eint_groups[] = {
 		.pend_reg	= S5PV210_GPD0_INT_PEND,
 		.mask_ofs	= 0,
 		.pend_ofs	= 0,
+		.int_con	= 0x0,
+		.int_mask	= 0xff,
 		.cont_map	= {
 			0, 4, 8, 12, -1, -1, -1, -1,
 		},
@@ -132,6 +151,8 @@ static struct s5pv210_eint_group_t eint_groups[] = {
 		.pend_reg	= S5PV210_GPD1_INT_PEND,
 		.mask_ofs	= 0,
 		.pend_ofs	= 0,
+		.int_con	= 0x0,
+		.int_mask	= 0xff,
 		.cont_map	= {
 			0, 4, 8, 12, 16, 20, -1, -1,
 		},
@@ -144,6 +165,8 @@ static struct s5pv210_eint_group_t eint_groups[] = {
 		.pend_reg	= S5PV210_GPE0_INT_PEND,
 		.mask_ofs	= 0,
 		.pend_ofs	= 0,
+		.int_con	= 0x0,
+		.int_mask	= 0xff,
 		.cont_map	= {
 			0, 4, 8, 12, 16, 20, 24, 28,
 		},
@@ -156,6 +179,8 @@ static struct s5pv210_eint_group_t eint_groups[] = {
 		.pend_reg	= S5PV210_GPE1_INT_PEND,
 		.mask_ofs	= 0,
 		.pend_ofs	= 0,
+		.int_con	= 0x0,
+		.int_mask	= 0xff,
 		.cont_map	= {
 			0, 4, 8, 12, 16, -1, -1, -1,
 		},
@@ -168,6 +193,8 @@ static struct s5pv210_eint_group_t eint_groups[] = {
 		.pend_reg	= S5PV210_GPF0_INT_PEND,
 		.mask_ofs	= 0,
 		.pend_ofs	= 0,
+		.int_con	= 0x0,
+		.int_mask	= 0xff,
 		.cont_map	= {
 			0, 4, 8, 12, 16, 20, 24, 28,
 		},
@@ -180,6 +207,8 @@ static struct s5pv210_eint_group_t eint_groups[] = {
 		.pend_reg	= S5PV210_GPF1_INT_PEND,
 		.mask_ofs	= 0,
 		.pend_ofs	= 0,
+		.int_con	= 0x0,
+		.int_mask	= 0xff,
 		.cont_map	= {
 			0, 4, 8, 12, 16, 20, 24, 28,
 		},
@@ -192,6 +221,8 @@ static struct s5pv210_eint_group_t eint_groups[] = {
 		.pend_reg	= S5PV210_GPF2_INT_PEND,
 		.mask_ofs	= 0,
 		.pend_ofs	= 0,
+		.int_con	= 0x0,
+		.int_mask	= 0xff,
 		.cont_map	= {
 			0, 4, 8, 12, 16, 20, 24, 28,
 		},
@@ -204,6 +235,8 @@ static struct s5pv210_eint_group_t eint_groups[] = {
 		.pend_reg	= S5PV210_GPF3_INT_PEND,
 		.mask_ofs	= 0,
 		.pend_ofs	= 0,
+		.int_con	= 0x0,
+		.int_mask	= 0xff,
 		.cont_map	= {
 			0, 4, 8, 12, 16, 20, -1, -1,
 		},
@@ -216,6 +249,8 @@ static struct s5pv210_eint_group_t eint_groups[] = {
 		.pend_reg	= S5PV210_GPG0_INT_PEND,
 		.mask_ofs	= 0,
 		.pend_ofs	= 0,
+		.int_con	= 0x0,
+		.int_mask	= 0xff,
 		.cont_map	= {
 			0, 4, 8, 12, 16, 20, 24, -1,
 		},
@@ -228,6 +263,8 @@ static struct s5pv210_eint_group_t eint_groups[] = {
 		.pend_reg	= S5PV210_GPG1_INT_PEND,
 		.mask_ofs	= 0,
 		.pend_ofs	= 0,
+		.int_con	= 0x0,
+		.int_mask	= 0xff,
 		.cont_map	= {
 			0, 4, 8, 12, 16, 20, 24, -1,
 		},
@@ -240,6 +277,8 @@ static struct s5pv210_eint_group_t eint_groups[] = {
 		.pend_reg	= S5PV210_GPG2_INT_PEND,
 		.mask_ofs	= 0,
 		.pend_ofs	= 0,
+		.int_con	= 0x0,
+		.int_mask	= 0xff,
 		.cont_map	= {
 			0, 4, 8, 12, 16, 20, 24, -1,
 		},
@@ -252,6 +291,8 @@ static struct s5pv210_eint_group_t eint_groups[] = {
 		.pend_reg	= S5PV210_GPG3_INT_PEND,
 		.mask_ofs	= 0,
 		.pend_ofs	= 0,
+		.int_con	= 0x0,
+		.int_mask	= 0xff,
 		.cont_map	= {
 			0, 4, 8, 12, 16, 20, 24, -1,
 		},
@@ -264,6 +305,8 @@ static struct s5pv210_eint_group_t eint_groups[] = {
 		.pend_reg	= S5PV210_GPJ0_INT_PEND,
 		.mask_ofs	= 0,
 		.pend_ofs	= 0,
+		.int_con	= 0x0,
+		.int_mask	= 0xff,
 		.cont_map	= {
 			0, 4, 8, 12, 16, 20, 24, 28,
 		},
@@ -276,6 +319,8 @@ static struct s5pv210_eint_group_t eint_groups[] = {
 		.pend_reg	= S5PV210_GPJ1_INT_PEND,
 		.mask_ofs	= 0,
 		.pend_ofs	= 0,
+		.int_con	= 0x0,
+		.int_mask	= 0xff,
 		.cont_map	= {
 			0, 4, 8, 12, 16, 20, -1, -1,
 		},
@@ -288,6 +333,8 @@ static struct s5pv210_eint_group_t eint_groups[] = {
 		.pend_reg	= S5PV210_GPJ2_INT_PEND,
 		.mask_ofs	= 0,
 		.pend_ofs	= 0,
+		.int_con	= 0x0,
+		.int_mask	= 0xff,
 		.cont_map	= {
 			0, 4, 8, 12, 16, 20, 24, 28,
 		},
@@ -300,6 +347,8 @@ static struct s5pv210_eint_group_t eint_groups[] = {
 		.pend_reg	= S5PV210_GPJ3_INT_PEND,
 		.mask_ofs	= 0,
 		.pend_ofs	= 0,
+		.int_con	= 0x0,
+		.int_mask	= 0xff,
 		.cont_map	= {
 			0, 4, 8, 12, 16, 20, 24, 28,
 		},
@@ -312,6 +361,8 @@ static struct s5pv210_eint_group_t eint_groups[] = {
 		.pend_reg	= S5PV210_GPJ4_INT_PEND,
 		.mask_ofs	= 0,
 		.pend_ofs	= 0,
+		.int_con	= 0x0,
+		.int_mask	= 0xff,
 		.cont_map	= {
 			0, 4, 8, 12, 16, -1, -1, -1,
 		},
@@ -363,37 +414,41 @@ static inline int to_bit_offset(int grp, unsigned int irq)
 static inline void s5pv210_irq_eint_group_mask(struct irq_data *d)
 {
 	struct s5pv210_eint_group_t *group;
+	unsigned long flags;
 	int grp;
-	u32 mask;
 
 	grp = to_group_number(d->irq);
 	group = &eint_groups[grp];
+	spin_lock_irqsave(&eint_group_lock, flags);
+	eint_groups[grp].int_mask |=
+		(1 << (group->mask_ofs + to_irq_number(grp, d->irq)));
 
-	mask = __raw_readl(group->mask_reg);
-	mask |= (1 << (group->mask_ofs + to_irq_number(grp, d->irq)));
-
-	__raw_writel(mask, group->mask_reg);
+	writel(eint_groups[grp].int_mask, group->mask_reg);
+	spin_unlock_irqrestore(&eint_group_lock, flags);
 }
 
 static inline void s5pv210_irq_eint_group_ack(struct irq_data *d)
 {
 	struct s5pv210_eint_group_t *group;
+	unsigned long flags;
 	int grp;
 	u32 pend;
 
 	grp = to_group_number(d->irq);
 	group = &eint_groups[grp];
 
+	spin_lock_irqsave(&eint_group_lock, flags);
 	pend = (1 << (group->pend_ofs + to_irq_number(grp, d->irq)));
 
-	__raw_writel(pend, group->pend_reg);
+	writel(pend, group->pend_reg);
+	spin_unlock_irqrestore(&eint_group_lock, flags);
 }
 
 static void s5pv210_irq_eint_group_unmask(struct irq_data *d)
 {
 	struct s5pv210_eint_group_t *group;
+	unsigned long flags;
 	int grp;
-	u32 mask;
 
 	grp = to_group_number(d->irq);
 	group = &eint_groups[grp];
@@ -408,10 +463,12 @@ static void s5pv210_irq_eint_group_unmask(struct irq_data *d)
 	if (irqd_is_level_type(d))
 		s5pv210_irq_eint_group_ack(d);
 
-	mask = __raw_readl(group->mask_reg);
-	mask &= ~(1 << (group->mask_ofs + to_irq_number(grp, d->irq)));
+	spin_lock_irqsave(&eint_group_lock, flags);
+	eint_groups[grp].int_mask &=
+		~(1 << (group->mask_ofs + to_irq_number(grp, d->irq)));
 
-	__raw_writel(mask, group->mask_reg);
+	writel(eint_groups[grp].int_mask, group->mask_reg);
+	spin_unlock_irqrestore(&eint_group_lock, flags);
 }
 
 static void s5pv210_irq_eint_group_maskack(struct irq_data *d)
@@ -425,8 +482,9 @@ static int s5pv210_irq_eint_group_set_type(struct irq_data *d,
 					   unsigned int type)
 {
 	struct s5pv210_eint_group_t *group;
+	unsigned long flags;
 	int grp, shift;
-	u32 ctrl, mask, newvalue = 0;
+	u32 mask, newvalue = 0;
 
 	grp = to_group_number(d->irq);
 	group = &eint_groups[grp];
@@ -464,10 +522,11 @@ static int s5pv210_irq_eint_group_set_type(struct irq_data *d,
 	shift = to_bit_offset(grp, d->irq);
 	mask = 0x7 << shift;
 
-	ctrl = __raw_readl(group->cont_reg);
-	ctrl &= ~mask;
-	ctrl |= newvalue << shift;
-	__raw_writel(ctrl, group->cont_reg);
+	spin_lock_irqsave(&eint_group_lock, flags);
+	eint_groups[grp].int_con &= ~mask;
+	eint_groups[grp].int_con |= newvalue << shift;
+	writel(eint_groups[grp].int_con, group->cont_reg);
+	spin_unlock_irqrestore(&eint_group_lock, flags);
 
 	return 0;
 }
@@ -488,15 +547,14 @@ static inline void s5pv210_irq_demux_eint_group(unsigned int irq,
 					    struct irq_desc *desc)
 {
 	struct s5pv210_eint_group_t *group;
-	u32 status, mask, newirq;
+	u32 status, newirq;
 	int grp, src;
 
 	for (grp = 1; grp < S5PV210_EINT_GROUPS; grp++) {
 		group = &eint_groups[grp];
 		status = __raw_readl(group->pend_reg);
-		mask = __raw_readl(group->mask_reg);
 
-		status &= ~mask;
+		status &= ~eint_groups[grp].int_mask;
 		status >>= group->pend_ofs;
 		status &= 0xff;			/* MAX IRQ in a group is 8 */
 
@@ -514,9 +572,27 @@ static inline void s5pv210_irq_demux_eint_group(unsigned int irq,
 	}
 }
 
+void s5pv210_restore_eint_group(void)
+{
+	struct s5pv210_eint_group_t *group;
+	unsigned long flags;
+	int grp;
+
+	spin_lock_irqsave(&eint_group_lock, flags);
+	for (grp = 1; grp < S5PV210_EINT_GROUPS; grp++) {
+		group = &eint_groups[grp];
+		writel(eint_groups[grp].int_con, group->cont_reg);
+		writel(eint_groups[grp].int_mask, group->mask_reg);
+	}
+	spin_unlock_irqrestore(&eint_group_lock, flags);
+}
+
 int __init s5pv210_init_irq_eint_group(void)
 {
+	struct s5pv210_eint_group_t *group;
+	unsigned long flags;
 	int irq;
+	int grp;
 
 	for (irq = IRQ_EINT_GROUP_BASE; irq < NR_IRQS; irq++) {
 		irq_set_chip(irq, &s5pv210_irq_eint_group);
