@@ -34,6 +34,7 @@ obj-$(CONFIG_CRESPO_LEGACY_MODEM)	+= dev-herring-phone.o
 # device support
 
 obj-y				+= dev-audio.o
+obj-y				+= dev-fiqdbg.o
 obj-$(CONFIG_S3C64XX_DEV_SPI)	+= dev-spi.o
 
 
