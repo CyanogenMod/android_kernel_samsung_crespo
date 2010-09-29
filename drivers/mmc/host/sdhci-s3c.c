@@ -246,7 +246,7 @@ static void sdhci_s3c_set_clock(struct sdhci_host *host, unsigned int clock)
 	}
 }
 
-static int sdhci_s3c_adjust_cfg(struct sdhci_host *host, int rw)
+static void sdhci_s3c_adjust_cfg(struct sdhci_host *host, int rw)
 {
 	struct sdhci_s3c *ourhost = to_s3c(host);
 	struct s3c_sdhci_platdata *pdata = ourhost->pdata;
