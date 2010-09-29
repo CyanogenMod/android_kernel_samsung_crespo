@@ -95,6 +95,16 @@ static int dev_is_platform_device(struct device *dev)
 
 /* Clock API calls */
 
+static int nullstrcmp(const char *a, const char *b)
+{
+	if (!a)
+		return b ? -1 : 0;
+	if (!b)
+		return 1;
+
+	return strcmp(a, b);
+}
+
 struct clk *clk_get(struct device *dev, const char *id)
 {
 	struct clk *clk;
@@ -108,15 +118,16 @@ struct clk *clk_get(struct device *dev, const char *id)
 	spin_lock(&clocks_lock);
 
 	list_for_each_entry(clk, &clocks, list)
-		if (!strcmp(id, clk->name) && clk->dev == dev)
+		if (!nullstrcmp(id, clk->name) && clk->dev == dev)
 			goto found_it;
 
 	list_for_each_entry(clk, &clocks, list)
-		if (clk->id == idno && strcmp(id, clk->name) == 0)
+		if (clk->id == idno && nullstrcmp(id, clk->name) == 0)
 			goto found_it;
 
 	list_for_each_entry(clk, &clocks, list)
-		if (clk->id == -1 && !strcmp(id, clk->name) && clk->dev == NULL)
+		if (clk->id == -1 && !nullstrcmp(id, clk->name) &&
+							clk->dev == NULL)
 			goto found_it;
 
 	clk = ERR_PTR(-ENOENT);
