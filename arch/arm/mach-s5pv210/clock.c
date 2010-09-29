@@ -825,7 +825,7 @@ static struct clksrc_clk clk_sclk_audio0 = {
 };
 
 static struct clk *clkset_mout_audss_list[] = {
-	NULL,
+	&clk_ext_xtal_mux,
 	&clk_fout_epll,
 };
 
