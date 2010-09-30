@@ -25,6 +25,7 @@
 #include <asm/mach/map.h>
 #include <asm/mach/irq.h>
 
+#include <asm/mach-types.h>
 #include <asm/proc-fns.h>
 #include <mach/map.h>
 #include <mach/regs-clock.h>
@@ -215,7 +216,8 @@ int __init s5pv210_init(void)
 	pm_idle = s5pv210_idle;
 
 	/* set sw_reset function */
-	s5p_reset_hook = s5pv210_sw_reset;
+	if (!machine_is_herring())
+		s5p_reset_hook = s5pv210_sw_reset;
 
 	return sysdev_register(&s5pv210_sysdev);
 }
