@@ -29,7 +29,7 @@ obj-$(CONFIG_MACH_TORBRECK)	+= mach-torbreck.o
 obj-$(CONFIG_MACH_HERRING)	+= mach-herring.o herring-rfkill.o
 obj-$(CONFIG_MACH_HERRING)	+= herring-vibrator.o
 
-obj-$(CONFIG_CRESPO_LEGACY_MODEM)	+= dev-herring-phone.o
+obj-$(CONFIG_MACH_HERRING)	+= dev-herring-phone.o
 
 # device support
 
