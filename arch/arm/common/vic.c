@@ -82,8 +82,6 @@ static void resume_one_vic(struct vic_device *vic)
 {
 	void __iomem *base = vic->base;
 
-	printk(KERN_DEBUG "%s: resuming vic at %p\n", __func__, base);
-
 	/* re-initialise static settings */
 	vic_init2(base);
 
@@ -111,8 +109,6 @@ static void vic_resume(void)
 static void suspend_one_vic(struct vic_device *vic)
 {
 	void __iomem *base = vic->base;
-
-	printk(KERN_DEBUG "%s: suspending vic at %p\n", __func__, base);
 
 	vic->int_select = readl(base + VIC_INT_SELECT);
 	vic->int_enable = readl(base + VIC_INT_ENABLE);
