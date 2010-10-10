@@ -191,6 +191,11 @@ static int dma_hw_params(struct snd_pcm_substream *substream,
 	prtd->dma_start = runtime->dma_addr;
 	prtd->dma_pos = prtd->dma_start;
 	prtd->dma_end = prtd->dma_start + totbytes;
+
+	pr_debug("DmaAddr=@%x Total=%lubytes PrdSz=%u #Prds=%u dma_area=0x%x\n",
+			prtd->dma_start, totbytes, params_period_bytes(params),
+			params_periods(params), (unsigned int)runtime->dma_area);
+
 	spin_unlock_irq(&prtd->lock);
 
 	return 0;
