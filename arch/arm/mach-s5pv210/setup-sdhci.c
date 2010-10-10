@@ -138,12 +138,18 @@ static struct s3c_sdhci_platdata hsmmc0_platdata = {
 #endif
 };
 
+#if defined(CONFIG_S3C_DEV_HSMMC2)
 static struct s3c_sdhci_platdata hsmmc2_platdata = {
 #if defined(CONFIG_S5PV210_SD_CH2_8BIT)
 	.max_width	= 8,
 	.host_caps	= MMC_CAP_8_BIT_DATA,
 #endif
 };
+#endif
+
+#if defined(CONFIG_S3C_DEV_HSMMC3)
+static struct s3c_sdhci_platdata hsmmc3_platdata = { 0 };
+#endif
 
 void s3c_sdhci_set_platdata(void)
 {
@@ -153,5 +159,9 @@ void s3c_sdhci_set_platdata(void)
 #if defined(CONFIG_S3C_DEV_HSMMC2)
 	s3c_sdhci2_set_platdata(&hsmmc2_platdata);
 #endif
+#if defined(CONFIG_S3C_DEV_HSMMC3)
+	if (machine_is_herring())
+		hsmmc3_platdata.built_in = 1;
+	s3c_sdhci3_set_platdata(&hsmmc3_platdata);
+#endif
 };
-
