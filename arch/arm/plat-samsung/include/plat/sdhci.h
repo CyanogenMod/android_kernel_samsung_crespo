@@ -87,6 +87,9 @@ struct s3c_sdhci_platdata {
 	void	(*adjust_cfg_card)(struct s3c_sdhci_platdata *pdata, void __iomem *regbase, int rw);
 	int		rx_cfg;
 	int		tx_cfg;
+
+        /* add to deal with non-removable device */
+        int     built_in;
 };
 
 /**

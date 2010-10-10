@@ -76,4 +76,6 @@ void s3c_sdhci1_set_platdata(struct s3c_sdhci_platdata *pd)
 		set->host_caps |= pd->host_caps;
 	if (pd->clk_type)
 		set->clk_type = pd->clk_type;
+	if (pd->built_in)
+		set->built_in = pd->built_in;
 }
