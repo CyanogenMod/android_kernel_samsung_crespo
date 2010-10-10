@@ -747,8 +747,11 @@ int s3c2410_dma_request(enum dma_ch id,
 
 	dmac = ch->dmac;
 
+	clk_enable(dmac->clk);
+
 	ch->pl330_chan_id = pl330_request_channel(dmac->pi);
 	if (!ch->pl330_chan_id) {
+		clk_disable(dmac->clk);
 		chan_release(ch);
 		ret = -EBUSY;
 		goto req_exit;
@@ -860,7 +863,7 @@ int s3c2410_dma_free(enum dma_ch id, struct s3c2410_dma_client *client)
 	pl330_release_channel(ch->pl330_chan_id);
 
 	ch->pl330_chan_id = NULL;
-
+	clk_disable(ch->dmac->clk);
 	chan_release(ch);
 
 free_exit:
@@ -1143,6 +1146,7 @@ static int pl330_probe(struct platform_device *pdev)
 		pl330_info->pcfg.data_bus_width / 8, pl330_info->pcfg.num_chan,
 		pl330_info->pcfg.num_peri, pl330_info->pcfg.num_events);
 
+	clk_disable(s3c_pl330_dmac->clk);
 	return 0;
 
 probe_err8:
@@ -1217,7 +1221,6 @@ static int pl330_remove(struct platform_device *pdev)
 	}
 
 	/* Disable operation clock */
-	clk_disable(dmac->clk);
 	clk_put(dmac->clk);
 
 	/* Remove the DMAC */
