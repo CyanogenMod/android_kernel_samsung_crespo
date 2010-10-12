@@ -49,6 +49,10 @@ ENTRY(s3c_cpu_save)
 	mov	pc, r0
 
 resume_with_mmu:
+	/* Invalidate TLB after mucking with MMU table. */
+	mov	r0, #0
+	mcr	p15, 0, r0, c8, c7, 0		@ Invalidate I & D TLB
+
 	ldmfd	sp!, { r3 - r12, pc }
 
 	.ltorg
