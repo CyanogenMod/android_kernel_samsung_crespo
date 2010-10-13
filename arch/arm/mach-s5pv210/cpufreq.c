@@ -27,6 +27,7 @@ static struct clk *cpu_clk;
 static struct clk *dmc0_clk;
 static struct clk *dmc1_clk;
 static struct cpufreq_freqs freqs;
+static DEFINE_MUTEX(set_freq_lock);
 
 /* APLL M,P,S values for 1G/800Mhz */
 #define APLL_VAL_1000	((1 << 31) | (125 << 16) | (3 << 8) | 1)
@@ -197,6 +198,8 @@ static int s5pv210_target(struct cpufreq_policy *policy,
 	unsigned int bus_speed_changing = 0;
 	unsigned int arm_volt, int_volt;
 	int ret = 0;
+
+	mutex_lock(&set_freq_lock);
 
 	if (relation & ENABLE_FURTHER_CPUFREQ)
 		no_cpufreq_access = false;
@@ -479,6 +482,7 @@ static int s5pv210_target(struct cpufreq_policy *policy,
 	printk(KERN_DEBUG "Perf changed[L%d]\n", index);
 
 out:
+	mutex_unlock(&set_freq_lock);
 	return ret;
 }
 
