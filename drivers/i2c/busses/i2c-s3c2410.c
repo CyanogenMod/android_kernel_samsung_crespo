@@ -666,6 +666,8 @@ static int s3c24xx_i2c_cpufreq_transition(struct notifier_block *nb,
 	int delta_f;
 	int ret;
 
+	clk_enable(i2c->clk);
+
 	delta_f = clk_get_rate(i2c->clk) - i2c->clkrate;
 
 	/* if we're post-change and the input clock has slowed down
@@ -684,6 +686,8 @@ static int s3c24xx_i2c_cpufreq_transition(struct notifier_block *nb,
 		else
 			dev_info(i2c->dev, "setting freq %d\n", got);
 	}
+
+	clk_disable(i2c->clk);
 
 	return 0;
 }
