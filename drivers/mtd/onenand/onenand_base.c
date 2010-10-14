@@ -992,7 +992,7 @@ static int onenand_get_device(struct mtd_info *mtd, int new_state)
 		schedule();
 		remove_wait_queue(&this->wq, &wait);
 	}
-	if (this->clk)
+	if (this->clk && new_state != FL_PM_SUSPENDED)
 		clk_enable(this->clk);
 	return 0;
 }
@@ -1007,6 +1007,9 @@ static void onenand_release_device(struct mtd_info *mtd)
 {
 	struct onenand_chip *this = mtd->priv;
 
+	if (this->clk && this->state != FL_PM_SUSPENDED)
+		clk_disable(this->clk);
+
 	if (this->state != FL_PM_SUSPENDED && this->disable)
 		this->disable(mtd);
 	/* Release the chip */
@@ -1014,8 +1017,6 @@ static void onenand_release_device(struct mtd_info *mtd)
 	this->state = FL_READY;
 	wake_up(&this->wq);
 	spin_unlock(&this->chip_lock);
-	if (this->clk)
-		clk_disable(this->clk);
 }
 
 /**
