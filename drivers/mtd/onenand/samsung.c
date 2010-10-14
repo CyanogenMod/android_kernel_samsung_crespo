@@ -23,6 +23,7 @@
 #include <linux/mtd/partitions.h>
 #include <linux/dma-mapping.h>
 #include <linux/interrupt.h>
+#include <linux/clk.h>
 
 #include <asm/mach/flash.h>
 #include <plat/regs-onenand.h>
@@ -1008,6 +1009,17 @@ static int s3c_onenand_probe(struct platform_device *pdev)
 		err = -EFAULT;
 		goto ioremap_failed;
 	}
+
+	this->clk = clk_get(&pdev->dev, "onenand");
+
+	if (IS_ERR(this->clk)) {
+		dev_err(&pdev->dev, "cannot get clock\n");
+		err = PTR_ERR(this->clk);
+		goto clk_failed;
+	}
+
+	clk_enable(this->clk);
+
 	/* Set onenand_chip also */
 	this->base = onenand->base;
 
@@ -1141,6 +1153,7 @@ static int s3c_onenand_probe(struct platform_device *pdev)
 
 	platform_set_drvdata(pdev, mtd);
 
+	clk_disable(this->clk);
 	return 0;
 
 scan_failed:
@@ -1163,6 +1176,9 @@ ahb_ioremap_failed:
 dma_resource_failed:
 ahb_resource_failed:
 	iounmap(onenand->base);
+	clk_disable(this->clk);
+	clk_put(this->clk);
+clk_failed:
 ioremap_failed:
 	if (onenand->base_res)
 		release_mem_region(onenand->base_res->start,
@@ -1177,6 +1193,7 @@ onenand_fail:
 static int __devexit s3c_onenand_remove(struct platform_device *pdev)
 {
 	struct mtd_info *mtd = platform_get_drvdata(pdev);
+	struct onenand_chip *this = mtd->priv;
 
 	onenand_release(mtd);
 	if (onenand->ahb_addr)
@@ -1197,6 +1214,7 @@ static int __devexit s3c_onenand_remove(struct platform_device *pdev)
 	platform_set_drvdata(pdev, NULL);
 	kfree(onenand->oob_buf);
 	kfree(onenand->page_buf);
+	clk_put(this->clk);
 	kfree(onenand);
 	kfree(mtd);
 	return 0;
