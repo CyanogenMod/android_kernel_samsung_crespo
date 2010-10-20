@@ -995,6 +995,12 @@ config USB_G_ANDROID
 	  The functions can be configured via a board file and may be
 	  enabled and disabled dynamically.
 
+config USB_ANDROID_RNDIS_DWORD_ALIGNED
+        boolean "Use double word aligned"
+        depends on USB_G_ANDROID
+        help
+	  Provides dword aligned for DMA controller.
+
 config USB_CDC_COMPOSITE
 	tristate "CDC Composite Device (Ethernet and ACM)"
 	depends on NET
