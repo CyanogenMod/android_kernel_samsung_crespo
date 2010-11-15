@@ -551,4 +551,13 @@ source "drivers/misc/ti-st/Kconfig"
 source "drivers/misc/lis3lv02d/Kconfig"
 source "drivers/misc/carma/Kconfig"
 
+config SAMSUNG_MODEMCTL
+	bool "Samsung Modem Control/IO Driver"
+
+config PN544
+	bool "NXP PN544 NFC Controller Driver"
+	default n
+	help
+	  NXP PN544 Near Field Communication controller support.
+
 endif # MISC_DEVICES
