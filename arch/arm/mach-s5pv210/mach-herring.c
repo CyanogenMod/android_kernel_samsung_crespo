@@ -45,7 +45,9 @@
 #include <plat/devs.h>
 #include <plat/cpu.h>
 #include <plat/fb.h>
+#include <plat/mfc.h>
 #include <plat/iic.h>
+#include <plat/pm.h>
 #include <plat/s5p-time.h>
 
 #include <plat/sdhci.h>
@@ -2758,6 +2760,10 @@ static struct platform_device *herring_devices[] __initdata = {
 #endif
 #ifdef CONFIG_FB_S3C
 	&s3c_device_fb,
+#endif
+
+#ifdef CONFIG_VIDEO_MFC50
+	&s3c_device_mfc,
 #endif
 
 #ifdef CONFIG_VIDEO_FIMC

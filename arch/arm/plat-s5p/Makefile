@@ -40,6 +40,8 @@ obj-$(CONFIG_S5P_DEV_CSIS1)	+= dev-csis1.o
 obj-$(CONFIG_S5P_DEV_USB_EHCI)	+= dev-ehci.o
 obj-$(CONFIG_S5P_SETUP_MIPIPHY)	+= setup-mipiphy.o
 
+# PM support
+
 obj-$(CONFIG_PM)		+= pm.o
 obj-$(CONFIG_PM)		+= irq-pm.o
 obj-$(CONFIG_PM)		+= sleep.o
@@ -49,3 +51,6 @@ ifdef CONFIG_HRT_RTC
 obj-y				+= hr-time-rtc.o
 endif
 endif
+
+obj-$(CONFIG_S5P_DEV_MFC)	+= dev-mfc.o
+obj-$(CONFIG_S5P_SETUP_MFC)	+= setup-mfc.o
