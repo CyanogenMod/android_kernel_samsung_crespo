@@ -70,7 +70,8 @@ struct kr3dm_data {
 	u8 ctrl_reg1_shadow;
 	struct completion data_ready;
 	atomic_t opened; /* opened implies enabled */
-	struct mutex lock;
+	struct mutex read_lock;
+	struct mutex write_lock;
 };
 
 static void kr3dm_disable_irq(struct kr3dm_data *kr3dm)
@@ -225,7 +226,7 @@ static int kr3dm_set_delay(struct kr3dm_data *kr3dm, s64 delay_ns)
 			odr_delay_table[i].odr);
 	odr_value = odr_delay_table[i].odr;
 	delay_ns = odr_delay_table[i].delay_ns;
-	mutex_lock(&kr3dm->lock);
+	mutex_lock(&kr3dm->write_lock);
 	kr3dm_dbgmsg("old = %lldns, new = %lldns\n",
 		     kr3dm_get_delay(kr3dm), delay_ns);
 	if (odr_value != (kr3dm->ctrl_reg1_shadow & ODR_MASK)) {
@@ -235,7 +236,7 @@ static int kr3dm_set_delay(struct kr3dm_data *kr3dm, s64 delay_ns)
 		res = i2c_smbus_write_byte_data(kr3dm->client, CTRL_REG1, ctrl);
 		kr3dm_dbgmsg("writing odr value 0x%x\n", odr_value);
 	}
-	mutex_unlock(&kr3dm->lock);
+	mutex_unlock(&kr3dm->write_lock);
 	return res;
 }
 
@@ -263,7 +264,7 @@ static long kr3dm_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 			return -EFAULT;
 		break;
 	case KR3DM_IOCTL_READ_ACCEL_XYZ:
-		mutex_lock(&kr3dm->lock);
+		mutex_lock(&kr3dm->read_lock);
 		for (i = 0; i < READ_REPEAT; i++) {
 			err = kr3dm_read_accel_xyz(kr3dm, &data);
 			if (err)
@@ -272,7 +273,7 @@ static long kr3dm_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 			sum.y += data.y;
 			sum.z += data.z;
 		}
-		mutex_unlock(&kr3dm->lock);
+		mutex_unlock(&kr3dm->read_lock);
 		if (err)
 			return err;
 		if (copy_to_user((void __user *)arg, &sum, sizeof(sum)))
@@ -412,7 +413,8 @@ static int kr3dm_probe(struct i2c_client *client,
 	i2c_set_clientdata(client, kr3dm);
 
 	init_completion(&kr3dm->data_ready);
-	mutex_init(&kr3dm->lock);
+	mutex_init(&kr3dm->read_lock);
+	mutex_init(&kr3dm->write_lock);
 	atomic_set(&kr3dm->opened, 0);
 
 	err = kr3dm_setup_irq(kr3dm);
@@ -438,7 +440,8 @@ err_misc_register:
 	free_irq(kr3dm->irq, kr3dm);
 	gpio_free(kr3dm->pdata->gpio_acc_int);
 err_setup_irq:
-	mutex_destroy(&kr3dm->lock);
+	mutex_destroy(&kr3dm->read_lock);
+	mutex_destroy(&kr3dm->write_lock);
 	kfree(kr3dm);
 exit:
 	return err;
@@ -451,7 +454,8 @@ static int kr3dm_remove(struct i2c_client *client)
 	misc_deregister(&kr3dm->kr3dm_device);
 	free_irq(kr3dm->irq, kr3dm);
 	gpio_free(kr3dm->pdata->gpio_acc_int);
-	mutex_destroy(&kr3dm->lock);
+	mutex_destroy(&kr3dm->read_lock);
+	mutex_destroy(&kr3dm->write_lock);
 	kfree(kr3dm);
 
 	return 0;
