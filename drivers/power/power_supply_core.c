@@ -210,10 +210,10 @@ int power_supply_register(struct device *parent, struct power_supply *psy)
 
 create_triggers_failed:
 	wake_lock_destroy(&psy->work_wake_lock);
-	device_unregister(psy->dev);
+	device_del(dev);
 kobject_set_name_failed:
 device_add_failed:
-	kfree(dev);
+	put_device(dev);
 success:
 	return rc;
 }
