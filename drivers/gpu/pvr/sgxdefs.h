@@ -1,6 +1,6 @@
 /**********************************************************************
  *
- * Copyright(c) 2008 Imagination Technologies Ltd. All rights reserved.
+ * Copyright (C) Imagination Technologies Ltd. All rights reserved.
  * 
  * This program is free software; you can redistribute it and/or modify it
  * under the terms and conditions of the GNU General Public License,
@@ -45,11 +45,12 @@
 #if defined(SGX540)
 #include "sgx540defs.h"
 #else
-#if defined(SGX541)
-#include "sgx541defs.h"
-#else
 #if defined(SGX543)
+#if defined(FIX_HW_BRN_29954)
+#include "sgx543_v1.164defs.h"
+#else
 #include "sgx543defs.h"
+#endif
 #else
 #if defined(SGX544)
 #include "sgx544defs.h"
@@ -72,15 +73,10 @@
 #endif
 #endif
 #endif
-#endif
 
 #if defined(SGX_FEATURE_MP)
-#if defined(SGX541)
-#if SGX_CORE_REV == 100
-#include "sgx541_100mpdefs.h"
-#else
-#include "sgx541mpdefs.h"
-#endif 
+#if defined(SGX554)
+#include "sgxmpplusdefs.h"
 #else
 #include "sgxmpdefs.h"
 #endif 

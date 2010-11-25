@@ -1,7 +1,7 @@
 /**********************************************************************
  *
- * Copyright(c) 2008 Imagination Technologies Ltd. All rights reserved.
- * 		Samsung Electronics System LSI. modify
+ * Copyright (C) Imagination Technologies Ltd. All rights reserved.
+ * 
  * This program is free software; you can redistribute it and/or modify it
  * under the terms and conditions of the GNU General Public License,
  * version 2, as published by the Free Software Foundation.
@@ -22,7 +22,9 @@
  * Imagination Technologies Ltd. <gpl-support@imgtec.com>
  * Home Park Estate, Kings Langley, Herts, WD4 8LZ, UK 
  *
- ******************************************************************************/
+ */
+
+/* Copyright (C) Samsung Electronics System LSI. */
 
 #ifndef __S3C_LCD_H__
 #define __S3C_LCD_H__
@@ -31,8 +33,8 @@
 extern "C" {
 #endif
 
-int  s3c_displayclass_init(void);
-void  s3c_displayclass_deinit(void);
+int s3c_displayclass_init(void);
+void s3c_displayclass_deinit(void);
 
 #if defined(__cplusplus)
 }

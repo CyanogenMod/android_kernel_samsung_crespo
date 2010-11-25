@@ -1,6 +1,6 @@
 /**********************************************************************
  *
- * Copyright(c) 2008 Imagination Technologies Ltd. All rights reserved.
+ * Copyright (C) Imagination Technologies Ltd. All rights reserved.
  * 
  * This program is free software; you can redistribute it and/or modify it
  * under the terms and conditions of the GNU General Public License,
@@ -87,6 +87,8 @@ extern "C" {
 		case PVRSRV_ERROR_BAD_REGION_SIZE_MISMATCH:		return "PVRSRV_ERROR_BAD_REGION_SIZE_MISMATCH";
 
 		case PVRSRV_ERROR_REGISTER_BASE_NOT_SET:		return "PVRSRV_ERROR_REGISTER_BASE_NOT_SET";
+
+        case PVRSRV_ERROR_BM_BAD_SHAREMEM_HANDLE:       return "PVRSRV_ERROR_BM_BAD_SHAREMEM_HANDLE";
 
 		case PVRSRV_ERROR_FAILED_TO_ALLOC_USER_MEM:		return "PVRSRV_ERROR_FAILED_TO_ALLOC_USER_MEM";
 		case PVRSRV_ERROR_FAILED_TO_ALLOC_VP_MEMORY:	return "PVRSRV_ERROR_FAILED_TO_ALLOC_VP_MEMORY";

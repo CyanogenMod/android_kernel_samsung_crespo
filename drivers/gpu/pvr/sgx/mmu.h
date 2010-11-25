@@ -1,6 +1,6 @@
 /**********************************************************************
  *
- * Copyright(c) 2008 Imagination Technologies Ltd. All rights reserved.
+ * Copyright (C) Imagination Technologies Ltd. All rights reserved.
  * 
  * This program is free software; you can redistribute it and/or modify it
  * under the terms and conditions of the GNU General Public License,
@@ -138,6 +138,14 @@ PVRSRV_ERROR MMU_UnmapExtSystemCacheRegs(PVRSRV_DEVICE_NODE *psDeviceNode);
 #endif 
 
 IMG_BOOL MMU_IsHeapShared(MMU_HEAP* pMMU_Heap);
+
+#if defined(FIX_HW_BRN_31620)
+IMG_VOID MMU_GetCacheFlushRange(MMU_CONTEXT *pMMUContext, IMG_UINT32 *pui32RangeMask);
+
+IMG_VOID MMU_GetPDPhysAddr(MMU_CONTEXT *pMMUContext, IMG_DEV_PHYADDR *psDevPAddr);
+
+#endif
+
 
 #if defined(PDUMP)
 IMG_UINT32 MMU_GetPDumpContextID(IMG_HANDLE hDevMemContext);

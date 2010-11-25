@@ -1,6 +1,6 @@
 /**********************************************************************
  *
- * Copyright(c) 2008 Imagination Technologies Ltd. All rights reserved.
+ * Copyright (C) Imagination Technologies Ltd. All rights reserved.
  * 
  * This program is free software; you can redistribute it and/or modify it
  * under the terms and conditions of the GNU General Public License,
@@ -41,12 +41,21 @@ typedef struct _PVRSRV_PER_PROCESS_DATA_
 	IMG_UINT32		ui32PID;
 	IMG_HANDLE		hBlockAlloc;
 	PRESMAN_CONTEXT 	hResManContext;
+#if defined (SUPPORT_SID_INTERFACE)
+	IMG_SID			hPerProcData;
+#else
 	IMG_HANDLE		hPerProcData;
+#endif
 	PVRSRV_HANDLE_BASE 	*psHandleBase;
+#if defined (SUPPORT_SID_INTERFACE)
+	
+	IMG_BOOL		bHandlesBatched;
+#else
 #if defined (PVR_SECURE_HANDLES)
 	
 	IMG_BOOL		bHandlesBatched;
 #endif  
+#endif 
 	IMG_UINT32		ui32RefCount;
 
 	

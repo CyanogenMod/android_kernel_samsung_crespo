@@ -1,6 +1,6 @@
 /**********************************************************************
  *
- * Copyright(c) 2008 Imagination Technologies Ltd. All rights reserved.
+ * Copyright (C) Imagination Technologies Ltd. All rights reserved.
  * 
  * This program is free software; you can redistribute it and/or modify it
  * under the terms and conditions of the GNU General Public License,
@@ -44,19 +44,12 @@
 #endif
 #define SGX_MMU_PDE_VALID				(0x00000001U)
 #define SGX_MMU_PDE_PAGE_SIZE_4K		(0x00000000U)
-#if defined(SGX_FEATURE_VARIABLE_MMU_PAGE_SIZE)
-	#define SGX_MMU_PDE_PAGE_SIZE_16K		(0x00000002U)
-	#define SGX_MMU_PDE_PAGE_SIZE_64K		(0x00000004U)
-	#define SGX_MMU_PDE_PAGE_SIZE_256K		(0x00000006U)
-	#define SGX_MMU_PDE_PAGE_SIZE_1M		(0x00000008U)
-	#define SGX_MMU_PDE_PAGE_SIZE_4M		(0x0000000AU)
-	#define SGX_MMU_PDE_PAGE_SIZE_MASK		(0x0000000EU)
-#else
-	#define SGX_MMU_PDE_WRITEONLY			(0x00000002U)
-	#define SGX_MMU_PDE_READONLY			(0x00000004U)
-	#define SGX_MMU_PDE_CACHECONSISTENT		(0x00000008U)
-	#define SGX_MMU_PDE_EDMPROTECT			(0x00000010U)
-#endif
+#define SGX_MMU_PDE_PAGE_SIZE_16K		(0x00000002U)
+#define SGX_MMU_PDE_PAGE_SIZE_64K		(0x00000004U)
+#define SGX_MMU_PDE_PAGE_SIZE_256K		(0x00000006U)
+#define SGX_MMU_PDE_PAGE_SIZE_1M		(0x00000008U)
+#define SGX_MMU_PDE_PAGE_SIZE_4M		(0x0000000AU)
+#define SGX_MMU_PDE_PAGE_SIZE_MASK		(0x0000000EU)
 
 #define SGX_MMU_PT_SHIFT				(10)
 #define SGX_MMU_PT_SIZE					(1U<<SGX_MMU_PT_SHIFT)

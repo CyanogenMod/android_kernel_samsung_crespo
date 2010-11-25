@@ -1,6 +1,6 @@
 /**********************************************************************
  *
- * Copyright(c) 2008 Imagination Technologies Ltd. All rights reserved.
+ * Copyright (C) Imagination Technologies Ltd. All rights reserved.
  * 
  * This program is free software; you can redistribute it and/or modify it
  * under the terms and conditions of the GNU General Public License,
@@ -115,6 +115,8 @@ struct _RA_ARENA_
 							 IMG_SIZE_T *pActualSize,
 							 BM_MAPPING **ppsMapping,
 							 IMG_UINT32 uFlags,
+							 IMG_PVOID pvPrivData,
+							 IMG_UINT32 ui32PrivDataLength,
 							 IMG_UINTPTR_T *pBase);
 	IMG_VOID (*pImportFree) (IMG_VOID *,
 						 IMG_UINTPTR_T,
@@ -142,7 +144,7 @@ struct _RA_ARENA_
 #endif
 
 #if defined(CONFIG_PROC_FS) && defined(DEBUG)
-#define PROC_NAME_SIZE		32
+#define PROC_NAME_SIZE		64
 
 	struct proc_dir_entry* pProcInfo;
 	struct proc_dir_entry* pProcSegs;
@@ -191,6 +193,8 @@ _RequestAllocFail (IMG_VOID *_h,
 				  IMG_SIZE_T *_pActualSize,
 				  BM_MAPPING **_ppsMapping,
 				  IMG_UINT32 _uFlags,
+				  IMG_PVOID _pvPrivData,
+				  IMG_UINT32 _ui32PrivDataLength,
 				  IMG_UINTPTR_T *_pBase)
 {
 	PVR_UNREFERENCED_PARAMETER (_h);
@@ -199,6 +203,8 @@ _RequestAllocFail (IMG_VOID *_h,
 	PVR_UNREFERENCED_PARAMETER (_ppsMapping);
 	PVR_UNREFERENCED_PARAMETER (_uFlags);
 	PVR_UNREFERENCED_PARAMETER (_pBase);
+	PVR_UNREFERENCED_PARAMETER (_pvPrivData);
+	PVR_UNREFERENCED_PARAMETER (_ui32PrivDataLength);
 
 	return IMG_FALSE;
 }
@@ -847,7 +853,9 @@ RA_Create (IMG_CHAR *name,
 		   BM_MAPPING *psMapping,
 		   IMG_SIZE_T uQuantum,
 		   IMG_BOOL (*imp_alloc)(IMG_VOID *, IMG_SIZE_T uSize, IMG_SIZE_T *pActualSize,
-		                     BM_MAPPING **ppsMapping, IMG_UINT32 _flags, IMG_UINTPTR_T *pBase),
+								 BM_MAPPING **ppsMapping, IMG_UINT32 _flags,
+								 IMG_PVOID pvPrivData, IMG_UINT32 ui32PrivDataLength,
+								 IMG_UINTPTR_T *pBase),
 		   IMG_VOID (*imp_free) (IMG_VOID *, IMG_UINTPTR_T, BM_MAPPING *),
 		   IMG_VOID (*backingstore_free) (IMG_VOID*, IMG_SIZE_T, IMG_SIZE_T, IMG_HANDLE),
 		   IMG_VOID *pImportHandle)
@@ -1071,6 +1079,8 @@ RA_Alloc (RA_ARENA *pArena,
 		  IMG_UINT32 uFlags,
 		  IMG_UINT32 uAlignment,
 		  IMG_UINT32 uAlignmentOffset,
+		  IMG_PVOID pvPrivData,
+		  IMG_UINT32 ui32PrivDataLength,
 		  IMG_UINTPTR_T *base)
 {
 	IMG_BOOL bResult;
@@ -1124,7 +1134,8 @@ RA_Alloc (RA_ARENA *pArena,
 
 		bResult =
 			pArena->pImportAlloc (pArena->pImportHandle, uImportSize, &uImportSize,
-								 &psImportMapping, uFlags, &import_base);
+								  &psImportMapping, uFlags,
+								  pvPrivData, ui32PrivDataLength, &import_base);
 		if (bResult)
 		{
 			BT *pBT;

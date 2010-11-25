@@ -1,6 +1,6 @@
 /**********************************************************************
  *
- * Copyright(c) 2008 Imagination Technologies Ltd. All rights reserved.
+ * Copyright (C) Imagination Technologies Ltd. All rights reserved.
  * 
  * This program is free software; you can redistribute it and/or modify it
  * under the terms and conditions of the GNU General Public License,
@@ -59,7 +59,8 @@ typedef enum
 	PVRSRV_HANDLE_TYPE_EVENT_OBJECT_CONNECT,
 	PVRSRV_HANDLE_TYPE_MMAP_INFO,
 	PVRSRV_HANDLE_TYPE_SOC_TIMER,
-	PVRSRV_HANDLE_TYPE_SYNC_INFO_MOD_OBJ
+	PVRSRV_HANDLE_TYPE_SYNC_INFO_MOD_OBJ,
+	PVRSRV_HANDLE_TYPE_RESITEM_INFO
 } PVRSRV_HANDLE_TYPE;
 
 typedef enum
@@ -77,11 +78,30 @@ typedef enum
 struct _PVRSRV_HANDLE_BASE_;
 typedef struct _PVRSRV_HANDLE_BASE_ PVRSRV_HANDLE_BASE;
 
-#ifdef	PVR_SECURE_HANDLES
+#if defined (PVR_SECURE_HANDLES) || defined (SUPPORT_SID_INTERFACE)
 extern PVRSRV_HANDLE_BASE *gpsKernelHandleBase;
 
 #define	KERNEL_HANDLE_BASE (gpsKernelHandleBase)
 
+#if defined (SUPPORT_SID_INTERFACE)
+PVRSRV_ERROR PVRSRVAllocHandle(PVRSRV_HANDLE_BASE *psBase, IMG_SID *phHandle, IMG_VOID *pvData, PVRSRV_HANDLE_TYPE eType, PVRSRV_HANDLE_ALLOC_FLAG eFlag);
+
+PVRSRV_ERROR PVRSRVAllocSubHandle(PVRSRV_HANDLE_BASE *psBase, IMG_SID *phHandle, IMG_VOID *pvData, PVRSRV_HANDLE_TYPE eType, PVRSRV_HANDLE_ALLOC_FLAG eFlag, IMG_SID hParent);
+
+PVRSRV_ERROR PVRSRVFindHandle(PVRSRV_HANDLE_BASE *psBase, IMG_SID *phHandle, IMG_VOID *pvData, PVRSRV_HANDLE_TYPE eType);
+
+PVRSRV_ERROR PVRSRVLookupHandleAnyType(PVRSRV_HANDLE_BASE *psBase, IMG_PVOID *ppvData, PVRSRV_HANDLE_TYPE *peType, IMG_SID hHandle);
+
+PVRSRV_ERROR PVRSRVLookupHandle(PVRSRV_HANDLE_BASE *psBase, IMG_PVOID *ppvData, IMG_SID hHandle, PVRSRV_HANDLE_TYPE eType);
+
+PVRSRV_ERROR PVRSRVLookupSubHandle(PVRSRV_HANDLE_BASE *psBase, IMG_PVOID *ppvData, IMG_SID hHandle, PVRSRV_HANDLE_TYPE eType, IMG_SID hAncestor);
+
+PVRSRV_ERROR PVRSRVGetParentHandle(PVRSRV_HANDLE_BASE *psBase, IMG_SID *phParent, IMG_SID hHandle, PVRSRV_HANDLE_TYPE eType);
+
+PVRSRV_ERROR PVRSRVLookupAndReleaseHandle(PVRSRV_HANDLE_BASE *psBase, IMG_PVOID *ppvData, IMG_SID hHandle, PVRSRV_HANDLE_TYPE eType);
+
+PVRSRV_ERROR PVRSRVReleaseHandle(PVRSRV_HANDLE_BASE *psBase, IMG_SID hHandle, PVRSRV_HANDLE_TYPE eType);
+#else
 PVRSRV_ERROR PVRSRVAllocHandle(PVRSRV_HANDLE_BASE *psBase, IMG_HANDLE *phHandle, IMG_VOID *pvData, PVRSRV_HANDLE_TYPE eType, PVRSRV_HANDLE_ALLOC_FLAG eFlag);
 
 PVRSRV_ERROR PVRSRVAllocSubHandle(PVRSRV_HANDLE_BASE *psBase, IMG_HANDLE *phHandle, IMG_VOID *pvData, PVRSRV_HANDLE_TYPE eType, PVRSRV_HANDLE_ALLOC_FLAG eFlag, IMG_HANDLE hParent);
@@ -99,6 +119,7 @@ PVRSRV_ERROR PVRSRVGetParentHandle(PVRSRV_HANDLE_BASE *psBase, IMG_PVOID *phPare
 PVRSRV_ERROR PVRSRVLookupAndReleaseHandle(PVRSRV_HANDLE_BASE *psBase, IMG_PVOID *ppvData, IMG_HANDLE hHandle, PVRSRV_HANDLE_TYPE eType);
 
 PVRSRV_ERROR PVRSRVReleaseHandle(PVRSRV_HANDLE_BASE *psBase, IMG_HANDLE hHandle, PVRSRV_HANDLE_TYPE eType);
+#endif 
 
 PVRSRV_ERROR PVRSRVNewHandleBatch(PVRSRV_HANDLE_BASE *psBase, IMG_UINT32 ui32BatchSize);
 

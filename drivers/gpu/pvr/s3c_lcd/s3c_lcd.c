@@ -1,7 +1,7 @@
 /**********************************************************************
  *
- * Copyright(c) 2008 Imagination Technologies Ltd. All rights reserved.
- * 		Samsung Electronics System LSI. modify
+ * Copyright (C) Imagination Technologies Ltd. All rights reserved.
+ * 
  * This program is free software; you can redistribute it and/or modify it
  * under the terms and conditions of the GNU General Public License,
  * version 2, as published by the Free Software Foundation.
@@ -22,7 +22,9 @@
  * Imagination Technologies Ltd. <gpl-support@imgtec.com>
  * Home Park Estate, Kings Langley, Herts, WD4 8LZ, UK 
  *
- ******************************************************************************/
+ */
+
+/* Copyright (C) Samsung Electronics System LSI. */
 
 #include <linux/module.h>
 #include <linux/init.h>
@@ -32,15 +34,13 @@
 #include <asm/uaccess.h>
 #include <asm/irq.h>
 #include <asm/uaccess.h>
-//#include <asm/hardware.h>
 
 #include "img_defs.h"
 #include "servicesext.h"
 #include "kerneldisplay.h"
+#include "pvrmodule.h"
 
 #include "s3c_lcd.h"
-
-MODULE_LICENSE("GPL");
 
 static int __init S3cLcdBridgeInit(void)
 {

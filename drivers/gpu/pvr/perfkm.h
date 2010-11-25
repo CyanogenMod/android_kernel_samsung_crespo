@@ -24,53 +24,13 @@
  *
  ******************************************************************************/
 
-#ifndef __OSPERPROC_H__
-#define __OSPERPROC_H__
+#ifndef _PERFKM_H_
+#define _PERFKM_H_
 
-#if defined (__cplusplus)
-extern "C" {
-#endif
+#include "img_types.h"
 
-#if defined(__linux__)
-PVRSRV_ERROR OSPerProcessPrivateDataInit(IMG_HANDLE *phOsPrivateData);
-PVRSRV_ERROR OSPerProcessPrivateDataDeInit(IMG_HANDLE hOsPrivateData);
-
-PVRSRV_ERROR OSPerProcessSetHandleOptions(PVRSRV_HANDLE_BASE *psHandleBase);
-#else	
-#ifdef INLINE_IS_PRAGMA
-#pragma inline(OSPerProcessPrivateDataInit)
-#endif
-static INLINE PVRSRV_ERROR OSPerProcessPrivateDataInit(IMG_HANDLE *phOsPrivateData)
-{
-	PVR_UNREFERENCED_PARAMETER(phOsPrivateData);
-
-	return PVRSRV_OK;
-}
-
-#ifdef INLINE_IS_PRAGMA
-#pragma inline(OSPerProcessPrivateDataDeInit)
-#endif
-static INLINE PVRSRV_ERROR OSPerProcessPrivateDataDeInit(IMG_HANDLE hOsPrivateData)
-{
-	PVR_UNREFERENCED_PARAMETER(hOsPrivateData);
-
-	return PVRSRV_OK;
-}
-
-#ifdef INLINE_IS_PRAGMA
-#pragma inline(OSPerProcessSetHandleOptions)
-#endif
-static INLINE PVRSRV_ERROR OSPerProcessSetHandleOptions(PVRSRV_HANDLE_BASE *psHandleBase)
-{
-	PVR_UNREFERENCED_PARAMETER(psHandleBase);
-
-	return PVRSRV_OK;
-}
-#endif	
-
-#if defined (__cplusplus)
-}
-#endif
+#define PERFINIT()
+#define PERFDEINIT()
 
 #endif 
 

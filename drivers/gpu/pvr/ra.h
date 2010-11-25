@@ -1,6 +1,6 @@
 /**********************************************************************
  *
- * Copyright(c) 2008 Imagination Technologies Ltd. All rights reserved.
+ * Copyright (C) Imagination Technologies Ltd. All rights reserved.
  * 
  * This program is free software; you can redistribute it and/or modify it
  * under the terms and conditions of the GNU General Public License,
@@ -89,6 +89,8 @@ RA_Create (IMG_CHAR *name,
                                 IMG_SIZE_T *pActualSize,
                                 BM_MAPPING **ppsMapping,
                                 IMG_UINT32 uFlags,
+								IMG_PVOID pvPrivData,
+								IMG_UINT32 ui32PrivDataLength,
                                 IMG_UINTPTR_T *pBase),
            IMG_VOID (*imp_free) (IMG_VOID *,
                                 IMG_UINTPTR_T,
@@ -116,6 +118,8 @@ RA_Alloc (RA_ARENA *pArena,
           IMG_UINT32 uFlags,
           IMG_UINT32 uAlignment,
 		  IMG_UINT32 uAlignmentOffset,
+		  IMG_PVOID pvPrivData,
+		  IMG_UINT32 ui32PrivDataLength,
           IMG_UINTPTR_T *pBase);
 
 IMG_VOID 

@@ -1,6 +1,6 @@
 /**********************************************************************
  *
- * Copyright(c) 2008 Imagination Technologies Ltd. All rights reserved.
+ * Copyright (C) Imagination Technologies Ltd. All rights reserved.
  * 
  * This program is free software; you can redistribute it and/or modify it
  * under the terms and conditions of the GNU General Public License,
@@ -80,7 +80,7 @@ IMG_UINT32
 HASH_Func_Default (IMG_SIZE_T uKeySize, IMG_VOID *pKey, IMG_UINT32 uHashTabLen)
 {
 	IMG_UINTPTR_T *p = (IMG_UINTPTR_T *)pKey;
-	IMG_UINT32 uKeyLen = uKeySize / sizeof(IMG_UINTPTR_T);
+	IMG_UINT32 uKeyLen = (IMG_UINT32)(uKeySize / sizeof(IMG_UINTPTR_T));
 	IMG_UINT32 ui;
 	IMG_UINT32 uHashKey = 0;
 
@@ -112,7 +112,7 @@ HASH_Key_Comp_Default (IMG_SIZE_T uKeySize, IMG_VOID *pKey1, IMG_VOID *pKey2)
 {
 	IMG_UINTPTR_T *p1 = (IMG_UINTPTR_T *)pKey1;
 	IMG_UINTPTR_T *p2 = (IMG_UINTPTR_T *)pKey2;
-	IMG_UINT32 uKeyLen = uKeySize / sizeof(IMG_UINTPTR_T);
+	IMG_UINT32 uKeyLen = (IMG_UINT32)(uKeySize / sizeof(IMG_UINTPTR_T));
 	IMG_UINT32 ui;
 
 	PVR_ASSERT((uKeySize % sizeof(IMG_UINTPTR_T)) == 0);
@@ -228,7 +228,7 @@ HASH_TABLE * HASH_Create_Extended (IMG_UINT32 uInitialLen, IMG_SIZE_T uKeySize, 
 	pHash->uCount = 0;
 	pHash->uSize = uInitialLen;
 	pHash->uMinimumSize = uInitialLen;
-	pHash->uKeySize = uKeySize;
+	pHash->uKeySize = (IMG_UINT32)uKeySize;
 	pHash->pfnHashFunc = pfnHashFunc;
 	pHash->pfnKeyComp = pfnKeyComp;
 
@@ -305,6 +305,9 @@ HASH_Insert_Extended (HASH_TABLE *pHash, IMG_VOID *pKey, IMG_UINTPTR_T v)
 	OSMemCopy(pBucket->k, pKey, pHash->uKeySize);
 	if (_ChainInsert (pHash, pBucket, pHash->ppBucketTable, pHash->uSize) != PVRSRV_OK)
 	{
+		OSFreeMem(PVRSRV_PAGEABLE_SELECT,
+				  sizeof(BUCKET) + pHash->uKeySize,
+				  pBucket, IMG_NULL);
 		return IMG_FALSE;
 	}
 
@@ -442,6 +445,31 @@ HASH_Retrieve (HASH_TABLE *pHash, IMG_UINTPTR_T k)
 	PVR_DPF ((PVR_DBG_MESSAGE, "HASH_Retrieve: Hash=0x%x, k=0x%x",
 			(IMG_UINTPTR_T)pHash, k));
 	return HASH_Retrieve_Extended(pHash, &k);
+}
+
+PVRSRV_ERROR
+HASH_Iterate(HASH_TABLE *pHash, HASH_pfnCallback pfnCallback)
+{
+	IMG_UINT32 uIndex;
+	for (uIndex=0; uIndex < pHash->uSize; uIndex++)
+	{
+		BUCKET *pBucket;
+		pBucket = pHash->ppBucketTable[uIndex];
+		while (pBucket != IMG_NULL)
+		{
+			PVRSRV_ERROR eError;
+			BUCKET *pNextBucket = pBucket->pNext;
+			
+			eError = pfnCallback((IMG_UINTPTR_T) ((IMG_VOID *) *(pBucket->k)), (IMG_UINTPTR_T) pBucket->v);
+
+			
+			if (eError != PVRSRV_OK)
+				return eError;
+
+			pBucket = pNextBucket;
+		}
+	}
+	return PVRSRV_OK;
 }
 
 #ifdef HASH_TRACE

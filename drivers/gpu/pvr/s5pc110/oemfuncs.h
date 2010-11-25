@@ -1,7 +1,7 @@
 /**********************************************************************
  *
- * Copyright(c) 2008 Imagination Technologies Ltd. All rights reserved.
- * 		Samsung Electronics System LSI. modify
+ * Copyright (C) Imagination Technologies Ltd. All rights reserved.
+ * 
  * This program is free software; you can redistribute it and/or modify it
  * under the terms and conditions of the GNU General Public License,
  * version 2, as published by the Free Software Foundation.
@@ -31,7 +31,7 @@
 extern "C" {
 #endif
 
-
+/* function identifiers: */
 #define OEM_EXCHANGE_POWER_STATE	(1<<0)
 #define OEM_DEVICE_MEMORY_POWER		(1<<1)
 #define OEM_DISPLAY_POWER			(1<<2)
@@ -41,13 +41,13 @@ typedef struct OEM_ACCESS_INFO_TAG
 {
 	IMG_UINT32		ui32Size;
 	IMG_UINT32  	ui32FBPhysBaseAddress;
-	IMG_UINT32		ui32FBMemAvailable;	
+	IMG_UINT32		ui32FBMemAvailable;		/* size of usable FB memory */
 	IMG_UINT32  	ui32SysPhysBaseAddress;
 	IMG_UINT32		ui32SysSize;
 	IMG_UINT32		ui32DevIRQ;
 } OEM_ACCESS_INFO, *POEM_ACCESS_INFO; 
  
-
+/* function in/out data structures: */
 typedef IMG_UINT32   (*PFN_SRV_BRIDGEDISPATCH)( IMG_UINT32  Ioctl,
 												IMG_BYTE   *pInBuf,
 												IMG_UINT32  InBufLen, 
@@ -58,7 +58,9 @@ typedef IMG_UINT32   (*PFN_SRV_BRIDGEDISPATCH)( IMG_UINT32  Ioctl,
 
 typedef PVRSRV_ERROR (*PFN_SRV_READREGSTRING)(PPVRSRV_REGISTRY_INFO psRegInfo);
 
-
+/*
+	Function table for kernel 3rd party driver to kernel services
+*/
 typedef struct PVRSRV_DC_OEM_JTABLE_TAG
 {
 	PFN_SRV_BRIDGEDISPATCH			pfnOEMBridgeDispatch;
@@ -70,4 +72,10 @@ typedef struct PVRSRV_DC_OEM_JTABLE_TAG
 }
 #endif
 
-#endif	
+#endif	/* __OEMFUNCS_H__ */
+
+/*****************************************************************************
+ End of file (oemfuncs.h)
+*****************************************************************************/
+
+

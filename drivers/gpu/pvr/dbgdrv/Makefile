@@ -1,6 +1,8 @@
-
-ccflags-y = -DLINUX -D__linux__ -DANDROID -DPVR_BUILD_DIR="\"omap3430_android\""
-ccflags-y += -Idrivers/gpu/pvr -Idrivers/gpu/pvr/omap3430 -Idrivers/video/omap2
+ccflags-y := \
+ -D__linux__ -DLINUX \
+ -Idrivers/gpu/pvr \
+ -DSUPPORT_DBGDRV_EVENT_OBJECTS \
+ -DLDM_PLATFORM
 
 dbgdrv-$(CONFIG_PVR_PDUMP) := \
 	dbgdriv.o \

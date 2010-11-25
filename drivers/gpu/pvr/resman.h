@@ -1,6 +1,6 @@
 /**********************************************************************
  *
- * Copyright(c) 2008 Imagination Technologies Ltd. All rights reserved.
+ * Copyright (C) Imagination Technologies Ltd. All rights reserved.
  * 
  * This program is free software; you can redistribute it and/or modify it
  * under the terms and conditions of the GNU General Public License,
@@ -41,6 +41,9 @@ enum {
 	RESMAN_TYPE_TRANSFER_CONTEXT,					
 
 	
+	RESMAN_TYPE_DMA_CLIENT_FIFO_DATA,				
+
+	
 	
 	
 	
@@ -73,7 +76,7 @@ enum {
 #define RESMAN_CRITERIA_PVOID_PARAM		0x00000002	
 #define RESMAN_CRITERIA_UI32_PARAM		0x00000004	
 
-typedef PVRSRV_ERROR (*RESMAN_FREE_FN)(IMG_PVOID pvParam, IMG_UINT32 ui32Param); 
+typedef PVRSRV_ERROR (*RESMAN_FREE_FN)(IMG_PVOID pvParam, IMG_UINT32 ui32Param, IMG_BOOL bForceCleanup); 
 
 typedef struct _RESMAN_ITEM_ *PRESMAN_ITEM;
 typedef struct _RESMAN_CONTEXT_ *PRESMAN_CONTEXT;
@@ -87,7 +90,8 @@ PRESMAN_ITEM ResManRegisterRes(PRESMAN_CONTEXT	hResManContext,
 							   IMG_UINT32		ui32Param, 
 							   RESMAN_FREE_FN	pfnFreeResource);
 
-PVRSRV_ERROR ResManFreeResByPtr(PRESMAN_ITEM	psResItem);
+PVRSRV_ERROR ResManFreeResByPtr(PRESMAN_ITEM	psResItem,
+								IMG_BOOL		bForceCleanup);
 
 PVRSRV_ERROR ResManFreeResByCriteria(PRESMAN_CONTEXT	hResManContext,
 									 IMG_UINT32			ui32SearchCriteria, 

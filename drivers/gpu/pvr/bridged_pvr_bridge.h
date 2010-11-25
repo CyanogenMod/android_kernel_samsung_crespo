@@ -1,6 +1,6 @@
 /**********************************************************************
  *
- * Copyright(c) 2008 Imagination Technologies Ltd. All rights reserved.
+ * Copyright (C) Imagination Technologies Ltd. All rights reserved.
  * 
  * This program is free software; you can redistribute it and/or modify it
  * under the terms and conditions of the GNU General Public License,
@@ -83,7 +83,7 @@ CopyToUserWrapper(PVRSRV_PER_PROCESS_DATA *pProcData,
 #define ASSIGN_AND_EXIT_ON_ERROR(error, src)		\
 	ASSIGN_AND_RETURN_ON_ERROR(error, src, 0)
 
-#if defined (PVR_SECURE_HANDLES)
+#if defined (PVR_SECURE_HANDLES) || defined (SUPPORT_SID_INTERFACE)
 #ifdef INLINE_IS_PRAGMA
 #pragma inline(NewHandleBatch)
 #endif

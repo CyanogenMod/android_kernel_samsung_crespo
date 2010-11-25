@@ -22,14 +22,15 @@
  * Imagination Technologies Ltd. <gpl-support@imgtec.com>
  * Home Park Estate, Kings Langley, Herts, WD4 8LZ, UK 
  *
- ******************************************************************************/
+ *****************************************************************************/
 
-#ifndef _IOCTL_
-#define _IOCTL_
+#ifndef __IMG_LINUX_ION_H__
+#define __IMG_LINUX_ION_H__
 
-#define MAX_DBGVXD_W32_API 25
+#include <linux/ion.h>
+#include <linux/omap_ion.h>
 
-extern IMG_UINT32 (*g_DBGDrivProc[MAX_DBGVXD_W32_API])(IMG_VOID *, IMG_VOID *);
+struct ion_handle *PVRSRVExportFDToIONHandle(int fd,
+											 struct ion_client **client);
 
-#endif
-
+#endif /* __IMG_LINUX_ION_H__ */

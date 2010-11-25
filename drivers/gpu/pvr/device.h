@@ -1,6 +1,6 @@
 /**********************************************************************
  *
- * Copyright(c) 2008 Imagination Technologies Ltd. All rights reserved.
+ * Copyright (C) Imagination Technologies Ltd. All rights reserved.
  * 
  * This program is free software; you can redistribute it and/or modify it
  * under the terms and conditions of the GNU General Public License,
@@ -222,6 +222,8 @@ typedef struct _PVRSRV_DEVICE_NODE_
 #endif
 	IMG_DEV_PHYADDR			(*pfnMMUGetPhysPageAddr)(MMU_HEAP *pMMUHeap, IMG_DEV_VIRTADDR sDevVPageAddr);
 	IMG_DEV_PHYADDR			(*pfnMMUGetPDDevPAddr)(MMU_CONTEXT *pMMUContext);
+	IMG_VOID				(*pfnMMUGetCacheFlushRange)(MMU_CONTEXT *pMMUContext, IMG_UINT32 *pui32RangeMask);
+	IMG_VOID				(*pfnMMUGetPDPhysAddr)(MMU_CONTEXT *pMMUContext, IMG_DEV_PHYADDR *psDevPAddr);
 
 	
 	PVRSRV_ERROR			(*pfnAllocMemTilingRange)(struct _PVRSRV_DEVICE_NODE_ *psDeviceNode,
@@ -244,7 +246,9 @@ typedef struct _PVRSRV_DEVICE_NODE_
 	IMG_VOID				(*pfnDeviceCommandComplete)(struct _PVRSRV_DEVICE_NODE_ *psDeviceNode);
 	
 	IMG_BOOL				bReProcessDeviceCommandComplete;
-	
+
+	IMG_VOID				(*pfnCacheInvalidate)(struct _PVRSRV_DEVICE_NODE_ *psDeviceNode);
+
 	
 	DEVICE_MEMORY_INFO		sDevMemoryInfo;
 
@@ -288,11 +292,12 @@ PVRSRV_ERROR IMG_CALLCONV PVRSRVDeinitialiseDevice(IMG_UINT32 ui32DevIndex);
 
 #if !defined(USE_CODE)
 
-IMG_IMPORT PVRSRV_ERROR IMG_CALLCONV PollForValueKM(volatile IMG_UINT32* pui32LinMemAddr,
-												   IMG_UINT32 ui32Value,
-												   IMG_UINT32 ui32Mask,
-												   IMG_UINT32 ui32Waitus,
-												   IMG_UINT32 ui32Tries);
+IMG_IMPORT PVRSRV_ERROR IMG_CALLCONV PollForValueKM(volatile IMG_UINT32*	pui32LinMemAddr,
+													IMG_UINT32				ui32Value,
+													IMG_UINT32				ui32Mask,
+													IMG_UINT32				ui32Timeoutus,
+													IMG_UINT32				ui32PollPeriodus,
+													IMG_BOOL				bAllowPreemption);
 
 #endif 
 

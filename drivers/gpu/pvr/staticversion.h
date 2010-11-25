@@ -22,14 +22,12 @@
  * Imagination Technologies Ltd. <gpl-support@imgtec.com>
  * Home Park Estate, Kings Langley, Herts, WD4 8LZ, UK 
  *
- ******************************************************************************/
+*****************************************************************************/
+#ifndef _STATICVERSION_H_
+#define _STATICVERSION_H_
 
-#ifndef _IOCTL_
-#define _IOCTL_
+#define PVRVERSION_MAJ    1
+#define PVRVERSION_MIN    8
+#define PVRVERSION_BRANCH 18
 
-#define MAX_DBGVXD_W32_API 25
-
-extern IMG_UINT32 (*g_DBGDrivProc[MAX_DBGVXD_W32_API])(IMG_VOID *, IMG_VOID *);
-
-#endif
-
+#endif /* _STATICVERSION_H_ */

@@ -1,6 +1,6 @@
 /**********************************************************************
  *
- * Copyright(c) 2008 Imagination Technologies Ltd. All rights reserved.
+ * Copyright (C) Imagination Technologies Ltd. All rights reserved.
  * 
  * This program is free software; you can redistribute it and/or modify it
  * under the terms and conditions of the GNU General Public License,
@@ -57,6 +57,9 @@ typedef struct _SYS_DEVICE_ID_TAG
 
 #define SYS_MAX_LOCAL_DEVMEM_ARENAS	4
 
+typedef IMG_HANDLE (*PFN_HTIMER_CREATE) (IMG_VOID);
+typedef IMG_UINT32 (*PFN_HTIMER_GETUS) (IMG_HANDLE);
+typedef IMG_VOID (*PFN_HTIMER_DESTROY) (IMG_HANDLE);
 typedef struct _SYS_DATA_TAG_
 {
     IMG_UINT32                  ui32NumDevices;      	   	
@@ -81,17 +84,27 @@ typedef struct _SYS_DATA_TAG_
 	struct _DEVICE_COMMAND_DATA_ *apsDeviceCommandData[SYS_DEVICE_COUNT];
 															
 
-	IMG_BOOL                    bReProcessQueues;    		
-
 	RA_ARENA					*apsLocalDevMemArena[SYS_MAX_LOCAL_DEVMEM_ARENAS]; 
 
     IMG_CHAR                    *pszVersionString;          
-	PVRSRV_EVENTOBJECT			*psGlobalEventObject;			
+#if defined (SUPPORT_SID_INTERFACE)
+	PVRSRV_EVENTOBJECT_KM		*psGlobalEventObject;		
+#else
+	PVRSRV_EVENTOBJECT			*psGlobalEventObject;		
+#endif
 
 	PVRSRV_MISC_INFO_CPUCACHEOP_TYPE ePendingCacheOpType;	
+
+	PFN_HTIMER_CREATE	pfnHighResTimerCreate;
+	PFN_HTIMER_GETUS	pfnHighResTimerGetus;
+	PFN_HTIMER_DESTROY	pfnHighResTimerDestroy;
 } SYS_DATA;
 
 
+
+#if defined (CUSTOM_DISPLAY_SEGMENT)
+PVRSRV_ERROR SysGetDisplaySegmentAddress (IMG_VOID *pvDevInfo, IMG_VOID *pvPhysicalAddress, IMG_UINT32 *pui32Length);
+#endif
 
 PVRSRV_ERROR SysInitialise(IMG_VOID);
 PVRSRV_ERROR SysFinalise(IMG_VOID);
@@ -119,9 +132,13 @@ PVRSRV_ERROR SysDevicePostPowerState(IMG_UINT32 ui32DeviceIndex,
 									 PVRSRV_DEV_POWER_STATE eNewPowerState,
 									 PVRSRV_DEV_POWER_STATE eCurrentPowerState);
 
+#if defined(SYS_SUPPORTS_SGX_IDLE_CALLBACK)
+IMG_VOID SysSGXIdleTransition(IMG_BOOL bSGXIdle);
+#endif 
+
 #if defined(SYS_CUSTOM_POWERLOCK_WRAP)
-PVRSRV_ERROR SysPowerLockWrap(SYS_DATA *psSysData);
-IMG_VOID SysPowerLockUnwrap(SYS_DATA *psSysData);
+PVRSRV_ERROR SysPowerLockWrap(IMG_BOOL bTryLock);
+IMG_VOID SysPowerLockUnwrap(IMG_VOID);
 #endif
 
 PVRSRV_ERROR SysOEMFunction (	IMG_UINT32	ui32ID,
@@ -142,6 +159,7 @@ IMG_BOOL SysVerifySysPAddrToDevPAddr (PVRSRV_DEVICE_TYPE eDeviceType, IMG_SYS_PH
 #endif
 
 extern SYS_DATA* gpsSysData;
+
 
 #if !defined(USE_CODE)
 
@@ -216,5 +234,37 @@ static inline IMG_VOID SysWriteHWReg(IMG_PVOID pvLinRegBaseAddr, IMG_UINT32 ui32
 }
 #endif
 
+#ifdef INLINE_IS_PRAGMA
+#pragma inline(SysHighResTimerCreate)
+#endif
+static INLINE IMG_HANDLE SysHighResTimerCreate(IMG_VOID)
+{
+	SYS_DATA *psSysData;
+
+	SysAcquireData(&psSysData);
+	return psSysData->pfnHighResTimerCreate();
+}
+
+#ifdef INLINE_IS_PRAGMA
+#pragma inline(SysHighResTimerGetus)
+#endif
+static INLINE IMG_UINT32 SysHighResTimerGetus(IMG_HANDLE hTimer)
+{
+	SYS_DATA *psSysData;
+
+	SysAcquireData(&psSysData);
+	return psSysData->pfnHighResTimerGetus(hTimer);
+}
+
+#ifdef INLINE_IS_PRAGMA
+#pragma inline(SysHighResTimerDestroy)
+#endif
+static INLINE IMG_VOID SysHighResTimerDestroy(IMG_HANDLE hTimer)
+{
+	SYS_DATA *psSysData;
+
+	SysAcquireData(&psSysData);
+	psSysData->pfnHighResTimerDestroy(hTimer);
+}
 #endif
 

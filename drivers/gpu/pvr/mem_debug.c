@@ -1,6 +1,6 @@
 /**********************************************************************
  *
- * Copyright(c) 2008 Imagination Technologies Ltd. All rights reserved.
+ * Copyright (C) Imagination Technologies Ltd. All rights reserved.
  * 
  * This program is free software; you can redistribute it and/or modify it
  * under the terms and conditions of the GNU General Public License,
@@ -38,8 +38,6 @@ extern "C"
 #endif
 
 #define STOP_ON_ERROR 0
-
-	
 
 	
 
@@ -187,7 +185,6 @@ extern "C"
 			return eError;
 		}
 
-		
 		OSMemSet((IMG_CHAR *)(*ppvCpuVAddr) + TEST_BUFFER_PADDING_STATUS, 0xBB, ui32Size);
 		OSMemSet((IMG_CHAR *)(*ppvCpuVAddr) + ui32Size + TEST_BUFFER_PADDING_STATUS, 0xB2, TEST_BUFFER_PADDING_AFTER);
 
@@ -247,4 +244,4 @@ extern "C"
 
 #endif 
 
-#endif        
+#endif 

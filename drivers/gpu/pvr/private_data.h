@@ -1,6 +1,6 @@
 /**********************************************************************
  *
- * Copyright(c) 2008 Imagination Technologies Ltd. All rights reserved.
+ * Copyright (C) Imagination Technologies Ltd. All rights reserved.
  * 
  * This program is free software; you can redistribute it and/or modify it
  * under the terms and conditions of the GNU General Public License,
@@ -32,36 +32,24 @@
 #include <drm/drmP.h>
 #endif
 
-#if defined(SUPPORT_DRI_DRM) && defined(PVR_LINUX_USING_WORKQUEUES)
-#include <linux/workqueue.h>
-#endif
-
 typedef struct
 {
 	
 	IMG_UINT32 ui32OpenPID;
 
-#if defined(PVR_SECURE_FD_EXPORT)
 	
+#if defined (SUPPORT_SID_INTERFACE)
+	IMG_SID hKernelMemInfo;
+#else
 	IMG_HANDLE hKernelMemInfo;
-#endif 
+#endif
 
-#if defined(SUPPORT_DRI_DRM)
-#if defined(PVR_SECURE_DRM_AUTH_EXPORT)
-	struct drm_file *psDRMFile;
-
+#if defined(SUPPORT_DRI_DRM) && defined(PVR_SECURE_DRM_AUTH_EXPORT)
 	
 	struct list_head sDRMAuthListItem;
-#endif
 
-#if defined(PVR_LINUX_USING_WORKQUEUES)
-	struct work_struct sReleaseWork;
+	struct drm_file *psDRMFile;
 #endif
-
-#if defined(SUPPORT_DRI_DRM_EXT)
-	IMG_PVOID pPriv;	
-#endif
-#endif	
 
 #if defined(SUPPORT_MEMINFO_IDS)
 	
@@ -70,6 +58,10 @@ typedef struct
 
 	
 	IMG_HANDLE hBlockAlloc;
+
+#if defined(SUPPORT_DRI_DRM_EXT)
+	IMG_PVOID pPriv;	
+#endif
 }
 PVRSRV_FILE_PRIVATE_DATA;
 

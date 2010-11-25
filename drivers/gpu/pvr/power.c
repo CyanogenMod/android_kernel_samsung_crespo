@@ -1,6 +1,6 @@
 /**********************************************************************
  *
- * Copyright(c) 2008 Imagination Technologies Ltd. All rights reserved.
+ * Copyright (C) Imagination Technologies Ltd. All rights reserved.
  * 
  * This program is free software; you can redistribute it and/or modify it
  * under the terms and conditions of the GNU General Public License,
@@ -28,10 +28,6 @@
 #include "pdump_km.h"
 
 #include "lists.h"
-
-#ifdef __linux__
-#include <linux/delay.h>
-#endif
 
 static IMG_BOOL gbInitServerRunning = IMG_FALSE;
 static IMG_BOOL gbInitServerRan = IMG_FALSE;
@@ -97,28 +93,18 @@ PVRSRV_ERROR PVRSRVPowerLock(IMG_UINT32	ui32CallerID,
 							 IMG_BOOL	bSystemPowerEvent)
 {
 	PVRSRV_ERROR	eError;
-	SYS_DATA		*psSysData;
-
-#ifdef __linux__	
-	IMG_UINT32		ui32Timeout = 1000;
-#else
-	IMG_UINT32		ui32Timeout = 1000000;
-#endif
-
-#if defined(SUPPORT_LMA)
-	
-	ui32Timeout *= 60;
-#endif 
+	SYS_DATA	*psSysData;
+	IMG_UINT32	ui32Timeout = 1000000;
+	IMG_BOOL	bTryLock = (ui32CallerID == ISR_ID);
 
 	SysAcquireData(&psSysData);
 
-#if defined(SYS_CUSTOM_POWERLOCK_WRAP)
-	eError = SysPowerLockWrap(psSysData);
+	eError = OSPowerLockWrap(bTryLock);
 	if (eError != PVRSRV_OK)
 	{
 		return eError;
 	}
-#endif
+
 	do
 	{
 		eError = OSLockResource(&psSysData->sPowerStateChangeResource,
@@ -127,7 +113,7 @@ PVRSRV_ERROR PVRSRVPowerLock(IMG_UINT32	ui32CallerID,
 		{
 			break;
 		}
-		else if (ui32CallerID == ISR_ID)
+		else if (bTryLock)
 		{
 			
 
@@ -135,20 +121,15 @@ PVRSRV_ERROR PVRSRVPowerLock(IMG_UINT32	ui32CallerID,
 			break;
 		}
 
-#ifdef __linux__
-		msleep(1);
-#else
 		OSWaitus(1);
-#endif
 		ui32Timeout--;
 	} while (ui32Timeout > 0);
 
-#if defined(SYS_CUSTOM_POWERLOCK_WRAP)
 	if (eError != PVRSRV_OK)
 	{
-		SysPowerLockUnwrap(psSysData);
+		OSPowerLockUnwrap();
 	}
-#endif
+
 	 
 	if ((eError == PVRSRV_OK) &&
 		!bSystemPowerEvent &&
@@ -167,9 +148,7 @@ IMG_EXPORT
 IMG_VOID PVRSRVPowerUnlock(IMG_UINT32	ui32CallerID)
 {
 	OSUnlockResource(&gpsSysData->sPowerStateChangeResource, ui32CallerID);
-#if defined(SYS_CUSTOM_POWERLOCK_WRAP)
-	SysPowerLockUnwrap(gpsSysData);
-#endif
+	OSPowerLockUnwrap();
 }
 
 
@@ -573,7 +552,7 @@ PVRSRV_ERROR PVRSRVRegisterPowerDevice(IMG_UINT32					ui32DeviceIndex,
 
 	SysAcquireData(&psSysData);
 
-	eError = OSAllocMem( PVRSRV_OS_PAGEABLE_HEAP,
+	eError = OSAllocMem( PVRSRV_OS_NON_PAGEABLE_HEAP,
 						 sizeof(PVRSRV_POWER_DEV),
 						 (IMG_VOID **)&psPowerDevice, IMG_NULL,
 						 "Power Device");

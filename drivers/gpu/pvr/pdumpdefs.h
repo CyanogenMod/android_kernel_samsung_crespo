@@ -1,6 +1,6 @@
 /**********************************************************************
  *
- * Copyright(c) 2008 Imagination Technologies Ltd. All rights reserved.
+ * Copyright (C) Imagination Technologies Ltd. All rights reserved.
  * 
  * This program is free software; you can redistribute it and/or modify it
  * under the terms and conditions of the GNU General Public License,
@@ -22,7 +22,7 @@
  * Imagination Technologies Ltd. <gpl-support@imgtec.com>
  * Home Park Estate, Kings Langley, Herts, WD4 8LZ, UK 
  *
- ******************************************************************************/
+*****************************************************************************/
 
 #if !defined (__PDUMPDEFS_H__)
 #define __PDUMPDEFS_H__
@@ -68,6 +68,15 @@ typedef enum _PDUMP_PIXEL_FORMAT_
 	PVRSRV_PDUMP_PIXEL_FORMAT_F32 = 36,
 	PVRSRV_PDUMP_PIXEL_FORMAT_L16 = 37,
 	PVRSRV_PDUMP_PIXEL_FORMAT_L32 = 38,
+	PVRSRV_PDUMP_PIXEL_FORMAT_RGBA8888 = 39,
+	PVRSRV_PDUMP_PIXEL_FORMAT_ABGR4444 = 40,
+	PVRSRV_PDUMP_PIXEL_FORMAT_RGBA4444 = 41,
+	PVRSRV_PDUMP_PIXEL_FORMAT_BGRA4444 = 42,
+	PVRSRV_PDUMP_PIXEL_FORMAT_ABGR1555 = 43,
+	PVRSRV_PDUMP_PIXEL_FORMAT_RGBA5551 = 44,
+	PVRSRV_PDUMP_PIXEL_FORMAT_BGRA5551 = 45,
+	PVRSRV_PDUMP_PIXEL_FORMAT_BGR565 = 46,
+	PVRSRV_PDUMP_PIXEL_FORMAT_A8 = 47,
 	
 	PVRSRV_PDUMP_PIXEL_FORMAT_FORCE_I32 = 0x7fffffff
 
@@ -95,5 +104,8 @@ typedef enum _PDUMP_POLL_OPERATOR
 } PDUMP_POLL_OPERATOR;
 
 
-#endif 
+#endif /* __PDUMPDEFS_H__ */
 
+/*****************************************************************************
+ End of file (pdumpdefs.h)
+*****************************************************************************/

@@ -1,6 +1,6 @@
 /**********************************************************************
  *
- * Copyright(c) 2008 Imagination Technologies Ltd. All rights reserved.
+ * Copyright (C) Imagination Technologies Ltd. All rights reserved.
  * 
  * This program is free software; you can redistribute it and/or modify it
  * under the terms and conditions of the GNU General Public License,
@@ -24,8 +24,12 @@
  *
  ******************************************************************************/
 
+#include <linux/version.h>
+
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(2,6,38))
 #ifndef AUTOCONF_INCLUDED
- #include <linux/config.h>
+#include <linux/config.h>
+#endif
 #endif
 
 #include <asm/io.h>
@@ -44,6 +48,10 @@
 #include "mutex.h"
 #include "linkage.h"
 #include "pvr_uaccess.h"
+
+#if !defined(CONFIG_PREEMPT)
+#define	PVR_DEBUG_ALWAYS_USE_SPINLOCK
+#endif
 
 static IMG_BOOL VBAppend(IMG_CHAR *pszBuf, IMG_UINT32 ui32BufSiz,
 						 const IMG_CHAR* pszFormat, va_list VArgs)
@@ -65,55 +73,77 @@ IMG_UINT32 gPVRDebugLevel =
 
 #define	PVR_MAX_MSG_LEN PVR_MAX_DEBUG_MESSAGE_LEN
 
+#if !defined(PVR_DEBUG_ALWAYS_USE_SPINLOCK)
 static IMG_CHAR gszBufferNonIRQ[PVR_MAX_MSG_LEN + 1];
+#endif
 
 static IMG_CHAR gszBufferIRQ[PVR_MAX_MSG_LEN + 1];
 
+#if !defined(PVR_DEBUG_ALWAYS_USE_SPINLOCK)
 static PVRSRV_LINUX_MUTEX gsDebugMutexNonIRQ;
+#endif
 
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(2,6,39))
  
 static spinlock_t gsDebugLockIRQ = SPIN_LOCK_UNLOCKED;
+#else
+static DEFINE_SPINLOCK(gsDebugLockIRQ);
+#endif
 
+#if !defined(PVR_DEBUG_ALWAYS_USE_SPINLOCK)
 #if !defined (USE_SPIN_LOCK)  
 #define	USE_SPIN_LOCK (in_interrupt() || !preemptible())
+#endif
 #endif
 
 static inline void GetBufferLock(unsigned long *pulLockFlags)
 {
+#if !defined(PVR_DEBUG_ALWAYS_USE_SPINLOCK)
 	if (USE_SPIN_LOCK)
+#endif
 	{
 		spin_lock_irqsave(&gsDebugLockIRQ, *pulLockFlags);
 	}
+#if !defined(PVR_DEBUG_ALWAYS_USE_SPINLOCK)
 	else
 	{
 		LinuxLockMutex(&gsDebugMutexNonIRQ);
 	}
+#endif
 }
 
 static inline void ReleaseBufferLock(unsigned long ulLockFlags)
 {
+#if !defined(PVR_DEBUG_ALWAYS_USE_SPINLOCK)
 	if (USE_SPIN_LOCK)
+#endif
 	{
 		spin_unlock_irqrestore(&gsDebugLockIRQ, ulLockFlags);
 	}
+#if !defined(PVR_DEBUG_ALWAYS_USE_SPINLOCK)
 	else
 	{
 		LinuxUnLockMutex(&gsDebugMutexNonIRQ);
 	}
+#endif
 }
 
 static inline void SelectBuffer(IMG_CHAR **ppszBuf, IMG_UINT32 *pui32BufSiz)
 {
+#if !defined(PVR_DEBUG_ALWAYS_USE_SPINLOCK)
 	if (USE_SPIN_LOCK)
+#endif
 	{
 		*ppszBuf = gszBufferIRQ;
 		*pui32BufSiz = sizeof(gszBufferIRQ);
 	}
+#if !defined(PVR_DEBUG_ALWAYS_USE_SPINLOCK)
 	else
 	{
 		*ppszBuf = gszBufferNonIRQ;
 		*pui32BufSiz = sizeof(gszBufferNonIRQ);
 	}
+#endif
 }
 
 static IMG_BOOL VBAppend(IMG_CHAR *pszBuf, IMG_UINT32 ui32BufSiz, const IMG_CHAR* pszFormat, va_list VArgs)
@@ -135,7 +165,9 @@ static IMG_BOOL VBAppend(IMG_CHAR *pszBuf, IMG_UINT32 ui32BufSiz, const IMG_CHAR
 
 IMG_VOID PVRDPFInit(IMG_VOID)
 {
+#if !defined(PVR_DEBUG_ALWAYS_USE_SPINLOCK)
     LinuxInitMutex(&gsDebugMutexNonIRQ);
+#endif
 }
 
 IMG_VOID PVRSRVReleasePrintf(const IMG_CHAR *pszFormat, ...)
@@ -171,9 +203,7 @@ IMG_VOID PVRSRVReleasePrintf(const IMG_CHAR *pszFormat, ...)
 IMG_VOID PVRSRVDebugAssertFail(const IMG_CHAR* pszFile, IMG_UINT32 uLine)
 {
 	PVRSRVDebugPrintf(DBGPRIV_FATAL, pszFile, uLine, "Debug assertion failed!");
-#if !defined(SLSI_S5PC110)
 	BUG();
-#endif
 }
 
 #endif 
@@ -314,7 +344,8 @@ IMG_VOID PVRSRVDebugPrintf	(
 				IMG_CHAR* pszTruncBackInter;
 
 				
-				pszFileName = pszFullFileName + strlen(DEBUG_LOG_PATH_TRUNCATE)+1;
+				if (strlen(pszFullFileName) > strlen(DEBUG_LOG_PATH_TRUNCATE)+1)
+					pszFileName = pszFullFileName + strlen(DEBUG_LOG_PATH_TRUNCATE)+1;
 
 				
 				strncpy(szFileNameRewrite, pszFileName,PVR_MAX_FILEPATH_LEN);

@@ -1,6 +1,6 @@
 /**********************************************************************
  *
- * Copyright(c) 2008 Imagination Technologies Ltd. All rights reserved.
+ * Copyright (C) Imagination Technologies Ltd. All rights reserved.
  * 
  * This program is free software; you can redistribute it and/or modify it
  * under the terms and conditions of the GNU General Public License,
@@ -145,6 +145,35 @@ typedef struct DISPLAYCLASS_FLIP_COMMAND_TAG
 	IMG_UINT32	ui32SwapInterval;
 
 } DISPLAYCLASS_FLIP_COMMAND;
+
+
+typedef struct DISPLAYCLASS_FLIP_COMMAND2_TAG
+{
+	
+	IMG_HANDLE hExtDevice;
+
+	
+	IMG_HANDLE hExtSwapChain;
+
+	
+	IMG_HANDLE hUnused;
+
+	
+	IMG_UINT32 ui32SwapInterval;
+
+	
+	IMG_PVOID  pvPrivData;
+
+	
+	IMG_UINT32 ui32PrivDataLength;
+
+	
+	IMG_VOID **ppvMemInfos;
+
+	
+	IMG_UINT32 ui32NumMemInfos;
+
+} DISPLAYCLASS_FLIP_COMMAND2;
 
 #define DC_FLIP_COMMAND		0
 

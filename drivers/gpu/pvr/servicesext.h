@@ -1,6 +1,6 @@
 /**********************************************************************
  *
- * Copyright(c) 2008 Imagination Technologies Ltd. All rights reserved.
+ * Copyright (C) Imagination Technologies Ltd. All rights reserved.
  * 
  * This program is free software; you can redistribute it and/or modify it
  * under the terms and conditions of the GNU General Public License,
@@ -86,6 +86,8 @@ typedef enum _PVRSRV_ERROR_
 
 	PVRSRV_ERROR_REGISTER_BASE_NOT_SET,
 
+    PVRSRV_ERROR_BM_BAD_SHAREMEM_HANDLE,
+
 	PVRSRV_ERROR_FAILED_TO_ALLOC_USER_MEM,
 	PVRSRV_ERROR_FAILED_TO_ALLOC_VP_MEMORY,
 	PVRSRV_ERROR_FAILED_TO_MAP_SHARED_PBDESC,
@@ -149,6 +151,7 @@ typedef enum _PVRSRV_ERROR_
 	PVRSRV_ERROR_UNABLE_TO_CLOSE_SERVICES,
 	PVRSRV_ERROR_UNABLE_TO_REGISTER_CONTEXT,
 	PVRSRV_ERROR_UNABLE_TO_REGISTER_RESOURCE,
+	PVRSRV_ERROR_UNABLE_TO_CLOSE_HANDLE,
 
 	PVRSRV_ERROR_INVALID_CCB_COMMAND,
 
@@ -578,6 +581,20 @@ typedef enum _PVRSRV_PIXEL_FORMAT_ {
 	PVRSRV_PIXEL_FORMAT_ABGR1555			= 213,
 	PVRSRV_PIXEL_FORMAT_BGR565				= 214,			
 
+	
+	PVRSRV_PIXEL_FORMAT_C0_4KYUV420_2P_UV	= 215,
+	PVRSRV_PIXEL_FORMAT_C0_4KYUV420_2P_VU	= 216,
+	PVRSRV_PIXEL_FORMAT_C1_4KYUV420_2P_UV	= 217,
+	PVRSRV_PIXEL_FORMAT_C1_4KYUV420_2P_VU	= 218,
+	PVRSRV_PIXEL_FORMAT_P208				= 219,			
+	PVRSRV_PIXEL_FORMAT_A8P8				= 220,			
+
+	PVRSRV_PIXEL_FORMAT_A4					= 221,
+	PVRSRV_PIXEL_FORMAT_AYUV8888			= 222,
+	PVRSRV_PIXEL_FORMAT_RAW256				= 223,
+	PVRSRV_PIXEL_FORMAT_RAW512				= 224,
+	PVRSRV_PIXEL_FORMAT_RAW1024				= 225,
+
 	PVRSRV_PIXEL_FORMAT_FORCE_I32			= 0x7fffffff
 
 } PVRSRV_PIXEL_FORMAT;
@@ -621,6 +638,10 @@ typedef struct _PVRSRV_SYNC_DATA_
 	volatile IMG_UINT32			ui32ReadOpsComplete;
 
 	
+	IMG_UINT32					ui32ReadOps2Pending;
+	volatile IMG_UINT32			ui32ReadOps2Complete;
+
+	
 	IMG_UINT32					ui32LastOpDumpVal;
 	IMG_UINT32					ui32LastReadOpDumpVal;
 
@@ -629,7 +650,7 @@ typedef struct _PVRSRV_SYNC_DATA_
 typedef struct _PVRSRV_CLIENT_SYNC_INFO_
 {
 	
-	PVRSRV_SYNC_DATA			*psSyncData;
+	PVRSRV_SYNC_DATA		*psSyncData;
 
 	
 
@@ -641,10 +662,20 @@ typedef struct _PVRSRV_CLIENT_SYNC_INFO_
 	IMG_DEV_VIRTADDR		sReadOpsCompleteDevVAddr;
 
 	
+	IMG_DEV_VIRTADDR		sReadOps2CompleteDevVAddr;
+
+	
+#if defined (SUPPORT_SID_INTERFACE)
+	IMG_SID					hMappingInfo;
+
+	
+	IMG_SID					hKernelSyncInfo;
+#else
 	IMG_HANDLE					hMappingInfo;
 
 	
 	IMG_HANDLE					hKernelSyncInfo;
+#endif
 
 } PVRSRV_CLIENT_SYNC_INFO, *PPVRSRV_CLIENT_SYNC_INFO;
 
@@ -762,47 +793,17 @@ typedef struct ACCESS_INFO_TAG
 }ACCESS_INFO;
 
 
-typedef struct PVRSRV_CURSOR_SHAPE_TAG
-{
-	IMG_UINT16			ui16Width;
-	IMG_UINT16			ui16Height;
-	IMG_INT16			i16XHot;
-	IMG_INT16			i16YHot;
 
-	
-	IMG_VOID*   		pvMask;
-	IMG_INT16  			i16MaskByteStride;
+#if defined(PDUMP_SUSPEND_IS_PER_THREAD)
+typedef struct {
+	IMG_UINT32 threadId;
+	IMG_INT    suspendCount;
+} PVRSRV_THREAD_SUSPEND_COUNT;
 
-	
-	IMG_VOID*			pvColour;
-	IMG_INT16			i16ColourByteStride;
-	PVRSRV_PIXEL_FORMAT	eColourPixelFormat;
-} PVRSRV_CURSOR_SHAPE;
+#define PVRSRV_PDUMP_SUSPEND_Q_NAME "PVRSRVPDumpSuspendMsgQ"
+#define PVRSRV_PDUMP_SUSPEND_Q_LENGTH 8
 
-#define PVRSRV_SET_CURSOR_VISIBILITY	(1<<0)
-#define PVRSRV_SET_CURSOR_POSITION		(1<<1)
-#define PVRSRV_SET_CURSOR_SHAPE			(1<<2)
-#define PVRSRV_SET_CURSOR_ROTATION		(1<<3)
-
-typedef struct PVRSRV_CURSOR_INFO_TAG
-{
-	
-	IMG_UINT32 ui32Flags;
-
-	
-	IMG_BOOL bVisible;
-
-	
-	IMG_INT16 i16XPos;
-	IMG_INT16 i16YPos;
-
-	
-	PVRSRV_CURSOR_SHAPE sCursorShape;
-
-	
-	IMG_UINT32 ui32Rotation;
-
-} PVRSRV_CURSOR_INFO;
+#endif 
 
 
 typedef struct _PVRSRV_REGISTRY_INFO_

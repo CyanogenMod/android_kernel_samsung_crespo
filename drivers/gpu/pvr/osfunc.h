@@ -1,6 +1,6 @@
 /**********************************************************************
  *
- * Copyright(c) 2008 Imagination Technologies Ltd. All rights reserved.
+ * Copyright (C) Imagination Technologies Ltd. All rights reserved.
  * 
  * This program is free software; you can redistribute it and/or modify it
  * under the terms and conditions of the GNU General Public License,
@@ -83,7 +83,7 @@ IMG_BOOL OSUnMapPhysToLin(IMG_VOID *pvLinAddr, IMG_SIZE_T ui32Bytes, IMG_UINT32 
 PVRSRV_ERROR OSReservePhys(IMG_CPU_PHYADDR BasePAddr, IMG_SIZE_T ui32Bytes, IMG_UINT32 ui32Flags, IMG_VOID **ppvCpuVAddr, IMG_HANDLE *phOSMemHandle);
 PVRSRV_ERROR OSUnReservePhys(IMG_VOID *pvCpuVAddr, IMG_SIZE_T ui32Bytes, IMG_UINT32 ui32Flags, IMG_HANDLE hOSMemHandle);
 
-#if defined(__linux__) && defined(__KERNEL__)
+#if (defined(__linux__) && defined(__KERNEL__)) || (UNDER_CE >= 600)
 
 IMG_VOID OSFlushCPUCacheKM(IMG_VOID);
 
@@ -304,7 +304,8 @@ IMG_UINT32 OSGetCurrentProcessIDKM(IMG_VOID);
 IMG_UINTPTR_T OSGetCurrentThreadID( IMG_VOID );
 IMG_VOID OSMemSet(IMG_VOID *pvDest, IMG_UINT8 ui8Value, IMG_SIZE_T ui32Size);
 
-PVRSRV_ERROR OSAllocPages_Impl(IMG_UINT32 ui32Flags, IMG_SIZE_T ui32Size, IMG_UINT32 ui32PageSize, IMG_PVOID *ppvLinAddr, IMG_HANDLE *phPageAlloc);
+PVRSRV_ERROR OSAllocPages_Impl(IMG_UINT32 ui32Flags, IMG_SIZE_T ui32Size, IMG_UINT32 ui32PageSize,
+							   IMG_PVOID pvPrivData, IMG_UINT32 ui32PrivDataLength, IMG_PVOID *ppvLinAddr, IMG_HANDLE *phPageAlloc);
 PVRSRV_ERROR OSFreePages(IMG_UINT32 ui32Flags, IMG_SIZE_T ui32Size, IMG_PVOID pvLinAddr, IMG_HANDLE hPageAlloc);
 
 
@@ -313,9 +314,9 @@ PVRSRV_ERROR OSFreePages(IMG_UINT32 ui32Flags, IMG_SIZE_T ui32Size, IMG_PVOID pv
 		(PVR_TRACE(("OSAllocMem(" #flags ", " #size ", " #linAddr ", " #blockAlloc "): " logStr " (size = 0x%lx)", size)), \
 			OSAllocMem_Debug_Wrapper(flags, size, linAddr, blockAlloc, __FILE__, __LINE__))
 
-	#define OSAllocPages(flags, size, pageSize, linAddr, pageAlloc) \
+	#define OSAllocPages(flags, size, pageSize, privdata, privdatalength, linAddr, pageAlloc) \
 		(PVR_TRACE(("OSAllocPages(" #flags ", " #size ", " #pageSize ", " #linAddr ", " #pageAlloc "): (size = 0x%lx)", size)), \
-			OSAllocPages_Impl(flags, size, pageSize, linAddr, pageAlloc))
+			OSAllocPages_Impl(flags, size, pageSize, linAddr, privdata, privdatalength, pageAlloc))
 		
 	#define OSFreeMem(flags, size, linAddr, blockAlloc) \
 		(PVR_TRACE(("OSFreeMem(" #flags ", " #size ", " #linAddr ", " #blockAlloc "): (pointer = 0x%X)", linAddr)), \
@@ -406,15 +407,27 @@ IMG_CHAR* OSStringCopy(IMG_CHAR *pszDest, const IMG_CHAR *pszSrc);
 IMG_INT32 OSSNPrintf(IMG_CHAR *pStr, IMG_SIZE_T ui32Size, const IMG_CHAR *pszFormat, ...) IMG_FORMAT_PRINTF(3, 4);
 #define OSStringLength(pszString) strlen(pszString)
 
-PVRSRV_ERROR OSEventObjectCreate(const IMG_CHAR *pszName,
-								 PVRSRV_EVENTOBJECT *psEventObject);
-PVRSRV_ERROR OSEventObjectDestroy(PVRSRV_EVENTOBJECT *psEventObject);
-PVRSRV_ERROR OSEventObjectSignal(IMG_HANDLE hOSEventKM);
-PVRSRV_ERROR OSEventObjectWait(IMG_HANDLE hOSEventKM);
-PVRSRV_ERROR OSEventObjectOpen(PVRSRV_EVENTOBJECT *psEventObject,
+#if defined (SUPPORT_SID_INTERFACE)
+PVRSRV_ERROR OSEventObjectCreateKM(const IMG_CHAR *pszName,
+								 PVRSRV_EVENTOBJECT_KM *psEventObject);
+PVRSRV_ERROR OSEventObjectDestroyKM(PVRSRV_EVENTOBJECT_KM *psEventObject);
+PVRSRV_ERROR OSEventObjectSignalKM(IMG_HANDLE hOSEventKM);
+PVRSRV_ERROR OSEventObjectWaitKM(IMG_HANDLE hOSEventKM);
+PVRSRV_ERROR OSEventObjectOpenKM(PVRSRV_EVENTOBJECT_KM *psEventObject,
 											IMG_HANDLE *phOSEvent);
-PVRSRV_ERROR OSEventObjectClose(PVRSRV_EVENTOBJECT *psEventObject,
+PVRSRV_ERROR OSEventObjectCloseKM(PVRSRV_EVENTOBJECT_KM *psEventObject,
 											IMG_HANDLE hOSEventKM);
+#else
+PVRSRV_ERROR OSEventObjectCreateKM(const IMG_CHAR *pszName,
+								 PVRSRV_EVENTOBJECT *psEventObject);
+PVRSRV_ERROR OSEventObjectDestroyKM(PVRSRV_EVENTOBJECT *psEventObject);
+PVRSRV_ERROR OSEventObjectSignalKM(IMG_HANDLE hOSEventKM);
+PVRSRV_ERROR OSEventObjectWaitKM(IMG_HANDLE hOSEventKM);
+PVRSRV_ERROR OSEventObjectOpenKM(PVRSRV_EVENTOBJECT *psEventObject,
+											IMG_HANDLE *phOSEvent);
+PVRSRV_ERROR OSEventObjectCloseKM(PVRSRV_EVENTOBJECT *psEventObject,
+											IMG_HANDLE hOSEventKM);
+#endif 
 
 
 PVRSRV_ERROR OSBaseAllocContigMemory(IMG_SIZE_T ui32Size, IMG_CPU_VIRTADDR *pLinAddr, IMG_CPU_PHYADDR *pPhysAddr);
@@ -444,7 +457,25 @@ IMG_BOOL OSIsResourceLocked(PVRSRV_RESOURCE *psResource, IMG_UINT32 ui32ID);
 PVRSRV_ERROR OSCreateResource(PVRSRV_RESOURCE *psResource);
 PVRSRV_ERROR OSDestroyResource(PVRSRV_RESOURCE *psResource);
 IMG_VOID OSBreakResourceLock(PVRSRV_RESOURCE *psResource, IMG_UINT32 ui32ID);
+
+#if defined(SYS_CUSTOM_POWERLOCK_WRAP)
+#define OSPowerLockWrap SysPowerLockWrap
+#define OSPowerLockUnwrap SysPowerLockUnwrap
+#else
+PVRSRV_ERROR OSPowerLockWrap(IMG_BOOL bTryLock);
+
+IMG_VOID OSPowerLockUnwrap(IMG_VOID);
+#endif 
+
+ 
 IMG_VOID OSWaitus(IMG_UINT32 ui32Timeus);
+
+ 
+IMG_VOID OSSleepms(IMG_UINT32 ui32Timems);
+
+IMG_HANDLE OSFuncHighResTimerCreate(IMG_VOID);
+IMG_UINT32 OSFuncHighResTimerGetus(IMG_HANDLE hTimer);
+IMG_VOID OSFuncHighResTimerDestroy(IMG_HANDLE hTimer);
 IMG_VOID OSReleaseThreadQuanta(IMG_VOID);
 IMG_UINT32 OSPCIReadDword(IMG_UINT32 ui32Bus, IMG_UINT32 ui32Dev, IMG_UINT32 ui32Func, IMG_UINT32 ui32Reg);
 IMG_VOID OSPCIWriteDword(IMG_UINT32 ui32Bus, IMG_UINT32 ui32Dev, IMG_UINT32 ui32Func, IMG_UINT32 ui32Reg, IMG_UINT32 ui32Value);

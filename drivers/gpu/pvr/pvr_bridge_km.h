@@ -1,6 +1,6 @@
 /**********************************************************************
  *
- * Copyright(c) 2008 Imagination Technologies Ltd. All rights reserved.
+ * Copyright (C) Imagination Technologies Ltd. All rights reserved.
  * 
  * This program is free software; you can redistribute it and/or modify it
  * under the terms and conditions of the GNU General Public License,
@@ -57,14 +57,22 @@ PVRSRV_ERROR IMG_CALLCONV PVRSRVDestroyCommandQueueKM(PVRSRV_QUEUE_INFO *psQueue
 
 IMG_IMPORT
 PVRSRV_ERROR IMG_CALLCONV PVRSRVGetDeviceMemHeapsKM(IMG_HANDLE hDevCookie,
+#if defined (SUPPORT_SID_INTERFACE)
+													PVRSRV_HEAP_INFO_KM *psHeapInfo);
+#else
 													PVRSRV_HEAP_INFO *psHeapInfo);
+#endif
 
 IMG_IMPORT
 PVRSRV_ERROR IMG_CALLCONV PVRSRVCreateDeviceMemContextKM(IMG_HANDLE					hDevCookie,
 														 PVRSRV_PER_PROCESS_DATA	*psPerProc,
 														 IMG_HANDLE					*phDevMemContext,
 														 IMG_UINT32					*pui32ClientHeapCount,
+#if defined (SUPPORT_SID_INTERFACE)
+														 PVRSRV_HEAP_INFO_KM		*psHeapInfo,
+#else
 														 PVRSRV_HEAP_INFO			*psHeapInfo,
+#endif
 														 IMG_BOOL					*pbCreated,
 														 IMG_BOOL					*pbShared);
 
@@ -79,7 +87,11 @@ IMG_IMPORT
 PVRSRV_ERROR IMG_CALLCONV PVRSRVGetDeviceMemHeapInfoKM(IMG_HANDLE				hDevCookie,
 															IMG_HANDLE			hDevMemContext,
 															IMG_UINT32			*pui32ClientHeapCount,
+#if defined (SUPPORT_SID_INTERFACE)
+															PVRSRV_HEAP_INFO_KM	*psHeapInfo,
+#else
 															PVRSRV_HEAP_INFO	*psHeapInfo,
+#endif
 															IMG_BOOL 			*pbShared
 					);
 
@@ -91,17 +103,19 @@ PVRSRV_ERROR IMG_CALLCONV _PVRSRVAllocDeviceMemKM(IMG_HANDLE					hDevCookie,
 												 IMG_UINT32					ui32Flags,
 												 IMG_SIZE_T					ui32Size,
 												 IMG_SIZE_T					ui32Alignment,
+												 IMG_PVOID					pvPrivData,
+												 IMG_UINT32					ui32PrivDataLength,
 												 PVRSRV_KERNEL_MEM_INFO		**ppsMemInfo);
 
 
 #if defined(PVRSRV_LOG_MEMORY_ALLOCS)
-	#define PVRSRVAllocDeviceMemKM(devCookie, perProc, devMemHeap, flags, size, alignment, memInfo, logStr) \
+	#define PVRSRVAllocDeviceMemKM(devCookie, perProc, devMemHeap, flags, size, alignment, privdata, privdatalength, memInfo, logStr) \
 		(PVR_TRACE(("PVRSRVAllocDeviceMemKM(" #devCookie ", " #perProc ", " #devMemHeap ", " #flags ", " #size \
-			", " #alignment "," #memInfo "): " logStr " (size = 0x%;x)", size)),\
-			_PVRSRVAllocDeviceMemKM(devCookie, perProc, devMemHeap, flags, size, alignment, memInfo))
+			", " #alignment "," #memInfo "): " logStr " (size = 0x%x)", size)),\
+			_PVRSRVAllocDeviceMemKM(devCookie, perProc, devMemHeap, flags, size, alignment, privdata, privdatalength, memInfo))
 #else
-	#define PVRSRVAllocDeviceMemKM(devCookie, perProc, devMemHeap, flags, size, alignment, memInfo, logStr) \
-			_PVRSRVAllocDeviceMemKM(devCookie, perProc, devMemHeap, flags, size, alignment, memInfo)
+	#define PVRSRVAllocDeviceMemKM(devCookie, perProc, devMemHeap, flags, size, alignment, privdata, privdatalength, memInfo, logStr) \
+			_PVRSRVAllocDeviceMemKM(devCookie, perProc, devMemHeap, flags, size, alignment, privdata, privdatalength, memInfo)
 #endif
 
 
@@ -211,7 +225,8 @@ IMG_IMPORT
 PVRSRV_ERROR PVRSRVGetDCBuffersKM(IMG_HANDLE	hDeviceKM,
 								  IMG_HANDLE	hSwapChain,
 								  IMG_UINT32	*pui32BufferCount,
-								  IMG_HANDLE	*phBuffer);
+								  IMG_HANDLE	*phBuffer,
+								  IMG_SYS_PHYADDR *psPhyAddr);
 IMG_IMPORT
 PVRSRV_ERROR PVRSRVSwapToDCBufferKM(IMG_HANDLE	hDeviceKM,
 									IMG_HANDLE	hBuffer,
@@ -219,6 +234,15 @@ PVRSRV_ERROR PVRSRVSwapToDCBufferKM(IMG_HANDLE	hDeviceKM,
 									IMG_HANDLE	hPrivateTag,
 									IMG_UINT32	ui32ClipRectCount,
 									IMG_RECT	*psClipRect);
+IMG_IMPORT
+PVRSRV_ERROR PVRSRVSwapToDCBuffer2KM(IMG_HANDLE	hDeviceKM,
+									 IMG_HANDLE	hBuffer,
+									 IMG_UINT32	ui32SwapInterval,
+									 PVRSRV_KERNEL_MEM_INFO **ppsMemInfos,
+									 PVRSRV_KERNEL_SYNC_INFO **ppsSyncInfos,
+									 IMG_UINT32	ui32NumMemSyncInfos,
+									 IMG_PVOID	pvPrivData,
+									 IMG_UINT32	ui32PrivDataLength);
 IMG_IMPORT
 PVRSRV_ERROR PVRSRVSwapToDCSystemKM(IMG_HANDLE	hDeviceKM,
 									IMG_HANDLE	hSwapChain);
@@ -247,6 +271,10 @@ PVRSRV_ERROR IMG_CALLCONV PVRSRVMapDeviceClassMemoryKM(PVRSRV_PER_PROCESS_DATA	*
 													   PVRSRV_KERNEL_MEM_INFO	**ppsMemInfo,
 													   IMG_HANDLE				*phOSMapInfo);
 
+IMG_EXPORT
+PVRSRV_ERROR IMG_CALLCONV PVRSRVChangeDeviceMemoryAttributesKM(IMG_HANDLE hKernelMemInfo,
+															   IMG_UINT32 ui32Attribs);
+
 IMG_IMPORT
 PVRSRV_ERROR IMG_CALLCONV PVRSRVUnmapDeviceClassMemoryKM(PVRSRV_KERNEL_MEM_INFO *psMemInfo);
 
@@ -263,7 +291,11 @@ IMG_IMPORT
 PVRSRV_ERROR IMG_CALLCONV PVRSRVFreeSyncInfoKM(PVRSRV_KERNEL_SYNC_INFO	*psKernelSyncInfo);
 
 IMG_IMPORT
+#if defined (SUPPORT_SID_INTERFACE)
+PVRSRV_ERROR IMG_CALLCONV PVRSRVGetMiscInfoKM(PVRSRV_MISC_INFO_KM *psMiscInfo);
+#else
 PVRSRV_ERROR IMG_CALLCONV PVRSRVGetMiscInfoKM(PVRSRV_MISC_INFO *psMiscInfo);
+#endif
 
 IMG_IMPORT PVRSRV_ERROR
 PVRSRVAllocSharedSysMemoryKM(PVRSRV_PER_PROCESS_DATA	*psPerProc,
