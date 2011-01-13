@@ -466,6 +466,8 @@ static int s5pv210_target(struct cpufreq_policy *policy,
 		}
 	}
 
+	cpufreq_notify_transition(&freqs, CPUFREQ_POSTCHANGE);
+
 	if (freqs.new < freqs.old) {
 		/* Voltage down: decrease INT first */
 		if (!IS_ERR_OR_NULL(arm_regulator) &&
@@ -476,8 +478,6 @@ static int s5pv210_target(struct cpufreq_policy *policy,
 					arm_volt, arm_volt_max);
 		}
 	}
-
-	cpufreq_notify_transition(&freqs, CPUFREQ_POSTCHANGE);
 
 	printk(KERN_DEBUG "Perf changed[L%d]\n", index);
 
