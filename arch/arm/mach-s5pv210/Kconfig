@@ -54,6 +54,13 @@ config S5PV210_POWER_DOMAIN
 	help
 	  Enable S5PV210 power domain support.
 
+config S5PV210_CORESIGHT
+	bool "Coresight"
+	select OC_ETM
+	default y
+	help
+	  Support embedded trace cell
+
 # machine support
 
 config MACH_AQUILA
