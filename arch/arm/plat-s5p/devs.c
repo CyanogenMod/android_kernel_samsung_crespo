@@ -42,6 +42,8 @@
 
 /* Android Gadget */
 #include <linux/usb/android_composite.h>
+#include <linux/usb/f_accessory.h>
+
 #define S3C_VENDOR_ID			0x18d1
 #define S3C_UMS_PRODUCT_ID		0x4E21
 #define S3C_UMS_ADB_PRODUCT_ID		0x4E22
@@ -65,8 +67,15 @@ static char *usb_functions_ums_adb[] = {
 	"usb_mass_storage",
 	"adb",
 };
-
+static char *usb_functions_accessory[] = {
+	"accessory",
+};
+static char *usb_functions_accessory_adb[] = {
+	"accessory",
+	"adb",
+};
 static char *usb_functions_all[] = {
+	"accessory",
 	"rndis",
 	"usb_mass_storage",
 	"adb",
@@ -91,6 +100,18 @@ static struct android_usb_product usb_products[] = {
 		.product_id	= S3C_RNDIS_ADB_PRODUCT_ID,
 		.num_functions	= ARRAY_SIZE(usb_functions_rndis_adb),
 		.functions	= usb_functions_rndis_adb,
+	},
+	{
+		.vendor_id	= USB_ACCESSORY_VENDOR_ID,
+		.product_id	= USB_ACCESSORY_PRODUCT_ID,
+		.num_functions	= ARRAY_SIZE(usb_functions_accessory),
+		.functions	= usb_functions_accessory,
+	},
+	{
+		.vendor_id	= USB_ACCESSORY_VENDOR_ID,
+		.product_id	= USB_ACCESSORY_ADB_PRODUCT_ID,
+		.num_functions	= ARRAY_SIZE(usb_functions_accessory_adb),
+		.functions	= usb_functions_accessory_adb,
 	},
 };
 
