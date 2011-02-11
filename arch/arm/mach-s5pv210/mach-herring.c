@@ -4587,6 +4587,18 @@ static void __init sound_init(void)
 	gpio_request(GPIO_MICBIAS_EN, "micbias_enable");
 }
 
+static s8 accel_rotation_wimax_rev0[9] = {
+	0, -1, 0,
+	-1, 0, 0,
+	0, 0, -1,
+};
+
+static void __init accel_init(void)
+{
+	if (is_cdma_wimax_rev0())
+		kr3dm_data.rotation = accel_rotation_wimax_rev0;
+}
+
 static bool console_flushed;
 
 static void flush_console(void)
@@ -4682,6 +4694,7 @@ static void __init herring_machine_init(void)
 #endif
 	k3g_irq_init();
 	set_adc_table();
+	accel_init();
 	/* H/W I2C lines */
 	if (system_rev >= 0x05) {
 		/* gyro sensor */
