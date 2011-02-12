@@ -423,7 +423,7 @@ struct gain_info_t voicecall_gain_table[VOICECALL_GAIN_NUM] = {
 		.mode = VOICECALL_TTY_HCO,
 		.reg  = WM8994_RIGHT_LINE_INPUT_1_2_VOLUME, /* 1Ah */
 		.mask = WM8994_IN1R_VOL_MASK,
-		.gain = WM8994_IN1R_VU | 0x04
+		.gain = WM8994_IN1R_VU | 0x13	/* +12dB */
 	}, {
 		.mode = VOICECALL_TTY_HCO,
 		.reg  = WM8994_INPUT_MIXER_4,		/* 2Ah */
@@ -433,7 +433,7 @@ struct gain_info_t voicecall_gain_table[VOICECALL_GAIN_NUM] = {
 		.mode = VOICECALL_TTY_FULL,
 		.reg  = WM8994_RIGHT_LINE_INPUT_1_2_VOLUME,	/* 1Ah */
 		.mask = WM8994_IN1R_VOL_MASK,
-		.gain = WM8994_IN1R_VU | 0x04
+		.gain = WM8994_IN1R_VU | 0x13	/* +12dB */
 	}, {
 		.mode = VOICECALL_TTY_FULL,
 		.reg  = WM8994_INPUT_MIXER_4,		/* 2Ah */
