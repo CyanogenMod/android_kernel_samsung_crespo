@@ -4685,7 +4685,12 @@ static void __init herring_machine_init(void)
 	/* H/W I2C lines */
 	if (system_rev >= 0x05) {
 		/* gyro sensor */
-		i2c_register_board_info(0, i2c_devs0, ARRAY_SIZE(i2c_devs0));
+		if (is_cdma_wimax_dev())
+			i2c_register_board_info(5, i2c_devs0,
+							ARRAY_SIZE(i2c_devs0));
+		else
+			i2c_register_board_info(0, i2c_devs0,
+							ARRAY_SIZE(i2c_devs0));
 		/* magnetic and accel sensor */
 		i2c_register_board_info(1, i2c_devs1, ARRAY_SIZE(i2c_devs1));
 	}
