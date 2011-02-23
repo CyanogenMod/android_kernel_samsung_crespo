@@ -199,11 +199,31 @@ static void uart_switch_init(void)
 	}
 	s3c_gpio_setpull(GPIO_UART_SEL, S3C_GPIO_PULL_NONE);
 	s3c_gpio_cfgpin(GPIO_UART_SEL, S3C_GPIO_OUTPUT);
-	gpio_direction_output(GPIO_UART_SEL, 1);
+
+	if (is_cdma_wimax_dev())
+		gpio_direction_output(GPIO_UART_SEL, 0);
+	else
+		gpio_direction_output(GPIO_UART_SEL, 1);
 
 	gpio_export(GPIO_UART_SEL, 1);
 
 	gpio_export_link(uartswitch_dev, "UART_SEL", GPIO_UART_SEL);
+
+	if (is_cdma_wimax_dev()) {
+		ret = gpio_request(GPIO_UART_SEL1, "UART_SEL1");
+		if (ret < 0) {
+			pr_err("Failed to request GPIO_UART_SEL1!\n");
+			gpio_free(GPIO_UART_SEL);
+			return;
+		}
+
+		s3c_gpio_cfgpin(GPIO_UART_SEL1, S3C_GPIO_OUTPUT);
+		s3c_gpio_setpull(GPIO_UART_SEL1, S3C_GPIO_PULL_NONE);
+		gpio_direction_output(GPIO_UART_SEL1, 0);
+
+		gpio_export(GPIO_UART_SEL1, 1);
+		gpio_export_link(uartswitch_dev, "UART_SEL1", GPIO_UART_SEL1);
+	}
 }
 
 static void herring_switch_init(void)
@@ -3517,9 +3537,9 @@ static struct gpio_init_data herring_init_gpios[] = {
 		.drv	= S3C_GPIO_DRVSTR_1X,
 	}, {
 		.num	= S5PV210_GPJ2(1),
-		.cfg	= S3C_GPIO_INPUT,
+		.cfg	= S3C_GPIO_OUTPUT,
 		.val	= S3C_GPIO_SETPIN_NONE,
-		.pud	= S3C_GPIO_PULL_DOWN,
+		.pud	= S3C_GPIO_PULL_NONE,
 		.drv	= S3C_GPIO_DRVSTR_1X,
 	}, {
 		.num	= S5PV210_GPJ2(2),
@@ -3803,6 +3823,38 @@ void s3c_config_gpio_table(void)
 			s3c_gpio_set_drvstrength(gpio, herring_init_gpios[i].drv);
 		}
 	}
+
+	if (is_cdma_wimax_dev()) {
+		gpio = S5PV210_GPC1(1);
+		s3c_gpio_cfgpin(gpio, S3C_GPIO_OUTPUT);
+		s3c_gpio_setpull(gpio, S3C_GPIO_PULL_UP);
+		gpio_set_value(gpio, S3C_GPIO_SETPIN_ONE);
+		s3c_gpio_set_drvstrength(gpio, S3C_GPIO_DRVSTR_4X);
+
+		gpio = S5PV210_GPC1(3);
+		s3c_gpio_cfgpin(gpio, S3C_GPIO_INPUT);
+		s3c_gpio_setpull(gpio, S3C_GPIO_PULL_UP);
+		gpio_set_value(gpio, S3C_GPIO_SETPIN_NONE);
+		s3c_gpio_set_drvstrength(gpio, S3C_GPIO_DRVSTR_4X);
+
+		gpio = S5PV210_GPC1(4);
+		s3c_gpio_cfgpin(gpio, S3C_GPIO_INPUT);
+		s3c_gpio_setpull(gpio, S3C_GPIO_PULL_UP);
+		gpio_set_value(gpio, S3C_GPIO_SETPIN_NONE);
+		s3c_gpio_set_drvstrength(gpio, S3C_GPIO_DRVSTR_4X);
+
+		gpio = S5PV210_MP05(2);
+		s3c_gpio_cfgpin(gpio, S3C_GPIO_INPUT);
+		s3c_gpio_setpull(gpio, S3C_GPIO_PULL_UP);
+		gpio_set_value(gpio, S3C_GPIO_SETPIN_NONE);
+		s3c_gpio_set_drvstrength(gpio, S3C_GPIO_DRVSTR_4X);
+
+		gpio = S5PV210_MP05(3);
+		s3c_gpio_cfgpin(gpio, S3C_GPIO_INPUT);
+		s3c_gpio_setpull(gpio, S3C_GPIO_PULL_UP);
+		gpio_set_value(gpio, S3C_GPIO_SETPIN_NONE);
+		s3c_gpio_set_drvstrength(gpio, S3C_GPIO_DRVSTR_4X);
+	}
 }
 
 #define S5PV210_PS_HOLD_CONTROL_REG (S3C_VA_SYS+0xE81C)
@@ -4078,6 +4130,26 @@ static unsigned int herring_sleep_gpio_table[][3] = {
 	/* Memory part ending and off part ending */
 };
 
+static unsigned int herring_cdma_wimax_sleep_gpio_table[][3] = {
+	{ S5PV210_GPC1(0), S3C_GPIO_SLP_INPUT,	S3C_GPIO_PULL_NONE},
+	{ S5PV210_GPC1(2), S3C_GPIO_SLP_INPUT,	S3C_GPIO_PULL_NONE},
+	{ S5PV210_GPD0(3), S3C_GPIO_SLP_PREV,	S3C_GPIO_PULL_NONE},
+	{ S5PV210_GPG0(2), S3C_GPIO_SLP_INPUT,	S3C_GPIO_PULL_NONE},
+	{ S5PV210_GPG2(0), S3C_GPIO_SLP_INPUT,	S3C_GPIO_PULL_NONE},
+	{ S5PV210_GPG2(1), S3C_GPIO_SLP_INPUT,	S3C_GPIO_PULL_NONE},
+	{ S5PV210_GPG2(2), S3C_GPIO_SLP_INPUT,	S3C_GPIO_PULL_NONE},
+	{ S5PV210_GPG2(3), S3C_GPIO_SLP_INPUT,	S3C_GPIO_PULL_NONE},
+	{ S5PV210_GPG2(4), S3C_GPIO_SLP_INPUT,	S3C_GPIO_PULL_NONE},
+	{ S5PV210_GPG2(5), S3C_GPIO_SLP_INPUT,	S3C_GPIO_PULL_NONE},
+	{ S5PV210_GPG2(6), S3C_GPIO_SLP_INPUT,	S3C_GPIO_PULL_NONE},
+	{ S5PV210_GPJ3(6), S3C_GPIO_SLP_INPUT,	S3C_GPIO_PULL_NONE},
+	{ S5PV210_GPJ3(7), S3C_GPIO_SLP_INPUT,	S3C_GPIO_PULL_NONE},
+	{ S5PV210_MP04(0), S3C_GPIO_SLP_PREV,	S3C_GPIO_PULL_NONE},
+	{ S5PV210_MP04(7), S3C_GPIO_SLP_PREV,	S3C_GPIO_PULL_NONE},
+	{ S5PV210_MP05(4), S3C_GPIO_SLP_PREV,	S3C_GPIO_PULL_NONE},
+	{ S5PV210_MP05(6), S3C_GPIO_SLP_PREV,	S3C_GPIO_PULL_NONE},
+};
+
 void s3c_config_sleep_gpio_table(int array_size, unsigned int (*gpio_table)[3])
 {
 	u32 i, gpio;
@@ -4094,6 +4166,11 @@ void s3c_config_sleep_gpio(void)
 	/* setting the alive mode registers */
 	s3c_gpio_cfgpin(S5PV210_GPH0(1), S3C_GPIO_INPUT);
 	s3c_gpio_setpull(S5PV210_GPH0(1), S3C_GPIO_PULL_NONE);
+
+	if (is_cdma_wimax_dev()) {
+		s3c_gpio_cfgpin(S5PV210_GPH0(1), S3C_GPIO_INPUT);
+		s3c_gpio_setpull(S5PV210_GPH0(1), S3C_GPIO_PULL_NONE);
+	}
 
 	s3c_gpio_cfgpin(S5PV210_GPH0(3), S3C_GPIO_OUTPUT);
 	s3c_gpio_setpull(S5PV210_GPH0(3), S3C_GPIO_PULL_NONE);
@@ -4546,12 +4623,23 @@ static void herring_init_gpio(void)
 	s3c_config_gpio_table();
 	s3c_config_sleep_gpio_table(ARRAY_SIZE(herring_sleep_gpio_table),
 			herring_sleep_gpio_table);
+	if (is_cdma_wimax_dev())
+		s3c_config_sleep_gpio_table(
+				ARRAY_SIZE(herring_cdma_wimax_sleep_gpio_table),
+				herring_cdma_wimax_sleep_gpio_table);
+
 }
 
 static void __init fsa9480_gpio_init(void)
 {
-	s3c_gpio_cfgpin(GPIO_USB_SEL, S3C_GPIO_OUTPUT);
-	s3c_gpio_setpull(GPIO_USB_SEL, S3C_GPIO_PULL_NONE);
+	if (is_cdma_wimax_dev()) {
+		s3c_gpio_cfgpin(GPIO_USB_HS_SEL, S3C_GPIO_OUTPUT);
+		gpio_set_value(GPIO_USB_HS_SEL, 1);
+	} else {
+		s3c_gpio_cfgpin(GPIO_USB_SEL, S3C_GPIO_OUTPUT);
+		s3c_gpio_setpull(GPIO_USB_SEL, S3C_GPIO_PULL_NONE);
+	}
+
 	s3c_gpio_cfgpin(GPIO_UART_SEL, S3C_GPIO_OUTPUT);
 	s3c_gpio_setpull(GPIO_UART_SEL, S3C_GPIO_PULL_NONE);
 
