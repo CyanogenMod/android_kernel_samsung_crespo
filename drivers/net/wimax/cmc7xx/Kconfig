@@ -1,0 +1,7 @@
+comment "Enable MMC support to see CMC7xx driver"
+	depends on MMC = n
+
+config WIMAX_CMC7XX
+	bool "Samsung WiMax CMC7xx chipset support"
+	depends on WIMAX && MMC
+	default n
