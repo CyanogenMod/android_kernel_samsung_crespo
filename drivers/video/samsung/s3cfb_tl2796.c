@@ -77,6 +77,8 @@ struct s5p_lcd *lcd_;
 u32 original_color_adj_mults[3];
 unsigned int panel_config_sequence = 0;
 
+int hacky_v0_offset[3] = {-16, -16, -17};
+
 static const u16 s6e63m0_SEQ_ETC_SETTING_SAMSUNG[] = {
 	/* ETC Condition Set Command  */
 	0x0F6,
@@ -272,7 +274,14 @@ static void setup_gamma_regs(struct s5p_lcd *lcd, u16 gamma_regs[])
 				adj = 140;
 		}
 		// record gamma 0
+#ifdef CONFIG_FB_VOODOO
+		// terrible shameful hack allowing to get back standard
+		// colors without fixing the real thing properly (gamma table)
+		// it consist on a simple (negative) offset applied on v0
+		gamma_regs[c] = ((adj + hacky_v0_offset[c]) > 0 && (adj <=255)) ? (adj + hacky_v0_offset[c]) | 0x100 : adj | 0x100;
+#else
 		gamma_regs[c] = adj | 0x100;
+#endif
 
 		// calculate brightness value for color c
 		v255 = vx[5] = gamma_lookup(lcd, brightness, bv->v255, c);
@@ -972,6 +981,54 @@ static ssize_t panel_config_sequence_store(struct device *dev, struct device_att
 	return size;
 }
 
+static ssize_t red_v0_offset_show(struct device *dev, struct device_attribute *attr, char *buf)
+{
+	return sprintf(buf, "%d\n", hacky_v0_offset[0]);
+}
+
+static ssize_t red_v0_offset_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t size)
+{
+	int value;
+	if (sscanf(buf, "%d", &value) == 1)
+	{
+		hacky_v0_offset[0] = value;
+		update_brightness(lcd_);
+	}
+	return size;
+}
+
+static ssize_t green_v0_offset_show(struct device *dev, struct device_attribute *attr, char *buf)
+{
+	return sprintf(buf, "%d\n", hacky_v0_offset[0]);
+}
+
+static ssize_t green_v0_offset_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t size)
+{
+	int value;
+	if (sscanf(buf, "%d", &value) == 1)
+	{
+		hacky_v0_offset[1] = value;
+		update_brightness(lcd_);
+	}
+	return size;
+}
+
+static ssize_t blue_v0_offset_show(struct device *dev, struct device_attribute *attr, char *buf)
+{
+	return sprintf(buf, "%d\n", hacky_v0_offset[0]);
+}
+
+static ssize_t blue_v0_offset_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t size)
+{
+	int value;
+	if (sscanf(buf, "%d", &value) == 1)
+	{
+		hacky_v0_offset[2] = value;
+		update_brightness(lcd_);
+	}
+	return size;
+}
+
 static ssize_t voodoo_color_version(struct device *dev, struct device_attribute *attr, char *buf) {
 	return sprintf(buf, "%u\n", VOODOO_COLOR_VERSION);
 }
@@ -985,6 +1042,9 @@ static DEVICE_ATTR(green_multiplier, S_IRUGO | S_IWUGO, green_multiplier_show, g
 static DEVICE_ATTR(green_multiplier_original, S_IRUGO, green_multiplier_original_show, NULL);
 static DEVICE_ATTR(blue_multiplier, S_IRUGO | S_IWUGO, blue_multiplier_show, blue_multiplier_store);
 static DEVICE_ATTR(blue_multiplier_original, S_IRUGO, blue_multiplier_original_show, NULL);
+static DEVICE_ATTR(red_v0_offset, S_IRUGO | S_IWUGO, red_v0_offset_show, red_v0_offset_store);
+static DEVICE_ATTR(green_v0_offset, S_IRUGO | S_IWUGO, green_v0_offset_show, green_v0_offset_store);
+static DEVICE_ATTR(blue_v0_offset, S_IRUGO | S_IWUGO, blue_v0_offset_show, blue_v0_offset_store);
 static DEVICE_ATTR(version, S_IRUGO, voodoo_color_version, NULL);
 
 
@@ -998,6 +1058,9 @@ static struct attribute *voodoo_color_attributes[] = {
 	&dev_attr_green_multiplier_original.attr,
 	&dev_attr_blue_multiplier.attr,
 	&dev_attr_blue_multiplier_original.attr,
+	&dev_attr_red_v0_offset.attr,
+	&dev_attr_green_v0_offset.attr,
+	&dev_attr_blue_v0_offset.attr,
 	&dev_attr_version.attr,
 	NULL
 };
