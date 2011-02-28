@@ -517,6 +517,14 @@ static void seq_print_gamma_regs(struct seq_file *m, const u16 gamma_regs[])
 	const struct tl2796_gamma_reg_offsets *offset = &lcd->gamma_reg_offsets;
 
 	for (c = 0; c < 3; c++) {
+		// vt values are the direct result of gamma table lookups
+		// for a given brightness level and an adjustement point
+
+		// adj values correspond to what is sent to the the screen
+		// for each adjustement points
+
+		// v is ?
+
 		u32 adj[6];
 		u32 vt[6];
 		u32 v[6];
