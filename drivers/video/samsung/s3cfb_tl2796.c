@@ -75,6 +75,98 @@ struct s5p_lcd{
 struct s5p_lcd *lcd_;
 
 u32 original_color_adj_mults[3];
+unsigned int panel_config_sequence = 0;
+
+static const u16 s6e63m0_SEQ_ETC_SETTING_SAMSUNG[] = {
+	/* ETC Condition Set Command  */
+	0x0F6,
+	0x100,	0x18E,
+	0x107,
+	0x0B3,
+	0x16C,
+	0x0B5,
+	0x12C,	0x112,
+	0x10C,	0x10A,
+	0x110,	0x10E,
+	0x117,	0x113,
+	0x11F,	0x11A,
+	0x12A,	0x124,
+	0x11F,	0x11B,
+	0x11A,	0x117,
+	0x12B,	0x126,
+	0x122,	0x120,
+	0x13A,	0x134,
+	0x130,	0x12C,
+	0x129,	0x126,
+	0x125,	0x123,
+	0x121,	0x120,
+	0x11E,	0x11E,
+	0x0B6,
+	0x100,	0x100,
+	0x111,	0x122,
+	0x133,	0x144,
+	0x144,	0x144,
+	0x155,	0x155,
+	0x166,	0x166,
+	0x166,	0x166,
+	0x166,	0x166,
+	0x0B7,
+	0x12C,	0x112,
+	0x10C,	0x10A,
+	0x110,	0x10E,
+	0x117,	0x113,
+	0x11F,	0x11A,
+	0x12A,	0x124,
+	0x11F,	0x11B,
+	0x11A,	0x117,
+	0x12B,	0x126,
+	0x122,	0x120,
+	0x13A,	0x134,
+	0x130,	0x12C,
+	0x129,	0x126,
+	0x125,	0x123,
+	0x121,	0x120,
+	0x11E,	0x11E,
+	0x0B8,
+	0x100,	0x100,
+	0x111,	0x122,
+	0x133,	0x144,
+	0x144,	0x144,
+	0x155,	0x155,
+	0x166,	0x166,
+	0x166,	0x166,
+	0x166,	0x166,
+	0x0B9,
+	0x12C,	0x112,
+	0x10C,	0x10A,
+	0x110,	0x10E,
+	0x117,	0x113,
+	0x11F,	0x11A,
+	0x12A,	0x124,
+	0x11F,	0x11B,
+	0x11A,	0x117,
+	0x12B,	0x126,
+	0x122,	0x120,
+	0x13A,	0x134,
+	0x130,	0x12C,
+	0x129,	0x126,
+	0x125,	0x123,
+	0x121,	0x120,
+	0x11E,	0x11E,
+	0x0BA,
+	0x100,	0x100,
+	0x111,	0x122,
+	0x133,	0x144,
+	0x144,	0x144,
+	0x155,	0x155,
+	0x166,	0x166,
+	0x166,	0x166,
+	0x166,	0x166,
+	0x011,
+	SLEEPMSEC, 120,
+	0x029,
+	ENDDEF, 0x0000
+};
 #endif
 
 static u32 gamma_lookup(struct s5p_lcd *lcd, u8 brightness, u32 val, int c)
@@ -332,7 +424,14 @@ static void tl2796_ldi_enable(struct s5p_lcd *lcd)
 
 	s6e63m0_panel_send_sequence(lcd, pdata->seq_display_set);
 	update_brightness(lcd);
+#ifdef CONFIG_FB_VOODOO
+	if (panel_config_sequence == 1)
+		s6e63m0_panel_send_sequence(lcd, pdata->seq_etc_set);
+	else
+		s6e63m0_panel_send_sequence(lcd, s6e63m0_SEQ_ETC_SETTING_SAMSUNG);
+#else
 	s6e63m0_panel_send_sequence(lcd, pdata->seq_etc_set);
+#endif
 	lcd->ldi_enable = 1;
 
 	mutex_unlock(&lcd->lock);
@@ -853,12 +952,33 @@ static ssize_t blue_multiplier_store(struct device *dev, struct device_attribute
 	return size;
 }
 
+static ssize_t panel_config_sequence_show(struct device *dev, struct device_attribute *attr, char *buf)
+{
+	return sprintf(buf, "%u\n", panel_config_sequence);
+}
+
+static ssize_t panel_config_sequence_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t size)
+{
+	struct s5p_panel_data *pdata = lcd_->data;
+	unsigned int value;
+	if (sscanf(buf, "%u", &value) == 1)
+	{
+		panel_config_sequence = value == 1 ? 1 : 0;
+		if (panel_config_sequence == 1)
+			s6e63m0_panel_send_sequence(lcd_, s6e63m0_SEQ_ETC_SETTING_SAMSUNG);
+		else
+			s6e63m0_panel_send_sequence(lcd_, pdata->seq_etc_set);
+	}
+	return size;
+}
+
 static ssize_t voodoo_color_version(struct device *dev, struct device_attribute *attr, char *buf) {
 	return sprintf(buf, "%u\n", VOODOO_COLOR_VERSION);
 }
 
 static DEVICE_ATTR(gamma_table, S_IRUGO | S_IWUGO, gamma_table_show, gamma_table_store);
-static DEVICE_ATTR(apply_custom_brightness_gammas, S_IWUGO , NULL, apply_custom_brightness_gammas_store);
+static DEVICE_ATTR(apply_custom_brightness_gammas, S_IWUGO, NULL, apply_custom_brightness_gammas_store);
+static DEVICE_ATTR(panel_config_sequence, S_IRUGO | S_IWUGO, panel_config_sequence_show, panel_config_sequence_store);
 static DEVICE_ATTR(red_multiplier, S_IRUGO | S_IWUGO, red_multiplier_show, red_multiplier_store);
 static DEVICE_ATTR(red_multiplier_original, S_IRUGO, red_multiplier_original_show, NULL);
 static DEVICE_ATTR(green_multiplier, S_IRUGO | S_IWUGO, green_multiplier_show, green_multiplier_store);
@@ -871,6 +991,7 @@ static DEVICE_ATTR(version, S_IRUGO, voodoo_color_version, NULL);
 static struct attribute *voodoo_color_attributes[] = {
 	&dev_attr_gamma_table.attr,
 	&dev_attr_apply_custom_brightness_gammas.attr,
+	&dev_attr_panel_config_sequence.attr,
 	&dev_attr_red_multiplier.attr,
 	&dev_attr_red_multiplier_original.attr,
 	&dev_attr_green_multiplier.attr,
