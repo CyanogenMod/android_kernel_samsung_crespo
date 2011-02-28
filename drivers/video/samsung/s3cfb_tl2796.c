@@ -785,18 +785,72 @@ static ssize_t apply_custom_brightness_gammas_store(struct device *dev, struct d
 	return size;
 }
 
+static ssize_t red_multiplier_show(struct device *dev, struct device_attribute *attr, char *buf)
+{
+	return sprintf(buf, "%u\n", lcd_->color_mult[0]);
+}
+
+static ssize_t red_multiplier_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t size)
+{
+	u32 value;
+	if (sscanf(buf, "%u", &value) == 1)
+	{
+		lcd_->color_mult[0] = value;
+		update_brightness(lcd_);
+	}
+	return size;
+}
+
+static ssize_t green_multiplier_show(struct device *dev, struct device_attribute *attr, char *buf)
+{
+	return sprintf(buf, "%u\n", lcd_->color_mult[1]);
+}
+
+static ssize_t green_multiplier_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t size)
+{
+	u32 value;
+	if (sscanf(buf, "%u", &value) == 1)
+	{
+		lcd_->color_mult[1] = value;
+		update_brightness(lcd_);
+	}
+	return size;
+}
+
+static ssize_t blue_multiplier_show(struct device *dev, struct device_attribute *attr, char *buf)
+{
+	return sprintf(buf, "%u\n", lcd_->color_mult[2]);
+}
+
+static ssize_t blue_multiplier_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t size)
+{
+	u32 value;
+	if (sscanf(buf, "%u", &value) == 1)
+	{
+		lcd_->color_mult[2] = value;
+		update_brightness(lcd_);
+	}
+	return size;
+}
+
 static ssize_t voodoo_color_version(struct device *dev, struct device_attribute *attr, char *buf) {
 	return sprintf(buf, "%u\n", VOODOO_COLOR_VERSION);
 }
 
-static DEVICE_ATTR(gamma_table, S_IRUGO | S_IWUGO , gamma_table_show, gamma_table_store);
+static DEVICE_ATTR(gamma_table, S_IRUGO | S_IWUGO, gamma_table_show, gamma_table_store);
 static DEVICE_ATTR(apply_custom_brightness_gammas, S_IWUGO , NULL, apply_custom_brightness_gammas_store);
-static DEVICE_ATTR(version, S_IRUGO , voodoo_color_version, NULL);
+static DEVICE_ATTR(red_multiplier, S_IRUGO | S_IWUGO, red_multiplier_show, red_multiplier_store);
+static DEVICE_ATTR(green_multiplier, S_IRUGO | S_IWUGO, green_multiplier_show, green_multiplier_store);
+static DEVICE_ATTR(blue_multiplier, S_IRUGO | S_IWUGO, blue_multiplier_show, blue_multiplier_store);
+static DEVICE_ATTR(version, S_IRUGO, voodoo_color_version, NULL);
 
 
 static struct attribute *voodoo_color_attributes[] = {
 	&dev_attr_gamma_table.attr,
 	&dev_attr_apply_custom_brightness_gammas.attr,
+	&dev_attr_red_multiplier.attr,
+	&dev_attr_green_multiplier.attr,
+	&dev_attr_blue_multiplier.attr,
 	&dev_attr_version.attr,
 	NULL
 };
