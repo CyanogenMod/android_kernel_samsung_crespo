@@ -77,7 +77,7 @@ struct s5p_lcd *lcd_;
 u32 original_color_adj_mults[3];
 unsigned int panel_config_sequence = 0;
 
-int hacky_v0_offset[3] = {-16, -16, -17};
+int hacky_v0_offset[3] = {-12, -16, -14};
 
 static const u16 s6e63m0_SEQ_ETC_SETTING_SAMSUNG[] = {
 	/* ETC Condition Set Command  */
@@ -1007,7 +1007,7 @@ static ssize_t red_v0_offset_store(struct device *dev, struct device_attribute *
 
 static ssize_t green_v0_offset_show(struct device *dev, struct device_attribute *attr, char *buf)
 {
-	return sprintf(buf, "%d\n", hacky_v0_offset[0]);
+	return sprintf(buf, "%d\n", hacky_v0_offset[1]);
 }
 
 static ssize_t green_v0_offset_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t size)
@@ -1023,7 +1023,7 @@ static ssize_t green_v0_offset_store(struct device *dev, struct device_attribute
 
 static ssize_t blue_v0_offset_show(struct device *dev, struct device_attribute *attr, char *buf)
 {
-	return sprintf(buf, "%d\n", hacky_v0_offset[0]);
+	return sprintf(buf, "%d\n", hacky_v0_offset[2]);
 }
 
 static ssize_t blue_v0_offset_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t size)
