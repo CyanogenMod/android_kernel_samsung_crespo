@@ -293,7 +293,8 @@ static int modem_start(struct modemctl *mc, int ramdump)
 		return -EINVAL;
 	}
 
-	if (readl(mc->mmio + OFF_MBOX_BP) != MODEM_MSG_SBL_DONE) {
+	if (!mc->is_cdma_modem &&
+			readl(mc->mmio + OFF_MBOX_BP) != MODEM_MSG_SBL_DONE) {
 		pr_err("[MODEM] bootloader not ready\n");
 		return -EIO;
 	}
@@ -314,12 +315,17 @@ static int modem_start(struct modemctl *mc, int ramdump)
 		if (ret == 0)
 			return -ENODEV;
 	} else {
-		mc->status = MODEM_BOOTING_NORMAL;
-		writel(MODEM_CMD_BINARY_LOAD, mc->mmio + OFF_MBOX_AP);
+		if (mc->is_cdma_modem)
+			mc->status = MODEM_RUNNING;
+		else {
+			mc->status = MODEM_BOOTING_NORMAL;
+			writel(MODEM_CMD_BINARY_LOAD, mc->mmio + OFF_MBOX_AP);
 
-		ret = wait_event_timeout(mc->wq, modem_running(mc), 25 * HZ);
-		if (ret == 0)
-			return -ENODEV;
+			ret = wait_event_timeout(mc->wq,
+						modem_running(mc), 25 * HZ);
+			if (ret == 0)
+				return -ENODEV;
+		}
 	}
 
 	pr_info("[MODEM] modem_start() DONE\n");
@@ -342,18 +348,32 @@ static int modem_reset(struct modemctl *mc)
 	/* write outbound mbox to assert outbound IRQ */
 	writel(0, mc->mmio + OFF_MBOX_AP);
 
-	/* ensure cp_reset pin set to low */
-	gpio_set_value(mc->gpio_cp_reset, 0);
-	msleep(100);
+	if (mc->is_cdma_modem) {
+		gpio_set_value(mc->gpio_phone_on, 1);
+		msleep(50);
 
-	gpio_set_value(mc->gpio_cp_reset, 0);
-	msleep(100);
+		/* ensure cp_reset pin set to low */
+		gpio_set_value(mc->gpio_cp_reset, 0);
+		msleep(100);
 
-	gpio_set_value(mc->gpio_cp_reset, 1);
+		gpio_set_value(mc->gpio_cp_reset, 1);
+		msleep(500);
 
-	/* Follow RESET timming delay not Power-On timming,
-	   because CP_RST & PHONE_ON have been set high already. */
-	msleep(100); /*wait modem stable */
+		gpio_set_value(mc->gpio_phone_on, 0);
+	} else {
+		/* ensure cp_reset pin set to low */
+		gpio_set_value(mc->gpio_cp_reset, 0);
+		msleep(100);
+
+		gpio_set_value(mc->gpio_cp_reset, 0);
+		msleep(100);
+
+		gpio_set_value(mc->gpio_cp_reset, 1);
+
+		/* Follow RESET timming delay not Power-On timming,
+		because CP_RST & PHONE_ON have been set high already. */
+		msleep(100); /*wait modem stable */
+	}
 
 	gpio_set_value(mc->gpio_pda_active, 1);
 
@@ -410,7 +430,10 @@ static const struct file_operations modemctl_fops = {
 
 static irqreturn_t modemctl_bp_irq_handler(int irq, void *_mc)
 {
-	pr_info("[MODEM] bp_irq()\n");
+	int value = 0;
+
+	value = gpio_get_value(((struct modemctl *)_mc)->gpio_phone_active);
+	pr_info("[MODEM] bp_irq() PHONE_ACTIVE_PIN=%d\n", value);
 	return IRQ_HANDLED;
 
 }
@@ -614,6 +637,8 @@ static int __devinit modemctl_probe(struct platform_device *pdev)
 	mc->gpio_phone_active = pdata->gpio_phone_active;
 	mc->gpio_pda_active = pdata->gpio_pda_active;
 	mc->gpio_cp_reset = pdata->gpio_cp_reset;
+	mc->gpio_phone_on = pdata->gpio_phone_on;
+	mc->is_cdma_modem = pdata->is_cdma_modem;
 
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 	if (!res)
