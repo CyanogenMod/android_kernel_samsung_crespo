@@ -244,6 +244,7 @@
 		#define FIX_HW_BRN_30954
 		#define FIX_HW_BRN_31093
 		#define FIX_HW_BRN_31195
+ 		#define FIX_HW_BRN_31542
 			
 	#else
 	#if SGX_CORE_REV == 122
@@ -251,11 +252,13 @@
 		#define FIX_HW_BRN_30954
 		#define FIX_HW_BRN_31093
 		#define FIX_HW_BRN_31195
+ 		#define FIX_HW_BRN_31542
 			
 	#else
 	#if SGX_CORE_REV == 140
 		 #define FIX_HW_BRN_30954
 		 #define FIX_HW_BRN_31195
+ 		 #define FIX_HW_BRN_31542
 			
 	#else
 	#if SGX_CORE_REV == SGX_CORE_REV_HEAD
