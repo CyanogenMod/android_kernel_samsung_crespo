@@ -135,6 +135,8 @@ struct modemctl {
 	unsigned gpio_phone_active;
 	unsigned gpio_pda_active;
 	unsigned gpio_cp_reset;
+	unsigned gpio_phone_on;
+	bool is_cdma_modem;
 
 	struct miscdevice dev;
 
