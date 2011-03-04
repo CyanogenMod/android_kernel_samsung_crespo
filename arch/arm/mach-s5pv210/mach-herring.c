@@ -91,6 +91,7 @@
 #include <linux/input/mxt224.h>
 #include <linux/max17040_battery.h>
 #include <linux/mfd/max8998.h>
+#include <linux/regulator/max8893.h>
 #include <linux/switch.h>
 
 #include "herring.h"
@@ -1441,6 +1442,123 @@ static struct platform_device s3c_device_i2c14 = {
 	.name			= "i2c-gpio",
 	.id			= 14,
 	.dev.platform_data	= &i2c14_platdata,
+};
+
+/* max8893 wimax PMIC */
+static struct i2c_gpio_platform_data i2c15_platdata = {
+	.sda_pin		= GPIO_WIMAX_PM_SDA,
+	.scl_pin		= GPIO_WIMAX_PM_SCL,
+};
+
+static struct platform_device s3c_device_i2c15 = {
+	.name			= "i2c-gpio",
+	.id			= 15,
+	.dev.platform_data	= &i2c15_platdata,
+};
+
+static struct regulator_init_data herring_max8893_buck_data = {
+	.constraints	= {
+		.name		= "max8893_buck",
+		.min_uV		= 1200000,
+		.max_uV		= 1200000,
+		.apply_uV	= 1,
+		.valid_ops_mask	= REGULATOR_CHANGE_VOLTAGE |
+				  REGULATOR_CHANGE_STATUS,
+	},
+};
+
+static struct regulator_init_data herring_max8893_ldo1_data = {
+	.constraints	= {
+		.name		= "max8893_ldo1",
+		.min_uV		= 2800000,
+		.max_uV		= 2800000,
+		.apply_uV	= 1,
+		.valid_ops_mask	= REGULATOR_CHANGE_VOLTAGE |
+				  REGULATOR_CHANGE_STATUS,
+	},
+};
+
+static struct regulator_init_data herring_max8893_ldo2_data = {
+	.constraints	= {
+		.name		= "max8893_ldo2",
+		.min_uV		= 2800000,
+		.max_uV		= 2800000,
+		.apply_uV	= 1,
+		.valid_ops_mask	= REGULATOR_CHANGE_VOLTAGE |
+				  REGULATOR_CHANGE_STATUS,
+	},
+};
+
+static struct regulator_init_data herring_max8893_ldo3_data = {
+	.constraints	= {
+		.name		= "max8893_ldo3",
+		.min_uV		= 3300000,
+		.max_uV		= 3300000,
+		.apply_uV	= 1,
+		.valid_ops_mask	= REGULATOR_CHANGE_VOLTAGE |
+				  REGULATOR_CHANGE_STATUS,
+	},
+};
+
+static struct regulator_init_data herring_max8893_ldo4_data = {
+	.constraints	= {
+		.name		= "max8893_ldo4",
+		.min_uV		= 2900000,
+		.max_uV		= 2900000,
+		.apply_uV	= 1,
+		.valid_ops_mask	= REGULATOR_CHANGE_VOLTAGE |
+				  REGULATOR_CHANGE_STATUS,
+	},
+};
+
+static struct regulator_init_data herring_max8893_ldo5_data = {
+	.constraints	= {
+		.name		= "max8893_ldo5",
+		.min_uV		= 2800000,
+		.max_uV		= 2800000,
+		.apply_uV	= 1,
+		.valid_ops_mask	= REGULATOR_CHANGE_VOLTAGE |
+				  REGULATOR_CHANGE_STATUS,
+	},
+};
+
+static struct max8893_subdev_data herring_max8893_subdev_data[] = {
+	{
+		.id = MAX8893_BUCK,
+		.initdata = &herring_max8893_buck_data,
+	},
+	{
+		.id = MAX8893_LDO1,
+		.initdata = &herring_max8893_ldo1_data,
+	},
+	{
+		.id = MAX8893_LDO2,
+		.initdata = &herring_max8893_ldo2_data,
+	},
+	{
+		.id = MAX8893_LDO3,
+		.initdata = &herring_max8893_ldo3_data,
+	},
+	{
+		.id = MAX8893_LDO4,
+		.initdata = &herring_max8893_ldo4_data,
+	},
+	{
+		.id = MAX8893_LDO5,
+		.initdata = &herring_max8893_ldo5_data,
+	},
+};
+
+static struct max8893_platform_data herring_max8893_pdata = {
+	.num_subdevs = ARRAY_SIZE(herring_max8893_subdev_data),
+	.subdevs = herring_max8893_subdev_data,
+};
+
+static struct i2c_board_info i2c_devs15[] __initdata = {
+	{
+		I2C_BOARD_INFO("max8893", 0x3E),
+		.platform_data	= &herring_max8893_pdata,
+	},
 };
 
 static void touch_keypad_gpio_init(void)
@@ -4830,6 +4948,12 @@ static void __init herring_machine_init(void)
 
        /* nfc sensor */
 	i2c_register_board_info(14, i2c_devs14, ARRAY_SIZE(i2c_devs14));
+
+	/* max8893 wimax PMIC */
+	if (is_cdma_wimax_dev()) {
+		platform_device_register(&s3c_device_i2c15);
+		i2c_register_board_info(15, i2c_devs15, ARRAY_SIZE(i2c_devs15));
+	}
 
 	if (system_rev < 0x30) {
 		spi_register_board_info(spi_board_info,
