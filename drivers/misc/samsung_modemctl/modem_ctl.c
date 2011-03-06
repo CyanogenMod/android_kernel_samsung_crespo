@@ -359,7 +359,6 @@ static int modem_reset(struct modemctl *mc)
 		gpio_set_value(mc->gpio_cp_reset, 1);
 		msleep(500);
 
-		gpio_set_value(mc->gpio_phone_on, 0);
 	} else {
 		/* ensure cp_reset pin set to low */
 		gpio_set_value(mc->gpio_cp_reset, 0);
