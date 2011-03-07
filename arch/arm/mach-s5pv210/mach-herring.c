@@ -3943,6 +3943,7 @@ void s3c_config_gpio_table(void)
 	}
 
 	if (is_cdma_wimax_dev()) {
+		/* WiMAX_I2C_CON */
 		gpio = S5PV210_GPC1(1);
 		s3c_gpio_cfgpin(gpio, S3C_GPIO_OUTPUT);
 		s3c_gpio_setpull(gpio, S3C_GPIO_PULL_UP);
@@ -3959,6 +3960,20 @@ void s3c_config_gpio_table(void)
 		s3c_gpio_cfgpin(gpio, S3C_GPIO_INPUT);
 		s3c_gpio_setpull(gpio, S3C_GPIO_PULL_UP);
 		gpio_set_value(gpio, S3C_GPIO_SETPIN_NONE);
+		s3c_gpio_set_drvstrength(gpio, S3C_GPIO_DRVSTR_4X);
+
+		/* WIMAX_EN */
+		gpio = S5PV210_GPH1(0);
+		s3c_gpio_cfgpin(gpio, S3C_GPIO_OUTPUT);
+		s3c_gpio_setpull(gpio, S3C_GPIO_PULL_NONE);
+		gpio_set_value(gpio, S3C_GPIO_SETPIN_ONE);
+		s3c_gpio_set_drvstrength(gpio, S3C_GPIO_DRVSTR_1X);
+
+		/* GPIO_CP_RST, CDMA modem specific setting */
+		gpio = S5PV210_GPH3(7);
+		s3c_gpio_cfgpin(gpio, S3C_GPIO_OUTPUT);
+		s3c_gpio_setpull(gpio, S3C_GPIO_PULL_DOWN);
+		gpio_set_value(gpio, S3C_GPIO_SETPIN_ZERO);
 		s3c_gpio_set_drvstrength(gpio, S3C_GPIO_DRVSTR_4X);
 
 		gpio = S5PV210_MP05(2);
@@ -3978,6 +3993,29 @@ void s3c_config_gpio_table(void)
 #define S5PV210_PS_HOLD_CONTROL_REG (S3C_VA_SYS+0xE81C)
 static void herring_power_off(void)
 {
+	int phone_wait_cnt = 0;
+
+	if (is_cdma_wimax_dev()) {
+		/* confirm phone is powered-off  */
+		while (1) {
+			if (gpio_get_value(GPIO_PHONE_ACTIVE)) {
+				pr_info("%s: Try to Turn Phone Off by CP_RST\n",
+					__func__);
+				gpio_set_value(GPIO_CP_RST, 0);
+				if (phone_wait_cnt > 1) {
+					pr_info("%s: PHONE OFF Fail\n",
+					__func__);
+					break;
+				}
+				phone_wait_cnt++;
+				mdelay(1000);
+			} else {
+				pr_info("%s: PHONE OFF Success\n", __func__);
+				break;
+			}
+		}
+	}
+
 	while (1) {
 		/* Check reboot charging */
 		if (set_cable_status) {
@@ -4260,6 +4298,10 @@ static unsigned int herring_cdma_wimax_sleep_gpio_table[][3] = {
 	{ S5PV210_GPG2(4), S3C_GPIO_SLP_INPUT,	S3C_GPIO_PULL_NONE},
 	{ S5PV210_GPG2(5), S3C_GPIO_SLP_INPUT,	S3C_GPIO_PULL_NONE},
 	{ S5PV210_GPG2(6), S3C_GPIO_SLP_INPUT,	S3C_GPIO_PULL_NONE},
+	/* GPIO_WIMAX_EN and GPIO_WIMAX_WAKEUP*/
+	{ S5PV210_GPH1(0), S3C_GPIO_SLP_PREV,	S3C_GPIO_PULL_NONE},
+	{ S5PV210_GPH1(2), S3C_GPIO_SLP_PREV,	S3C_GPIO_PULL_NONE},
+
 	{ S5PV210_GPJ3(6), S3C_GPIO_SLP_INPUT,	S3C_GPIO_PULL_NONE},
 	{ S5PV210_GPJ3(7), S3C_GPIO_SLP_INPUT,	S3C_GPIO_PULL_NONE},
 	{ S5PV210_MP04(0), S3C_GPIO_SLP_PREV,	S3C_GPIO_PULL_NONE},
