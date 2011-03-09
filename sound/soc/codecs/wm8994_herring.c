@@ -2170,7 +2170,7 @@ static void wm8994_set_gsm_voicecall_common_setting(struct snd_soc_codec *codec)
 
 void wm8994_set_voicecall_common_setting(struct snd_soc_codec *codec)
 {
-	if (is_cdma_wimax_dev())
+	if (herring_is_cdma_wimax_dev())
 		wm8994_set_cdma_voicecall_common_setting(codec);
 	else
 		wm8994_set_gsm_voicecall_common_setting(codec);
@@ -2393,7 +2393,7 @@ static void wm8994_set_gsm_voicecall_receiver(struct snd_soc_codec *codec)
 
 void wm8994_set_voicecall_receiver(struct snd_soc_codec *codec)
 {
-	if (is_cdma_wimax_dev())
+	if (herring_is_cdma_wimax_dev())
 		wm8994_set_cdma_voicecall_receiver(codec);
 	else
 		wm8994_set_gsm_voicecall_receiver(codec);

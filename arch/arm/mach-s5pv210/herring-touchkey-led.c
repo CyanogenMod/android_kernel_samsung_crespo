@@ -50,7 +50,7 @@ static int __init herring_init_touchkey_led(void)
 	int i;
 	int ret = 0;
 
-	if (!machine_is_herring() || !is_tft_dev())
+	if (!machine_is_herring() || !herring_is_tft_dev())
 		return 0;
 
 	for (i = 0; i < ARRAY_SIZE(led_gpios); i++) {
