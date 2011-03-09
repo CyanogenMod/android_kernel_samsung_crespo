@@ -137,6 +137,9 @@ struct modemctl {
 	unsigned gpio_cp_reset;
 	unsigned gpio_phone_on;
 	bool is_cdma_modem;
+	bool is_modem_delta_update;
+	unsigned dpram_prev_phone_active;
+	unsigned dpram_prev_status;
 
 	struct miscdevice dev;
 
