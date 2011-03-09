@@ -969,7 +969,7 @@ static struct max8998_charger_data herring_charger = {
 
 static void set_adc_table(void)
 {
-	if (system_rev < 0x30) {
+	if (!is_tft_dev()) {
 		herring_charger.adc_table = temper_table_oled;
 		herring_charger.adc_array_size =
 			ARRAY_SIZE(temper_table_oled);
@@ -1051,7 +1051,7 @@ static void panel_cfg_gpio(struct platform_device *pdev)
 	s3c_gpio_setpull(S5PV210_MP04(3), S3C_GPIO_PULL_NONE);
 
 	/* OLED_ID */
-	if (system_rev >= 0x30) {
+	if (is_tft_dev()) {
 		s3c_gpio_cfgpin(GPIO_OLED_ID, S3C_GPIO_INPUT);
 		s3c_gpio_setpull(GPIO_OLED_ID, S3C_GPIO_PULL_DOWN);
 	}
@@ -1122,7 +1122,7 @@ void lcd_cfg_gpio_early_suspend(void)
 	gpio_set_value(GPIO_DISPLAY_SI, 0);
 
 	/* OLED_ID */
-	if (system_rev < 0x30) {
+	if (!is_tft_dev()) {
 		s3c_gpio_cfgpin(GPIO_OLED_ID, S3C_GPIO_INPUT);
 		s3c_gpio_setpull(GPIO_OLED_ID, S3C_GPIO_PULL_DOWN);
 		/* gpio_set_value(GPIO_OLED_ID, 0); */
@@ -1141,7 +1141,7 @@ void lcd_cfg_gpio_late_resume(void)
 	s3c_gpio_cfgpin(GPIO_OLED_DET, S3C_GPIO_INPUT);
 	s3c_gpio_setpull(GPIO_OLED_DET, S3C_GPIO_PULL_NONE);
 	/* OLED_ID */
-	if (system_rev < 0x30) {
+	if (!is_tft_dev()) {
 		s3c_gpio_cfgpin(GPIO_OLED_ID, S3C_GPIO_OUTPUT);
 		s3c_gpio_setpull(GPIO_OLED_ID, S3C_GPIO_PULL_NONE);
 		/* gpio_set_value(GPIO_OLED_ID, 0); */
@@ -2407,7 +2407,7 @@ static struct i2c_board_info i2c_devs2[] __initdata = {
 
 static void mxt224_init(void)
 {
-	if (system_rev < 0x30)
+	if (!is_tft_dev())
 		return;
 	mxt224_data.max_y = 950;
 	t9_config[8] = 45;
@@ -4896,7 +4896,7 @@ static void __init herring_machine_init(void)
 	setup_ram_console_mem();
 	s3c_usb_set_serial();
 	platform_add_devices(herring_devices, ARRAY_SIZE(herring_devices));
-	if (system_rev < 0x30)
+	if (!is_tft_dev())
 		platform_device_register(&s3c_device_i2c5);
 
 	/* Find out S5PC110 chip version */
@@ -4965,7 +4965,7 @@ static void __init herring_machine_init(void)
 	if (system_rev == 0x04)
 		i2c_register_board_info(5, i2c_devs5, ARRAY_SIZE(i2c_devs5));
 	i2c_register_board_info(6, i2c_devs6, ARRAY_SIZE(i2c_devs6));
-	if (system_rev < 0x30) {
+	if (!is_tft_dev()) {
 		/* Touch Key */
 		touch_keypad_gpio_init();
 		i2c_register_board_info(10, i2c_devs10, ARRAY_SIZE(i2c_devs10));
@@ -4997,7 +4997,7 @@ static void __init herring_machine_init(void)
 		i2c_register_board_info(15, i2c_devs15, ARRAY_SIZE(i2c_devs15));
 	}
 
-	if (system_rev < 0x30) {
+	if (!is_tft_dev()) {
 		spi_register_board_info(spi_board_info,
 					ARRAY_SIZE(spi_board_info));
 		s3cfb_set_platdata(&tl2796_data);
