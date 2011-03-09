@@ -61,6 +61,7 @@ struct s3c_sdhci_platdata {
         /* add to deal with non-removable device */
         int     built_in;
 
+	int must_maintain_clock;
 };
 
 /**
