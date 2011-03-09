@@ -423,6 +423,8 @@ static int __devinit sdhci_s3c_probe(struct platform_device *pdev)
 	host->quirks |= SDHCI_QUIRK_NO_ENDATTR_IN_NOPDESC;
 	host->quirks |= SDHCI_QUIRK_BROKEN_CARD_PRESENT_BIT;
 	host->quirks |= SDHCI_QUIRK_BROKEN_TIMEOUT_VAL;
+	if (pdata->must_maintain_clock)
+		host->quirks |= SDHCI_QUIRK_MUST_MAINTAIN_CLOCK;
 
 #ifndef CONFIG_MMC_SDHCI_S3C_DMA
 
