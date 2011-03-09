@@ -79,4 +79,6 @@ void s3c_sdhci2_set_platdata(struct s3c_sdhci_platdata *pd)
 		set->clk_type = pd->clk_type;
         if (pd->built_in)
                 set->built_in = pd->built_in;
+	if (pd->must_maintain_clock)
+		set->must_maintain_clock = pd->must_maintain_clock;
 }
