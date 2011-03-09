@@ -14,6 +14,7 @@ extern void s3c_setup_uart_cfg_gpio(unsigned char port);
 
 #define is_cdma_wimax_dev() (!!((system_rev & 0xFFF0) == 0x20))
 #define is_cdma_wimax_rev0() (!!((system_rev & 0xFFFF) == 0x20))
+#define is_tft_dev() (system_rev >= 0x30)
 
 extern struct s5p_panel_data herring_panel_data;
 extern struct s5p_tft_panel_data herring_sony_panel_data;
