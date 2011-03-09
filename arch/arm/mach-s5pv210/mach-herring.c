@@ -201,7 +201,7 @@ static void uart_switch_init(void)
 	s3c_gpio_setpull(GPIO_UART_SEL, S3C_GPIO_PULL_NONE);
 	s3c_gpio_cfgpin(GPIO_UART_SEL, S3C_GPIO_OUTPUT);
 
-	if (is_cdma_wimax_dev())
+	if (herring_is_cdma_wimax_dev())
 		gpio_direction_output(GPIO_UART_SEL, 0);
 	else
 		gpio_direction_output(GPIO_UART_SEL, 1);
@@ -210,7 +210,7 @@ static void uart_switch_init(void)
 
 	gpio_export_link(uartswitch_dev, "UART_SEL", GPIO_UART_SEL);
 
-	if (is_cdma_wimax_dev()) {
+	if (herring_is_cdma_wimax_dev()) {
 		ret = gpio_request(GPIO_UART_SEL1, "UART_SEL1");
 		if (ret < 0) {
 			pr_err("Failed to request GPIO_UART_SEL1!\n");
@@ -969,7 +969,7 @@ static struct max8998_charger_data herring_charger = {
 
 static void set_adc_table(void)
 {
-	if (!is_tft_dev()) {
+	if (!herring_is_tft_dev()) {
 		herring_charger.adc_table = temper_table_oled;
 		herring_charger.adc_array_size =
 			ARRAY_SIZE(temper_table_oled);
@@ -1051,7 +1051,7 @@ static void panel_cfg_gpio(struct platform_device *pdev)
 	s3c_gpio_setpull(S5PV210_MP04(3), S3C_GPIO_PULL_NONE);
 
 	/* OLED_ID */
-	if (is_tft_dev()) {
+	if (herring_is_tft_dev()) {
 		s3c_gpio_cfgpin(GPIO_OLED_ID, S3C_GPIO_INPUT);
 		s3c_gpio_setpull(GPIO_OLED_ID, S3C_GPIO_PULL_DOWN);
 	}
@@ -1122,7 +1122,7 @@ void lcd_cfg_gpio_early_suspend(void)
 	gpio_set_value(GPIO_DISPLAY_SI, 0);
 
 	/* OLED_ID */
-	if (!is_tft_dev()) {
+	if (!herring_is_tft_dev()) {
 		s3c_gpio_cfgpin(GPIO_OLED_ID, S3C_GPIO_INPUT);
 		s3c_gpio_setpull(GPIO_OLED_ID, S3C_GPIO_PULL_DOWN);
 		/* gpio_set_value(GPIO_OLED_ID, 0); */
@@ -1141,7 +1141,7 @@ void lcd_cfg_gpio_late_resume(void)
 	s3c_gpio_cfgpin(GPIO_OLED_DET, S3C_GPIO_INPUT);
 	s3c_gpio_setpull(GPIO_OLED_DET, S3C_GPIO_PULL_NONE);
 	/* OLED_ID */
-	if (!is_tft_dev()) {
+	if (!herring_is_tft_dev()) {
 		s3c_gpio_cfgpin(GPIO_OLED_ID, S3C_GPIO_OUTPUT);
 		s3c_gpio_setpull(GPIO_OLED_ID, S3C_GPIO_PULL_NONE);
 		/* gpio_set_value(GPIO_OLED_ID, 0); */
@@ -2407,7 +2407,7 @@ static struct i2c_board_info i2c_devs2[] __initdata = {
 
 static void mxt224_init(void)
 {
-	if (!is_tft_dev())
+	if (!herring_is_tft_dev())
 		return;
 	mxt224_data.max_y = 950;
 	t9_config[8] = 45;
@@ -3942,7 +3942,7 @@ void s3c_config_gpio_table(void)
 		}
 	}
 
-	if (is_cdma_wimax_dev()) {
+	if (herring_is_cdma_wimax_dev()) {
 		/* WiMAX_I2C_CON */
 		gpio = S5PV210_GPC1(1);
 		s3c_gpio_cfgpin(gpio, S3C_GPIO_OUTPUT);
@@ -3995,7 +3995,7 @@ static void herring_power_off(void)
 {
 	int phone_wait_cnt = 0;
 
-	if (is_cdma_wimax_dev()) {
+	if (herring_is_cdma_wimax_dev()) {
 		/* confirm phone is powered-off  */
 		while (1) {
 			if (gpio_get_value(GPIO_PHONE_ACTIVE)) {
@@ -4327,7 +4327,7 @@ void s3c_config_sleep_gpio(void)
 	s3c_gpio_cfgpin(S5PV210_GPH0(1), S3C_GPIO_INPUT);
 	s3c_gpio_setpull(S5PV210_GPH0(1), S3C_GPIO_PULL_NONE);
 
-	if (is_cdma_wimax_dev()) {
+	if (herring_is_cdma_wimax_dev()) {
 		s3c_gpio_cfgpin(S5PV210_GPH0(1), S3C_GPIO_INPUT);
 		s3c_gpio_setpull(S5PV210_GPH0(1), S3C_GPIO_PULL_NONE);
 	}
@@ -4783,7 +4783,7 @@ static void herring_init_gpio(void)
 	s3c_config_gpio_table();
 	s3c_config_sleep_gpio_table(ARRAY_SIZE(herring_sleep_gpio_table),
 			herring_sleep_gpio_table);
-	if (is_cdma_wimax_dev())
+	if (herring_is_cdma_wimax_dev())
 		s3c_config_sleep_gpio_table(
 				ARRAY_SIZE(herring_cdma_wimax_sleep_gpio_table),
 				herring_cdma_wimax_sleep_gpio_table);
@@ -4792,7 +4792,7 @@ static void herring_init_gpio(void)
 
 static void __init fsa9480_gpio_init(void)
 {
-	if (is_cdma_wimax_dev()) {
+	if (herring_is_cdma_wimax_dev()) {
 		s3c_gpio_cfgpin(GPIO_USB_HS_SEL, S3C_GPIO_OUTPUT);
 		gpio_set_value(GPIO_USB_HS_SEL, 1);
 	} else {
@@ -4843,7 +4843,7 @@ static s8 accel_rotation_wimax_rev0[9] = {
 
 static void __init accel_init(void)
 {
-	if (is_cdma_wimax_rev0())
+	if (herring_is_cdma_wimax_rev0())
 		kr3dm_data.rotation = accel_rotation_wimax_rev0;
 }
 
@@ -4896,7 +4896,7 @@ static void __init herring_machine_init(void)
 	setup_ram_console_mem();
 	s3c_usb_set_serial();
 	platform_add_devices(herring_devices, ARRAY_SIZE(herring_devices));
-	if (!is_tft_dev())
+	if (!herring_is_tft_dev())
 		platform_device_register(&s3c_device_i2c5);
 
 	/* Find out S5PC110 chip version */
@@ -4946,7 +4946,7 @@ static void __init herring_machine_init(void)
 	/* H/W I2C lines */
 	if (system_rev >= 0x05) {
 		/* gyro sensor */
-		if (is_cdma_wimax_dev() && is_cdma_wimax_rev0())
+		if (herring_is_cdma_wimax_dev() && herring_is_cdma_wimax_rev0())
 			i2c_register_board_info(5, i2c_devs0,
 							ARRAY_SIZE(i2c_devs0));
 		else
@@ -4965,7 +4965,7 @@ static void __init herring_machine_init(void)
 	if (system_rev == 0x04)
 		i2c_register_board_info(5, i2c_devs5, ARRAY_SIZE(i2c_devs5));
 	i2c_register_board_info(6, i2c_devs6, ARRAY_SIZE(i2c_devs6));
-	if (!is_tft_dev()) {
+	if (!herring_is_tft_dev()) {
 		/* Touch Key */
 		touch_keypad_gpio_init();
 		i2c_register_board_info(10, i2c_devs10, ARRAY_SIZE(i2c_devs10));
@@ -4992,12 +4992,12 @@ static void __init herring_machine_init(void)
 	i2c_register_board_info(14, i2c_devs14, ARRAY_SIZE(i2c_devs14));
 
 	/* max8893 wimax PMIC */
-	if (is_cdma_wimax_dev()) {
+	if (herring_is_cdma_wimax_dev()) {
 		platform_device_register(&s3c_device_i2c15);
 		i2c_register_board_info(15, i2c_devs15, ARRAY_SIZE(i2c_devs15));
 	}
 
-	if (!is_tft_dev()) {
+	if (!herring_is_tft_dev()) {
 		spi_register_board_info(spi_board_info,
 					ARRAY_SIZE(spi_board_info));
 		s3cfb_set_platdata(&tl2796_data);
