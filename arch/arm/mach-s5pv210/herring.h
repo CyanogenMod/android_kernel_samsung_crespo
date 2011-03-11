@@ -12,9 +12,15 @@ struct uart_port;
 void herring_bt_uart_wake_peer(struct uart_port *port);
 extern void s3c_setup_uart_cfg_gpio(unsigned char port);
 
-#define herring_is_cdma_wimax_dev() (!!((system_rev & 0xFFF0) == 0x20))
-#define herring_is_cdma_wimax_rev0() (!!((system_rev & 0xFFFF) == 0x20))
-#define herring_is_tft_dev() (system_rev >= 0x30)
+#ifdef CONFIG_MACH_HERRING
+# define herring_is_cdma_wimax_dev() ((system_rev & 0xFFF0) == 0x20)
+# define herring_is_cdma_wimax_rev0() ((system_rev & 0xFFFF) == 0x20)
+# define herring_is_tft_dev() (system_rev >= 0x30)
+#else
+# define herring_is_cdma_wimax_dev() (0)
+# define herring_is_cdma_wimax_rev0() (0)
+# define herring_is_tft_dev() (0)
+#endif
 
 extern struct s5p_panel_data herring_panel_data;
 extern struct s5p_tft_panel_data herring_sony_panel_data;
