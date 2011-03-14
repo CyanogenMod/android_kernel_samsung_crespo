@@ -11,6 +11,7 @@
  * GNU General Public License for more details.
  *
  */
+#include <linux/miscdevice.h>
 
 #ifndef __WIMAX_CMC732_H
 #define __WIMAX_CMC732_H
@@ -33,11 +34,24 @@ enum {
 	AUTH_MODE
 };
 
+/* wimax state */
+enum {
+	WIMAX_STATE_NOT_READY,
+	WIMAX_STATE_READY,
+	WIMAX_STATE_VIRTUAL_IDLE,
+	WIMAX_STATE_NORMAL,
+	WIMAX_STATE_IDLE,
+	WIMAX_STATE_RESET_REQUESTED,
+	WIMAX_STATE_RESET_ACKED,
+	WIMAX_STATE_AWAKE_REQUESTED,
+};
 
 struct wimax_cfg {
 	int			temp_tgid;	/* handles unexpected close */
 	struct wake_lock	wimax_wake_lock;	/* resume wake lock */
 	struct wake_lock	wimax_rxtx_lock;/* sdio wake lock */
+	struct mutex suspend_mutex;
+	u8		wimax_status;
 	u8		wimax_mode;/* wimax mode (SDIO, USB, etc..) */
 	u8		sleep_mode;/* suspend mode (0: VI, 1: IDLE) */
 	u8		card_removed;/*
@@ -52,9 +66,9 @@ struct wimax732_platform_data {
 	void (*signal_ap_active) (int);
 	int (*get_sleep_mode) (void);
 	int (*is_modem_awake) (void);
-	void (*switch_uart_ap) (void);
 	void (*wakeup_assert) (int);
 	struct wimax_cfg *g_cfg;
+	struct miscdevice swmxctl_dev;
 	int wimax_int;
 };
 

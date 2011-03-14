@@ -1,18 +1,21 @@
 /*
- * download.c
+ * Copyright (C) 2011 Samsung Electronics.
  *
- * Firmware download (host booting) functions and definitions
+ * This software is licensed under the terms of the GNU General Public
+ * License version 2, as published by the Free Software Foundation, and
+ * may be copied, distributed, and modified under those terms.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
  */
 #include "headers.h"
 #include "download.h"
 
 #include <linux/firmware.h>
 #include <linux/vmalloc.h>
-
-struct image_data g_wimax_image = {
-	.data = NULL,
-	.size = 0,
-};
 
 int load_wimax_image(int mode, struct net_adapter *adapter)
 {
@@ -33,39 +36,39 @@ int load_wimax_image(int mode, struct net_adapter *adapter)
 		return STATUS_UNSUCCESSFUL;
 	}
 
-	if (g_wimax_image.data && g_wimax_image.size < fw->size) {
-		vfree(g_wimax_image.data);
-		g_wimax_image.data = NULL;
+	if (adapter->wimax_image.data && adapter->wimax_image.size < fw->size) {
+		vfree(adapter->wimax_image.data);
+		adapter->wimax_image.data = NULL;
 	}
 
-	if (!g_wimax_image.data)
-		g_wimax_image.data = vmalloc(fw->size);
+	if (!adapter->wimax_image.data)
+		adapter->wimax_image.data = vmalloc(fw->size);
 
-	if (!g_wimax_image.data) {
+	if (!adapter->wimax_image.data) {
 		dev_err(dev, "%s: Can't allocate %d bytes of memory for "
 					"firmware\n", __func__, fw->size);
 		ret = STATUS_UNSUCCESSFUL;
 		goto err_vmalloc;
 	}
-	memcpy(g_wimax_image.data, fw->data, fw->size);
+	memcpy(adapter->wimax_image.data, fw->data, fw->size);
 
-	g_wimax_image.size = fw->size;
-	g_wimax_image.address = CMC732_WIMAX_ADDRESS;
-	g_wimax_image.offset = 0;
+	adapter->wimax_image.size = fw->size;
+	adapter->wimax_image.address = CMC732_WIMAX_ADDRESS;
+	adapter->wimax_image.offset = 0;
 
 err_vmalloc:
 	release_firmware(fw);
 	return ret;
 }
 
-void unload_wimax_image(void)
+void unload_wimax_image(struct net_adapter *adapter)
 {
-	if (g_wimax_image.data == NULL)
+	if (adapter->wimax_image.data == NULL)
 		return;
 
 	pr_debug("Delete the Image Loaded");
-	vfree(g_wimax_image.data);
-	g_wimax_image.data = NULL;
+	vfree(adapter->wimax_image.data);
+	adapter->wimax_image.data = NULL;
 }
 
 u8 send_cmd_packet(struct net_adapter *adapter, u16 cmd_id)
@@ -124,8 +127,8 @@ u8 send_image_info_packet(struct net_adapter *adapter, u16 cmd_id)
 	msg_hdr->length = be32_to_cpu(IMAGE_INFO_MSG_LENGTH);
 
 	image_info[0] = 0;
-	image_info[1] = be32_to_cpu(g_wimax_image.size);
-	image_info[2] = be32_to_cpu(g_wimax_image.address);
+	image_info[1] = be32_to_cpu(adapter->wimax_image.size);
+	image_info[2] = be32_to_cpu(adapter->wimax_image.address);
 	image_info[3] = 0;
 
 	offset += sizeof(struct wimax_msg_header);
@@ -172,18 +175,19 @@ u8 send_image_data_packet(struct net_adapter *adapter, u16 cmd_id)
 	msg_hdr->type = be16_to_cpu(ETHERTYPE_DL);
 	msg_hdr->id = be16_to_cpu(cmd_id);
 
-	if (g_wimax_image.offset < (g_wimax_image.size - MAX_IMAGE_DATA_LENGTH))
+	if (adapter->wimax_image.offset <
+			(adapter->wimax_image.size - MAX_IMAGE_DATA_LENGTH))
 		len = MAX_IMAGE_DATA_LENGTH;
 	else
-		len = g_wimax_image.size - g_wimax_image.offset;
+		len = adapter->wimax_image.size - adapter->wimax_image.offset;
 
 	offset += sizeof(struct wimax_msg_header);
 	pImageDataPayload = (struct image_data_payload *)(tx_buf + offset);
-	pImageDataPayload->offset = be32_to_cpu(g_wimax_image.offset);
+	pImageDataPayload->offset = be32_to_cpu(adapter->wimax_image.offset);
 	pImageDataPayload->size = be32_to_cpu(len);
 
 	memcpy(pImageDataPayload->data,
-			g_wimax_image.data + g_wimax_image.offset, len);
+		adapter->wimax_image.data + adapter->wimax_image.offset, len);
 
 	size = len + 8; /* length of Payload offset + length + data */
 	pkt_hdr->length = be16_to_cpu(CMD_MSG_TOTAL_LENGTH + size);
@@ -202,7 +206,7 @@ u8 send_image_data_packet(struct net_adapter *adapter, u16 cmd_id)
 		return status;
 	}
 
-	g_wimax_image.offset += len;
+	adapter->wimax_image.offset += len;
 
 	kfree(tx_buf);
 

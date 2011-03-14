@@ -5,3 +5,8 @@ config WIMAX_CMC7XX
 	bool "Samsung WiMax CMC7xx chipset support"
 	depends on WIMAX && MMC
 	default n
+
+config WIMAX_CMC7XX_DEBUG
+	bool "Samsung WiMax CMC7xx debug log"
+	depends on WIMAX_CMC7XX
+	default n

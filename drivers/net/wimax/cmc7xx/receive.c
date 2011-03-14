@@ -1,7 +1,15 @@
 /*
- * receive.c
+ * Copyright (C) 2011 Samsung Electronics.
  *
- * handle download packet, private cmd and control/data packet
+ * This software is licensed under the terms of the GNU General Public
+ * License version 2, as published by the Free Software Foundation, and
+ * may be copied, distributed, and modified under those terms.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
  */
 #include "headers.h"
 #include "download.h"
@@ -9,6 +17,7 @@
 static void process_indicate_packet(struct net_adapter *adapter, u8 *buffer)
 {
 	struct wimax_msg_header *packet;
+	struct wimax_cfg *g_cfg = adapter->pdata->g_cfg;
 	char *tmp_byte;
 
 	packet = (struct wimax_msg_header *)buffer;
@@ -28,7 +37,7 @@ static void process_indicate_packet(struct net_adapter *adapter, u8 *buffer)
 		send_image_data_packet(adapter, MSG_IMAGE_DATA_REQ);
 		break;
 	case MSG_IMAGE_DATA_RESP:
-		if (g_wimax_image.offset == g_wimax_image.size) {
+		if (adapter->wimax_image.offset == adapter->wimax_image.size) {
 			pr_debug("%s: Image Download Complete\n", __func__);
 			send_cmd_packet(adapter, MSG_RUN_REQ);
 		} else {
@@ -38,37 +47,28 @@ static void process_indicate_packet(struct net_adapter *adapter, u8 *buffer)
 	case MSG_RUN_RESP:
 		tmp_byte = (char *)(buffer + sizeof(struct wimax_msg_header));
 
-		if (*tmp_byte == 0x01) {
-			pr_debug("%s: MSG_RUN_RESP\n", __func__);
-			if (g_pdata->g_cfg->wimax_mode == SDIO_MODE
-				|| g_pdata->g_cfg->wimax_mode == DM_MODE
-				|| g_pdata->g_cfg->wimax_mode == USB_MODE
-				|| g_pdata->g_cfg->wimax_mode	==
-				USIM_RELAY_MODE) {
+		if (*tmp_byte != 0x01)
+			break;
 
-				if (adapter->downloading) {
-					adapter->download_complete =
-						TRUE;
-					wake_up_interruptible(
-					&adapter->download_event);
-				}
+		adapter->download_complete = true;
+		wake_up_interruptible(&adapter->download_event);
 
-				adapter->mac_task = kthread_create(
-				wimax_hw_get_mac_address,	adapter, "%s",
-				"mac_request_thread");
-				if (adapter->mac_task)
-					wake_up_process(
-						adapter->mac_task);
+		pr_debug("%s: MSG_RUN_RESP\n", __func__);
+		if (g_cfg->wimax_mode == SDIO_MODE
+			|| g_cfg->wimax_mode == DM_MODE
+			|| g_cfg->wimax_mode == USB_MODE
+			|| g_cfg->wimax_mode	== USIM_RELAY_MODE) {
 
-				} else if (g_pdata->g_cfg->wimax_mode ==
-						WTM_MODE
-						|| g_pdata->g_cfg->wimax_mode ==
-						AUTH_MODE) {
-					adapter->download_complete = TRUE;
-					wake_up_interruptible(
-						&adapter->download_event);
-				}
+			adapter->mac_task = kthread_create(
+					wimax_hw_get_mac_address, adapter,
+					"%s", "mac_request_thread");
+			if (adapter->mac_task)
+				wake_up_process(adapter->mac_task);
 
+		} else if (g_cfg->wimax_mode == WTM_MODE
+				|| g_cfg->wimax_mode == AUTH_MODE) {
+			adapter->download_complete = true;
+			wake_up_interruptible(&adapter->download_event);
 		}
 		break;
 	default:
@@ -80,6 +80,7 @@ static void process_indicate_packet(struct net_adapter *adapter, u8 *buffer)
 static u32 process_private_cmd(struct net_adapter *adapter, void *buffer)
 {
 	struct hw_private_packet	*cmd;
+	struct wimax_cfg	*g_cfg = adapter->pdata->g_cfg;
 	u8				*bufp;
 	int					ret;
 
@@ -106,7 +107,7 @@ static u32 process_private_cmd(struct net_adapter *adapter, void *buffer)
 
 		memcpy(adapter->net->dev_addr, bufp + 3,
 				ETHERNET_ADDRESS_LENGTH);
-		adapter->mac_ready = TRUE;
+		adapter->mac_ready = true;
 
 		ret = sizeof(struct hw_private_packet)
 			+ ETHERNET_ADDRESS_LENGTH - sizeof(u8);
@@ -119,7 +120,7 @@ static u32 process_private_cmd(struct net_adapter *adapter, void *buffer)
 
 			/* set values */
 			adapter->media_state = MEDIA_DISCONNECTED;
-			adapter->wimax_status = WIMAX_STATE_READY;
+			g_cfg->wimax_status = WIMAX_STATE_READY;
 
 			/* indicate link down */
 			netif_stop_queue(adapter->net);
@@ -130,7 +131,7 @@ static u32 process_private_cmd(struct net_adapter *adapter, void *buffer)
 
 			/* set values */
 			adapter->media_state = MEDIA_CONNECTED;
-			adapter->wimax_status = WIMAX_STATE_NORMAL;
+			g_cfg->wimax_status = WIMAX_STATE_NORMAL;
 			adapter->net->mtu = WIMAX_MTU_SIZE;
 
 			/* indicate link up */
@@ -141,7 +142,7 @@ static u32 process_private_cmd(struct net_adapter *adapter, void *buffer)
 	}
 	case HWCODEHALTEDINDICATION: {
 		pr_debug("Device is about to reset, stop driver");
-		adapter->halted = TRUE;
+		adapter->halted = true;
 		break;
 	}
 	case HWCODERXREADYINDICATION: {
@@ -156,14 +157,13 @@ static u32 process_private_cmd(struct net_adapter *adapter, void *buffer)
 	}
 	case HWCODEIDLENTFY: {
 		/* set idle / vi */
-		if (adapter->wimax_status == WIMAX_STATE_NORMAL
-				|| adapter->wimax_status ==
-				WIMAX_STATE_IDLE) {
+		if (g_cfg->wimax_status == WIMAX_STATE_NORMAL
+				|| g_cfg->wimax_status == WIMAX_STATE_IDLE) {
 			pr_debug("process_private_cmd: IDLE");
-			adapter->wimax_status = WIMAX_STATE_IDLE;
+			g_cfg->wimax_status = WIMAX_STATE_IDLE;
 		} else {
 			pr_debug("process_private_cmd: VIRTUAL IDLE");
-			adapter->wimax_status = WIMAX_STATE_VIRTUAL_IDLE;
+			g_cfg->wimax_status = WIMAX_STATE_VIRTUAL_IDLE;
 		}
 		break;
 	}
@@ -172,21 +172,21 @@ static u32 process_private_cmd(struct net_adapter *adapter, void *buffer)
 		* IMPORTANT!! at least 4 sec
 		* is required after modem waked up
 		*/
-		wake_lock_timeout(&g_pdata->g_cfg->wimax_wake_lock, 4 * HZ);
+		wake_lock_timeout(&g_cfg->wimax_wake_lock, 4 * HZ);
 
-		if (adapter->wimax_status ==
+		if (g_cfg->wimax_status ==
 				WIMAX_STATE_AWAKE_REQUESTED) {
 			complete(&adapter->wakeup_event);
 			break;
 		}
 
-		if (adapter->wimax_status == WIMAX_STATE_IDLE
-			|| adapter->wimax_status == WIMAX_STATE_NORMAL) {
+		if (g_cfg->wimax_status == WIMAX_STATE_IDLE
+			|| g_cfg->wimax_status == WIMAX_STATE_NORMAL) {
 			pr_debug("process_private_cmd: IDLE -> NORMAL");
-			adapter->wimax_status = WIMAX_STATE_NORMAL;
+			g_cfg->wimax_status = WIMAX_STATE_NORMAL;
 		} else {
 			pr_debug("process_private_cmd: VI -> READY");
-			adapter->wimax_status = WIMAX_STATE_READY;
+			g_cfg->wimax_status = WIMAX_STATE_READY;
 		}
 		break;
 	}
@@ -277,10 +277,8 @@ static void adapter_sdio_rx_packet(struct net_adapter *adapter, int len)
 
 		/* process download packet, data and control packet */
 		if (likely(!adapter->downloading)) {
-#ifdef HARDWARE_USE_ALIGN_HEADER
 			ofs += 2;
 			rlen -= 2;
-#endif
 
 			if (unlikely(type == HWPKTTYPECONTROL))
 				control_recv(adapter, (u8 *)ofs,
@@ -393,7 +391,7 @@ int cmc732_receive_thread(void *data)
 		wait_event_interruptible(adapter->receive_event,
 				adapter->rx_data_available
 				|| (!adapter) || adapter->halted);
-		adapter->rx_data_available = FALSE;
+		adapter->rx_data_available = false;
 		if ((!adapter) || adapter->halted)
 			break;
 		sdio_claim_host(adapter->func);
@@ -432,7 +430,7 @@ int cmc732_receive_thread(void *data)
 		t_len = len;
 		t_index = (SDIO_RX_BANK_ADDR + (SDIO_BANK_SIZE * nReadIdx) + 4);
 		t_buff = (u8 *)adapter->hw.receive_buffer;
-		
+
 		while (t_len) {
 			t_size = (t_len > CMC_BLOCK_SIZE) ?
 				(CMC_BLOCK_SIZE) : t_len;
@@ -454,7 +452,7 @@ int cmc732_receive_thread(void *data)
 		adapter_sdio_rx_packet(adapter, len);
 	} while (adapter);
 
-	adapter->halted = TRUE;
+	adapter->halted = true;
 
 	pr_debug("cmc732_receive_thread exiting");
 

@@ -1,11 +1,19 @@
 /*
- * send.c
+ * Copyright (C) 2011 Samsung Electronics.
  *
+ * This software is licensed under the terms of the GNU General Public
+ * License version 2, as published by the Free Software Foundation, and
+ * may be copied, distributed, and modified under those terms.
  *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
  *
  */
 #include "headers.h"
 #include "download.h"
+#include <linux/mutex.h>
 
 static int hw_sdio_write_bank_index(struct net_adapter *adapter, int *write_idx)
 {
@@ -102,31 +110,28 @@ int wimax_hw_get_mac_address(void *data)
 
 u32 hw_send_data(struct net_adapter *adapter, void *buffer , u32 length)
 {
-	struct buffer_descriptor	*dsc;
+	struct buffer_descriptor	*bufdsc;
 	struct hw_packet_header		*hdr;
 	struct net_device		*net = adapter->net;
 	u8				*ptr;
 
-	g_pdata->wakeup_assert(1);
-	dsc = (struct buffer_descriptor *)
-		kmalloc(sizeof(struct buffer_descriptor), GFP_ATOMIC);
-	if (dsc == NULL)
+	bufdsc = (struct buffer_descriptor *)
+		kmalloc(sizeof(struct buffer_descriptor), GFP_KERNEL);
+	if (bufdsc == NULL)
 		return STATUS_RESOURCES;
 
-	dsc->buffer = kmalloc(BUFFER_DATA_SIZE, GFP_ATOMIC);
-	if (dsc->buffer == NULL) {
-		kfree(dsc);
+	bufdsc->buffer = kmalloc(BUFFER_DATA_SIZE, GFP_KERNEL);
+	if (bufdsc->buffer == NULL) {
+		kfree(bufdsc);
 		return STATUS_RESOURCES;
 	}
 
-	ptr = dsc->buffer;
+	ptr = bufdsc->buffer;
 
 	/* shift data pointer */
 	ptr += sizeof(struct hw_packet_header);
-#ifdef HARDWARE_USE_ALIGN_HEADER
 	ptr += 2;
-#endif
-	hdr = (struct hw_packet_header *)dsc->buffer;
+	hdr = (struct hw_packet_header *)bufdsc->buffer;
 
 	length -= (ETHERNET_ADDRESS_LENGTH * 2);
 	buffer += (ETHERNET_ADDRESS_LENGTH * 2);
@@ -137,18 +142,16 @@ u32 hw_send_data(struct net_adapter *adapter, void *buffer , u32 length)
 	hdr->id1 = 'D';
 	hdr->length = (u16)length;
 
-	dsc->length = length + sizeof(struct hw_packet_header);
-#ifdef HARDWARE_USE_ALIGN_HEADER
-	dsc->length += 2;
-#endif
+	bufdsc->length = length + sizeof(struct hw_packet_header);
+	bufdsc->length += 2;
 
 	/* add statistics */
 	adapter->netstats.tx_packets++;
-	adapter->netstats.tx_bytes += dsc->length;
+	adapter->netstats.tx_bytes += bufdsc->length;
 
-	spin_lock(&adapter->hw.q_send.lock);
-	queue_put_tail(adapter->hw.q_send.head, dsc->node);
-	spin_unlock(&adapter->hw.q_send.lock);
+	spin_lock(&adapter->hw.lock);
+	list_add_tail(&bufdsc->list, &adapter->hw.q_send);
+	spin_unlock(&adapter->hw.lock);
 
 	wake_up_interruptible(&adapter->send_event);
 	if (!netif_running(net))
@@ -158,87 +161,33 @@ u32 hw_send_data(struct net_adapter *adapter, void *buffer , u32 length)
 }
 
 static u32 sd_send_data(struct net_adapter *adapter,
-		struct buffer_descriptor *dsc)
+		struct buffer_descriptor *bufdsc)
 {
-
-#ifdef HARDWARE_USE_ALIGN_HEADER
-	if (dsc->length > SDIO_MAX_BYTE_SIZE)
-		dsc->length = (dsc->length + SDIO_MAX_BYTE_SIZE) &
+	if (bufdsc->length > SDIO_MAX_BYTE_SIZE)
+		bufdsc->length = (bufdsc->length + SDIO_MAX_BYTE_SIZE) &
 			~(SDIO_MAX_BYTE_SIZE);
-#endif
 
 	if (adapter->halted) {
 		pr_debug("Halted Already");
 		return STATUS_UNSUCCESSFUL;
 	}
 
-	return sd_send(adapter, dsc->buffer, dsc->length);
-
-}
-
-/* Return packet for packet buffer freeing */
-void hw_return_packet(struct net_adapter *adapter, u16 type)
-{
-	struct buffer_descriptor	*curElem;
-	struct buffer_descriptor	*prevElem = NULL;
-
-	if (queue_empty(adapter->ctl.q_received_ctrl.head))
-		return;
-
-	/* first time get head needed to get the dsc nodes */
-	curElem = (struct buffer_descriptor *)
-		queue_get_head(adapter->ctl.q_received_ctrl.head);
-
-	for ( ; curElem != NULL; prevElem = curElem,
-			curElem  = (struct buffer_descriptor *)
-						curElem->node.next) {
-		if (curElem->type == type) {
-			/* process found*/
-			if (prevElem == NULL) {
-				/* First node or only one node to delete */
-				(adapter->ctl.q_received_ctrl.head).next =
-					((struct list_head *)curElem)->next;
-				if (!((adapter->ctl.q_received_ctrl.head).
-							next)) {
-					/*
-					* rechain list pointer to next link
-					* if the list pointer is null, null
-					*   out the reverse link
-					*/
-					(adapter->ctl.q_received_ctrl.head).prev
-						= NULL;
-				}
-			} else if (((struct list_head *)curElem)->next ==
-					NULL) {
-				/* last node */
-				((struct list_head *)prevElem)->next = NULL;
-				(adapter->ctl.q_received_ctrl.head).prev =
-					(struct list_head *)(&prevElem);
-			} else {
-				/* middle node */
-				((struct list_head *)prevElem)->next =
-					((struct list_head *)curElem)->next;
-			}
-
-			kfree(curElem->buffer);
-			kfree(curElem);
-			break;
-		}
-	}
+	return sd_send(adapter, bufdsc->buffer, bufdsc->length);
 }
 
 int hw_device_wakeup(struct net_adapter *adapter)
 {
+	struct wimax732_platform_data *pdata = adapter->pdata;
 	int	rc = 0;
 	u8	retryCount = 0;
 
-	if (adapter->wimax_status == WIMAX_STATE_READY) {
+	if (pdata->g_cfg->wimax_status == WIMAX_STATE_READY) {
 		pr_debug("not ready!!");
 		return 0;
 	}
 
-	adapter->prev_wimax_status = adapter->wimax_status;
-	adapter->wimax_status = WIMAX_STATE_AWAKE_REQUESTED;
+	adapter->prev_wimax_status = pdata->g_cfg->wimax_status;
+	pdata->g_cfg->wimax_status = WIMAX_STATE_AWAKE_REQUESTED;
 
 	/* try to wake up */
 	while (retryCount < WAKEUP_MAX_TRY) {
@@ -252,77 +201,86 @@ int hw_device_wakeup(struct net_adapter *adapter)
 
 		retryCount++;
 
-		if (g_pdata->is_modem_awake()) {
+		if (pdata->is_modem_awake()) {
 			pr_debug("WiMAX active pin HIGH ..");
 			break;
 		}
 	}
 
 	/* check WiMAX modem response */
-	if (!g_pdata->is_modem_awake()) {
+	if (!pdata->is_modem_awake()) {
 		pr_debug("FATAL ERROR!! MODEM DOES NOT WAKEUP!!");
-		adapter->halted = TRUE;
+		adapter->halted = true;
 	}
 
-	if (adapter->wimax_status == WIMAX_STATE_AWAKE_REQUESTED) {
+	if (pdata->g_cfg->wimax_status == WIMAX_STATE_AWAKE_REQUESTED) {
 		if (adapter->prev_wimax_status == WIMAX_STATE_IDLE
 				||
 			adapter->prev_wimax_status == WIMAX_STATE_NORMAL) {
 			pr_debug("hw_device_wakeup: IDLE -> NORMAL");
-			adapter->wimax_status = WIMAX_STATE_NORMAL;
+			pdata->g_cfg->wimax_status = WIMAX_STATE_NORMAL;
 		} else {
 			pr_debug("hw_device_wakeup: VI -> READY");
-			adapter->wimax_status = WIMAX_STATE_READY;
+			pdata->g_cfg->wimax_status = WIMAX_STATE_READY;
 		}
 	}
 
 	return 0;
 }
 
-
 int cmc732_send_thread(void *data)
 {
 	struct net_adapter *adapter = (struct net_adapter *)data;
-	struct buffer_descriptor	*dsc;
+	struct wimax732_platform_data *pdata;
+	struct buffer_descriptor	*bufdsc = NULL;
 	int				nRet = 0;
+
+	pdata = adapter->pdata;
+
+	mutex_init(&pdata->g_cfg->suspend_mutex);
 	do {
-			wait_event_interruptible(adapter->send_event,
-					(!queue_empty(adapter->hw.q_send.head))
-					|| (!adapter) || adapter->halted);
+		wait_event_interruptible(adapter->send_event,
+				(!list_empty(&adapter->hw.q_send))
+				|| (!adapter) || adapter->halted);
 
-			if ((!adapter) || adapter->halted)
-				break;
-			if ((adapter->wimax_status == WIMAX_STATE_IDLE ||
-					adapter->wimax_status
-					== WIMAX_STATE_VIRTUAL_IDLE)
-					&& !g_pdata->is_modem_awake())
-				hw_device_wakeup(adapter);
+		if ((!adapter) || adapter->halted)
+			break;
 
+		mutex_lock(&pdata->g_cfg->suspend_mutex);
+		pdata->wakeup_assert(1);
 
-			spin_lock(&adapter->hw.q_send.lock);
-			dsc = (struct buffer_descriptor *)
-				queue_get_head(adapter->hw.q_send.head);
-			queue_remove_head(adapter->hw.q_send.head);
-			spin_unlock(&adapter->hw.q_send.lock);
+		if ((pdata->g_cfg->wimax_status == WIMAX_STATE_IDLE ||
+			pdata->g_cfg->wimax_status == WIMAX_STATE_VIRTUAL_IDLE)
+			&& !pdata->is_modem_awake())
+			hw_device_wakeup(adapter);
 
-			if (!dsc) {
-				pr_debug("Fail...node is null");
-				continue;
-				}
-			nRet = sd_send_data(adapter, dsc);
-			g_pdata->wakeup_assert(0);
-			kfree(dsc->buffer);
-			kfree(dsc);
-			if (nRet != STATUS_SUCCESS) {
-				pr_debug("SendData Fail******");
-				++adapter->XmitErr;
-			}
+		spin_lock(&adapter->hw.lock);
+		if (!list_empty(&adapter->hw.q_send)) {
+			bufdsc = list_first_entry(&adapter->hw.q_send,
+					struct buffer_descriptor, list);
+			list_del(&bufdsc->list);
 		}
-	while (adapter);
+		spin_unlock(&adapter->hw.lock);
+
+		if (!bufdsc) {
+			pr_debug("Fail...node is null");
+			mutex_unlock(&pdata->g_cfg->suspend_mutex);
+			continue;
+		}
+		nRet = sd_send_data(adapter, bufdsc);
+		pdata->wakeup_assert(0);
+		mutex_unlock(&pdata->g_cfg->suspend_mutex);
+		kfree(bufdsc->buffer);
+		kfree(bufdsc);
+		if (nRet != STATUS_SUCCESS) {
+			pr_debug("SendData Fail******");
+			++adapter->XmitErr;
+		}
+	} while (adapter);
 
 	pr_debug("cmc732_send_thread exiting");
 
-	adapter->halted = TRUE;
+	adapter->halted = true;
 
 	do_exit(0);
 

@@ -1,11 +1,16 @@
-/**
-* wimax_sdio.h
-*
-* functions for device access
-* swmxctl (char device): gpio control
-* uwibro (char device): send/recv control packet
-* sdio device: sdio functions
-*/
+/*
+ * Copyright (C) 2011 Samsung Electronics.
+ *
+ * This software is licensed under the terms of the GNU General Public
+ * License version 2, as published by the Free Software Foundation, and
+ * may be copied, distributed, and modified under those terms.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ */
 #ifndef _WIMAX_SDIO_H
 #define _WIMAX_SDIO_H
 
@@ -23,18 +28,6 @@
 
 #define MEDIA_DISCONNECTED			0
 #define MEDIA_CONNECTED				1
-
-/* wimax state */
-enum {
-	WIMAX_STATE_NOT_READY,
-	WIMAX_STATE_READY,
-	WIMAX_STATE_VIRTUAL_IDLE,
-	WIMAX_STATE_NORMAL,
-	WIMAX_STATE_IDLE,
-	WIMAX_STATE_RESET_REQUESTED,
-	WIMAX_STATE_RESET_ACKED,
-	WIMAX_STATE_AWAKE_REQUESTED,
-};
 
 /* network adapter structure */
 struct net_adapter {
@@ -55,8 +48,9 @@ struct net_adapter {
 
 	struct hardware_info		hw;
 	struct ctl_info			ctl;
-
+	struct image_data		wimax_image;
 	struct completion		wakeup_event;
+	struct wimax732_platform_data	*pdata;
 	wait_queue_head_t		download_event;
 	wait_queue_head_t		receive_event;
 	wait_queue_head_t		send_event;
@@ -65,7 +59,6 @@ struct net_adapter {
 	u8			mac_ready;
 
 	u8			media_state;/* mac completion */
-	u8			wimax_status;
 	u8			prev_wimax_status;
 	u8			rx_data_available;
 	u8			halted;	/* device halt pending flag */
