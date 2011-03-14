@@ -1,7 +1,15 @@
 /*
- * download.h
+ * Copyright (C) 2011 Samsung Electronics.
  *
- * Firmware download (host booting) functions and definitions
+ * This software is licensed under the terms of the GNU General Public
+ * License version 2, as published by the Free Software Foundation, and
+ * may be copied, distributed, and modified under those terms.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
  */
 #ifndef _WIMAX_DOWNLOAD_H__
 #define _WIMAX_DOWNLOAD_H__
@@ -31,14 +39,6 @@ enum {
 	MSG_RUN_RESP		= 0x6014
 };
 
-struct image_data {
-	u32	size;
-	u32	address;
-	u32	offset;
-	struct mutex	lock;
-	u8	*data;
-};
-
 struct image_data_payload {
 	u32	offset;
 	u32	size;
@@ -46,13 +46,11 @@ struct image_data_payload {
 };
 
 int load_wimax_image(int mode, struct net_adapter *adapter);
-void unload_wimax_image(void);
+void unload_wimax_image(struct net_adapter *adapter);
 
 u8 send_image_info_packet(struct net_adapter *adapter, u16 cmd_id);
 u8 send_image_data_packet(struct net_adapter *adapter, u16 cmd_id);
 u8 send_cmd_packet(struct net_adapter *adapter, u16 cmd_id);
 u32 sd_send(struct net_adapter *adapter, u8 *buffer, u32 len);
-
-extern struct image_data g_wimax_image;
 
 #endif	/* _WIMAX_DOWNLOAD_H__ */

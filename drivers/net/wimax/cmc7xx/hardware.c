@@ -1,58 +1,62 @@
 /*
- * hardware.c
+ * Copyright (C) 2011 Samsung Electronics.
  *
- * gpio control functions (power on/off, init/deinit gpios)
+ * This software is licensed under the terms of the GNU General Public
+ * License version 2, as published by the Free Software Foundation, and
+ * may be copied, distributed, and modified under those terms.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
  *
  */
 #include "headers.h"
 #include "download.h"
 
-#define WIMAX_POWER_SUCCESS		0
-#define WIMAX_ALREADY_POWER_ON		-1
-#define WIMAX_ALREADY_POWER_OFF		-3
-
-
 static irqreturn_t wimax_hostwake_isr(int irq, void *dev)
 {
-	wake_lock_timeout(&g_pdata->g_cfg->wimax_wake_lock, 1 * HZ);
+	struct net_adapter	*adapter = dev;
+	wake_lock_timeout(&adapter->pdata->g_cfg->wimax_wake_lock, 1 * HZ);
 
 	return IRQ_HANDLED;
 }
 
 static int cmc732_setup_wake_irq(struct net_adapter *adapter)
 {
+	struct wimax732_platform_data *pdata = adapter->pdata;
 	int rc;
 	int irq;
 
-	rc = gpio_request(g_pdata->wimax_int, "gpio_wimax_int");
+	rc = gpio_request(pdata->wimax_int, "gpio_wimax_int");
 	if (rc < 0) {
 		pr_debug("%s: gpio %d request failed (%d)\n",
-			__func__, g_pdata->wimax_int, rc);
+			__func__, pdata->wimax_int, rc);
 		return rc;
 	}
 
-	rc = gpio_direction_input(g_pdata->wimax_int);
+	rc = gpio_direction_input(pdata->wimax_int);
 	if (rc < 0) {
 		pr_debug("%s: failed to set gpio %d as input (%d)\n",
-			__func__, g_pdata->wimax_int, rc);
+			__func__, pdata->wimax_int, rc);
 		goto err_gpio_direction_input;
 	}
 
-	irq = gpio_to_irq(g_pdata->wimax_int);
+	irq = gpio_to_irq(pdata->wimax_int);
 
 	rc = request_threaded_irq(irq, NULL, wimax_hostwake_isr,
 		IRQF_TRIGGER_FALLING, "wimax_int", adapter);
 	if (rc < 0) {
 		pr_debug("%s: request_irq(%d) failed for gpio %d (%d)\n",
 			__func__, irq,
-			g_pdata->wimax_int, rc);
+			pdata->wimax_int, rc);
 		goto err_request_irq;
 	}
 
 	rc = enable_irq_wake(irq);
 	if (rc < 0) {
 		pr_err("%s: enable_irq_wake(%d) failed for gpio %d (%d)\n",
-				__func__, irq, g_pdata->wimax_int, rc);
+				__func__, irq, pdata->wimax_int, rc);
 		goto err_enable_irq_wake;
 	}
 
@@ -64,7 +68,7 @@ err_enable_irq_wake:
 	free_irq(irq, adapter);
 err_request_irq:
 err_gpio_direction_input:
-	gpio_free(g_pdata->wimax_int);
+	gpio_free(pdata->wimax_int);
 	return rc;
 }
 
@@ -75,16 +79,15 @@ static void cmc732_release_wake_irq(struct net_adapter *adapter)
 
 	disable_irq_wake(adapter->wake_irq);
 	free_irq(adapter->wake_irq, adapter);
-	gpio_free(g_pdata->wimax_int);
+	gpio_free(adapter->pdata->wimax_int);
 }
 
 int wimax_hw_start(struct net_adapter *adapter)
 {
-	if (load_wimax_image(g_pdata->g_cfg->wimax_mode, adapter))
-		return STATUS_UNSUCCESSFUL;
+	struct wimax732_platform_data *pdata = adapter->pdata;
 
-	adapter->wimax_status = WIMAX_STATE_READY;
-	adapter->download_complete = FALSE;
+	pdata->g_cfg->wimax_status = WIMAX_STATE_READY;
+	adapter->download_complete = false;
 
 	adapter->rx_task = kthread_create(
 					cmc732_receive_thread,	adapter, "%s",
@@ -105,34 +108,36 @@ int wimax_hw_start(struct net_adapter *adapter)
 		return STATUS_UNSUCCESSFUL;
 	}
 
+	if (load_wimax_image(pdata->g_cfg->wimax_mode, adapter))
+		return STATUS_UNSUCCESSFUL;
+
 	if (adapter->downloading) {
 
 		send_cmd_packet(adapter, MSG_DRIVER_OK_REQ);
 
 		switch (wait_event_interruptible_timeout(
 				adapter->download_event,
-				(adapter->download_complete == TRUE),
+				(adapter->download_complete),
 				HZ*FWDOWNLOAD_TIMEOUT)) {
 		case 0:
 			/* timeout */
 			pr_debug("Error wimax_hw_start : \
 					F/W Download timeout failed");
-
-			return STATUS_UNSUCCESSFUL;
+			goto download_fail;
 		case -ERESTARTSYS:
 			/* Interrupted by signal */
 			pr_debug("Error wimax_hw_start :"
 					"-ERESTARTSYS retry");
-			return STATUS_UNSUCCESSFUL;
+			goto download_fail;
 		default:
 			/* normal condition check */
-			if (adapter->removed == TRUE ||
-					adapter->halted == TRUE) {
+			if (adapter->removed || adapter->halted) {
 				pr_debug("Error wimax_hw_start :	\
 						F/W Download surprise removed");
-				return STATUS_UNSUCCESSFUL;
+				goto download_fail;
 			}
 			pr_debug("wimax_hw_start :  F/W Download Complete");
+			unload_wimax_image(adapter);
 
 			if (cmc732_setup_wake_irq(adapter) < 0)
 				pr_debug("wimax_hw_start :"
@@ -140,15 +145,19 @@ int wimax_hw_start(struct net_adapter *adapter)
 
 			break;
 		}
-		adapter->downloading = FALSE;
+		adapter->downloading = false;
 	}
 
 	return STATUS_SUCCESS;
+
+download_fail:
+	unload_wimax_image(adapter);
+	return STATUS_UNSUCCESSFUL;
 }
 
 int wimax_hw_stop(struct net_adapter *adapter)
 {
-	adapter->halted = TRUE;
+	adapter->halted = true;
 
 	/*Remove wakeup  interrupt*/
 	cmc732_release_wake_irq(adapter);
@@ -164,9 +173,10 @@ int wimax_hw_stop(struct net_adapter *adapter)
 
 int wimax_hw_init(struct net_adapter *adapter)
 {
+	struct wimax732_platform_data *pdata = adapter->pdata;
 
-	/* set g_pdata->wimax_wakeup & g_pdata->wimax_if_mode0 */
-	g_pdata->set_mode();
+	/* set pdata->wimax_wakeup & pdata->wimax_if_mode0 */
+	pdata->set_mode();
 
 	/* initilize hardware info structure */
 	memset(&adapter->hw, 0x0, sizeof(struct hardware_info));
@@ -178,8 +188,8 @@ int wimax_hw_init(struct net_adapter *adapter)
 	}
 
 	/* For sending data and control packets */
-	queue_init_list(adapter->hw.q_send.head);
-	spin_lock_init(&adapter->hw.q_send.lock);
+	INIT_LIST_HEAD(&adapter->hw.q_send);
+	spin_lock_init(&adapter->hw.lock);
 
 	init_waitqueue_head(&adapter->download_event);
 	init_completion(&adapter->wakeup_event);
@@ -189,20 +199,14 @@ int wimax_hw_init(struct net_adapter *adapter)
 
 void wimax_hw_remove(struct net_adapter *adapter)
 {
-	struct buffer_descriptor *dsc;
+	struct buffer_descriptor *bufdsc;
+	struct list_head	*pos, *nxt;
 
-	/* Free the pending data packets and control packets */
-	while (!queue_empty(adapter->hw.q_send.head)) {
-		pr_debug("Freeing q_send");
-		dsc = (struct buffer_descriptor *)
-			queue_get_head(adapter->hw.q_send.head);
-		if (!dsc) {
-			pr_debug("Fail...node is null");
-			continue;
-		}
-		queue_remove_head(adapter->hw.q_send.head);
-		kfree(dsc->buffer);
-		kfree(dsc);
+	list_for_each_safe(pos, nxt, &adapter->hw.q_send) {
+		bufdsc = list_entry(pos, struct buffer_descriptor, list);
+		list_del(pos);
+		kfree(bufdsc->buffer);
+		kfree(bufdsc);
 	}
 
 	if (adapter->hw.receive_buffer != NULL)

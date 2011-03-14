@@ -1,7 +1,15 @@
 /*
- * headers.h
+ * Copyright (C) 2011 Samsung Electronics.
  *
- * Global definitions and fynctions
+ * This software is licensed under the terms of the GNU General Public
+ * License version 2, as published by the Free Software Foundation, and
+ * may be copied, distributed, and modified under those terms.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
  */
 #ifndef _WIMAX_HEADERS_H
 #define _WIMAX_HEADERS_H
@@ -25,7 +33,6 @@
 #include <linux/wakelock.h>
 #include <linux/wimax/samsung/wimax732.h>
 
-#include "buffer.h"
 #include "wimax_sdio.h"
 
 #define WIMAX_IMAGE_PATH	"wimaxfw.bin"
@@ -43,16 +50,6 @@
 #define STATUS_UNSUCCESSFUL		((u_long)0xC0000002L)
 #define STATUS_CANCELLED		((u_long)0xC0000003L)
 
-#ifndef TRUE_FALSE_
-#define TRUE_FALSE_
-enum BOOL {
-	FALSE,
-	TRUE
-};
-#endif
-
-#define HARDWARE_USE_ALIGN_HEADER
-
 /* control.c functions */
 u32 control_send(struct net_adapter *adapter, void *buffer, u32 length);
 void control_recv(struct net_adapter   *adapter, void *buffer, u32 length);
@@ -66,7 +63,7 @@ struct process_descriptor *process_by_type(struct net_adapter *adapter,
 void remove_process(struct net_adapter *adapter, u32 id);
 
 u32 buffer_count(struct list_head ListHead);
-struct buffer_descriptor *buffer_by_type(struct list_head ListHead,
+struct buffer_descriptor *buffer_by_type(struct net_adapter *adapter,
 		u16 type);
 
 /* hardware.c functions */
@@ -83,9 +80,6 @@ int wimax_hw_get_mac_address(void *data);
 
 int cmc732_receive_thread(void *data);
 int cmc732_send_thread(void *data);
-
-/* structures for global access */
-extern struct wimax732_platform_data	*g_pdata;
 
 #endif	/* _WIMAX_HEADERS_H */
 

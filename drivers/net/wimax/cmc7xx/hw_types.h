@@ -1,7 +1,15 @@
-/**
- * hw_types.h
+/*
+ * Copyright (C) 2011 Samsung Electronics.
  *
- * Hardware types and definitions
+ * This software is licensed under the terms of the GNU General Public
+ * License version 2, as published by the Free Software Foundation, and
+ * may be copied, distributed, and modified under those terms.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
  */
 #ifndef _WIMAX_HW_TYPES_H
 #define _WIMAX_HW_TYPES_H
@@ -83,10 +91,21 @@ struct wimax_msg_header {
 	u32	length;
 };
 
+struct buffer_descriptor {
+	struct list_head	list;		/* list node */
+	void	*buffer;			/* allocated buffer: */
+	u32			length;		/* current data length */
+	u16			type;		/* buffer type used
+								*  for control
+								* buffers
+								*/
+};
+
 struct hardware_info {
 	void		*receive_buffer;
 	u8		eth_header[ETHERNET_ADDRESS_LENGTH * 2];
-	struct queue_info	q_send;	/* send pending queue */
+	struct list_head	q_send;	/* send pending queue */
+	spinlock_t		lock;
 };
 
 #endif	/* _WIMAX_HW_TYPES_H */

@@ -1,7 +1,15 @@
 /*
- * ctl_types.h
+ * Copyright (C) 2011 Samsung Electronics.
  *
- * Control types and definitions
+ * This software is licensed under the terms of the GNU General Public
+ * License version 2, as published by the Free Software Foundation, and
+ * may be copied, distributed, and modified under those terms.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
  */
 #ifndef _WIMAX_CTL_TYPES_H
 #define _WIMAX_CTL_TYPES_H
@@ -61,7 +69,7 @@ struct eth_header {
 
 /* process element managed by control type */
 struct process_descriptor {
-	struct list_head	node;
+	struct list_head	list;
 	wait_queue_head_t	read_wait;
 	u32		id;
 	u16		type;
@@ -76,10 +84,19 @@ struct ctl_app_descriptor {
 	u8		ready;
 };
 
+struct image_data {
+	u32	size;
+	u32	address;
+	u32	offset;
+	struct mutex	lock;
+	u8	*data;
+};
+
 struct ctl_info {
 	/* application device structure */
 	struct ctl_app_descriptor	apps;
-	struct queue_info		q_received_ctrl;/* pending queue */
+	struct list_head		q_received_ctrl;/* pending queue */
+	spinlock_t	lock;		/* protection */
 };
 
 #endif	/* _WIMAX_CTL_TYPES_H */
