@@ -2734,7 +2734,10 @@ void wm8994_set_voicecall_headset(struct snd_soc_codec *codec)
 
 	wm8994_write(codec, WM8994_POWER_MANAGEMENT_3, 0x0030);
 
-	wm8994_write(codec, WM8994_AIF2_CLOCKING_1, 0x0019);
+	if (herring_is_cdma_wimax_dev())
+		wm8994_write(codec, WM8994_AIF2_CLOCKING_1, 0x0009);
+	else
+		wm8994_write(codec, WM8994_AIF2_CLOCKING_1, 0x0019);
 
 	if (!wm8994->dc_servo[DCS_VOICE]) {
 		wait_for_dc_servo(codec,
@@ -2888,7 +2891,10 @@ void wm8994_set_voicecall_headphone(struct snd_soc_codec *codec)
 
 	wm8994_write(codec, WM8994_POWER_MANAGEMENT_3, 0x0030);
 
-	wm8994_write(codec, WM8994_AIF2_CLOCKING_1, 0x0019);
+	if (herring_is_cdma_wimax_dev())
+		wm8994_write(codec, WM8994_AIF2_CLOCKING_1, 0x0009);
+	else
+		wm8994_write(codec, WM8994_AIF2_CLOCKING_1, 0x0019);
 
 	if (!wm8994->dc_servo[DCS_VOICE]) {
 		wait_for_dc_servo(codec,
@@ -2974,7 +2980,10 @@ void wm8994_set_voicecall_speaker(struct snd_soc_codec *codec)
 	wm8994_write(codec, WM8994_POWER_MANAGEMENT_4,
 			WM8994_AIF2ADCL_ENA | WM8994_ADCL_ENA);
 
-	wm8994_write(codec, WM8994_AIF2_CLOCKING_1, 0x0019);
+	if (herring_is_cdma_wimax_dev())
+		wm8994_write(codec, WM8994_AIF2_CLOCKING_1, 0x0009);
+	else
+		wm8994_write(codec, WM8994_AIF2_CLOCKING_1, 0x0019);
 
 	val = wm8994_read(codec, WM8994_SPEAKER_VOLUME_LEFT);
 	val &= ~(WM8994_SPKOUTL_MUTE_N_MASK);
@@ -3069,7 +3078,10 @@ void wm8994_set_voicecall_bluetooth(struct snd_soc_codec *codec)
 	wm8994_write(codec, WM8994_DAC2_RIGHT_MIXER_ROUTING,
 		WM8994_AIF2DACR_TO_DAC2R | WM8994_AIF1DAC1R_TO_DAC2R);
 
-	wm8994_write(codec, WM8994_AIF2_CLOCKING_1, 0x0019);
+	if (herring_is_cdma_wimax_dev())
+		wm8994_write(codec, WM8994_AIF2_CLOCKING_1, 0x0009);
+	else
+		wm8994_write(codec, WM8994_AIF2_CLOCKING_1, 0x0019);
 
 	wm8994_write(codec, WM8994_DAC2_MIXER_VOLUMES, 0x000C);
 
@@ -3201,7 +3213,10 @@ void wm8994_set_voicecall_tty_vco(struct snd_soc_codec *codec)
 
 	wm8994_write(codec, WM8994_POWER_MANAGEMENT_3, 0x0030);
 
-	wm8994_write(codec, WM8994_AIF2_CLOCKING_1, 0x0019);
+	if (herring_is_cdma_wimax_dev())
+		wm8994_write(codec, WM8994_AIF2_CLOCKING_1, 0x0009);
+	else
+		wm8994_write(codec, WM8994_AIF2_CLOCKING_1, 0x0019);
 
 	if (!wm8994->dc_servo[DCS_VOICE]) {
 		wait_for_dc_servo(codec,
@@ -3364,7 +3379,10 @@ void wm8994_set_voicecall_tty_hco(struct snd_soc_codec *codec)
 		WM8994_MIXOUTLVOL_ENA | WM8994_MIXOUTRVOL_ENA |
 		WM8994_MIXOUTL_ENA | WM8994_MIXOUTR_ENA);
 
-	wm8994_write(codec, WM8994_AIF2_CLOCKING_1, 0x0019);
+	if (herring_is_cdma_wimax_dev())
+		wm8994_write(codec, WM8994_AIF2_CLOCKING_1, 0x0009);
+	else
+		wm8994_write(codec, WM8994_AIF2_CLOCKING_1, 0x0019);
 
 	if (!wm8994->dc_servo[DCS_VOICE]) {
 		wait_for_dc_servo(codec,
@@ -3525,7 +3543,10 @@ void wm8994_set_voicecall_tty_full(struct snd_soc_codec *codec)
 
 	wm8994_write(codec, WM8994_POWER_MANAGEMENT_3, 0x0030);
 
-	wm8994_write(codec, WM8994_AIF2_CLOCKING_1, 0x0019);
+	if (herring_is_cdma_wimax_dev())
+		wm8994_write(codec, WM8994_AIF2_CLOCKING_1, 0x0009);
+	else
+		wm8994_write(codec, WM8994_AIF2_CLOCKING_1, 0x0019);
 
 	if (!wm8994->dc_servo[DCS_VOICE]) {
 		wait_for_dc_servo(codec,
