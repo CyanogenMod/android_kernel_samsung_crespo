@@ -783,6 +783,25 @@ static struct max8998_regulator_data herring_regulators[] = {
 	{ MAX8998_BUCK4, &herring_buck4_data },
 };
 
+static struct max8998_regulator_data herring_cdma_wimax_regulators[] = {
+	{ MAX8998_LDO2,  &herring_ldo2_data },
+	{ MAX8998_LDO3,  &herring_ldo3_data },
+	{ MAX8998_LDO4,  &herring_ldo4_data },
+	{ MAX8998_LDO7,  &herring_ldo7_data },
+	{ MAX8998_LDO8,  &herring_ldo8_data },
+	{ MAX8998_LDO9,  &herring_ldo9_data },
+	{ MAX8998_LDO11, &herring_ldo11_data },
+	{ MAX8998_LDO13, &herring_ldo13_data },
+	{ MAX8998_LDO14, &herring_ldo14_data },
+	{ MAX8998_LDO15, &herring_ldo15_data },
+	{ MAX8998_LDO16, &herring_ldo16_data },
+	{ MAX8998_LDO17, &herring_ldo17_data },
+	{ MAX8998_BUCK1, &herring_buck1_data },
+	{ MAX8998_BUCK2, &herring_buck2_data },
+	{ MAX8998_BUCK3, &herring_buck3_data },
+	{ MAX8998_BUCK4, &herring_buck4_data },
+};
+
 static struct max8998_adc_table_data temper_table_oled[] =  {
 	/* ADC, Temperature (C/10) */
 	{  222,		700	},
@@ -5527,6 +5546,15 @@ static void __init herring_machine_init(void)
 	/* accel sensor for rev04 */
 	if (system_rev == 0x04)
 		i2c_register_board_info(5, i2c_devs5, ARRAY_SIZE(i2c_devs5));
+
+	if (herring_is_cdma_wimax_dev()) {
+		struct max8998_platform_data *pdata =
+			(struct max8998_platform_data *)&max8998_pdata;
+		pdata->num_regulators =
+			ARRAY_SIZE(herring_cdma_wimax_regulators);
+		pdata->regulators = herring_cdma_wimax_regulators;
+	}
+
 	i2c_register_board_info(6, i2c_devs6, ARRAY_SIZE(i2c_devs6));
 	if (!herring_is_tft_dev()) {
 		/* Touch Key */
