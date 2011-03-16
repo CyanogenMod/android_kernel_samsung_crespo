@@ -75,8 +75,8 @@ static char *usb_functions_accessory_adb[] = {
 	"adb",
 };
 static char *usb_functions_all[] = {
-	"accessory",
 	"rndis",
+	"accessory",
 	"usb_mass_storage",
 	"adb",
 };
