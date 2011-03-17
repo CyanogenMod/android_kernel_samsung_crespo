@@ -4250,7 +4250,7 @@ static void herring_power_off(void)
 					break;
 				}
 				phone_wait_cnt++;
-				mdelay(1000);
+				mdelay(100);
 			} else {
 				pr_info("%s: PHONE OFF Success\n", __func__);
 				break;
