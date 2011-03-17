@@ -316,7 +316,7 @@ static void adapter_sdio_rx_packet(struct net_adapter *adapter, int len)
 					eth_type_trans(rx_skb, adapter->net);
 				rx_skb->ip_summed = CHECKSUM_UNNECESSARY;
 
-				if (netif_rx(rx_skb) == NET_RX_DROP) {
+				if (netif_rx_ni(rx_skb) == NET_RX_DROP) {
 					pr_debug("packet dropped!");
 					adapter->netstats.rx_dropped++;
 				}
