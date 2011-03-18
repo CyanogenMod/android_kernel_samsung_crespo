@@ -292,39 +292,36 @@ bool is_path(int unified_path)
 		// speaker
 		case SPEAKER:
 #ifdef GALAXY_TAB
-			if (wm8994->cur_path != SPK && wm8994->cur_path != RING_SPK &&
-				wm8994->fmradio_path != FMR_SPK && wm8994->fmradio_path != FMR_SPK_MIX)
+			return (wm8994->cur_path == SPK || wm8994->cur_path == RING_SPK ||
+				wm8994->fmradio_path == FMR_SPK || wm8994->fmradio_path == FMR_SPK_MIX);
 #else
-			if (wm8994->cur_path != SPK && wm8994->cur_path != RING_SPK)
+			return (wm8994->cur_path == SPK || wm8994->cur_path == RING_SPK);
 #endif
-				return true;
 
 		// headphones
 		// FIXME: be sure dac_direct doesn't break phone calls on TAB
 		// with these spath detection settings (HP4P)
 		case HEADPHONES:
 #ifdef NEXUS_S
-			if (wm8994->cur_path == HP || wm8994->cur_path == HP_NO_MIC)
+			return (wm8994->cur_path == HP || wm8994->cur_path == HP_NO_MIC);
 #else
 #ifdef GALAXY_TAB
-			if (wm8994->cur_path == HP3P || wm8994->cur_path == HP4P || wm8994->fmradio_path == FMR_HP)
+			return (wm8994->cur_path == HP3P || wm8994->cur_path == HP4P || wm8994->fmradio_path == FMR_HP);
 #else
 #ifdef M110S
-			if (wm8994->cur_path == HP)
+			return (wm8994->cur_path == HP);
 #else
-			if (wm8994->cur_path == HP || wm8994->fmradio_path == FMR_HP)
+			return (wm8994->cur_path == HP || wm8994->fmradio_path == FMR_HP);
 #endif
 #endif
 #endif
-				return true;
 
 
 		// headphones
 		// FIXME: be sure dac_direct doesn't break phone calls on TAB
 		// with these spath detection settings (HP4P)
 		case MAIN_MICROPHONE:
-			if (wm8994->rec_path == MAIN)
-				return true;
+			return (wm8994->rec_path == MAIN);
 
 	}
 	return false;
@@ -333,61 +330,65 @@ bool is_path(int unified_path)
 #ifdef NEXUS_S
 void update_speaker_tuning(bool with_mute)
 {
-	if (speaker_tuning)
+	if (is_path(SPEAKER))
 	{
-		// DRC settings
-		wm8994_write(codec_, WM8994_AIF1_DRC1_3, 0x0010);
-		wm8994_write(codec_, WM8994_AIF1_DRC1_4, 0x00EB);
+		printk("We are on speaker!\n");
+		if (speaker_tuning)
+		{
+			// DRC settings
+			wm8994_write(codec_, WM8994_AIF1_DRC1_3, 0x0010);
+			wm8994_write(codec_, WM8994_AIF1_DRC1_4, 0x00EB);
 
-		// hardware EQ
-		wm8994_write(codec_, WM8994_AIF1_DAC1_EQ_GAINS_1,   0x041D);
-		wm8994_write(codec_, WM8994_AIF1_DAC1_EQ_GAINS_2,   0x4C00);
-		wm8994_write(codec_, WM8994_AIF1_DAC1_EQ_BAND_1_A,  0x0FE3);
-		wm8994_write(codec_, WM8994_AIF1_DAC1_EQ_BAND_1_B,  0x0403);
-		wm8994_write(codec_, WM8994_AIF1_DAC1_EQ_BAND_1_PG, 0x0074);
-		wm8994_write(codec_, WM8994_AIF1_DAC1_EQ_BAND_2_A,  0x1F03);
-		wm8994_write(codec_, WM8994_AIF1_DAC1_EQ_BAND_2_B,  0xF0F9);
-		wm8994_write(codec_, WM8994_AIF1_DAC1_EQ_BAND_2_C,  0x040A);
-		wm8994_write(codec_, WM8994_AIF1_DAC1_EQ_BAND_2_PG, 0x03DA);
-		wm8994_write(codec_, WM8994_AIF1_DAC1_EQ_BAND_3_A,  0x1ED2);
-		wm8994_write(codec_, WM8994_AIF1_DAC1_EQ_BAND_3_B,  0xF11A);
-		wm8994_write(codec_, WM8994_AIF1_DAC1_EQ_BAND_3_C,  0x040A);
-		wm8994_write(codec_, WM8994_AIF1_DAC1_EQ_BAND_3_PG, 0x045D);
-		wm8994_write(codec_, WM8994_AIF1_DAC1_EQ_BAND_4_A,  0x0E76);
-		wm8994_write(codec_, WM8994_AIF1_DAC1_EQ_BAND_4_B,  0xFCE4);
-		wm8994_write(codec_, WM8994_AIF1_DAC1_EQ_BAND_4_C,  0x040A);
-		wm8994_write(codec_, WM8994_AIF1_DAC1_EQ_BAND_4_PG, 0x330D);
-		wm8994_write(codec_, WM8994_AIF1_DAC1_EQ_BAND_5_A,  0xFC8F);
-		wm8994_write(codec_, WM8994_AIF1_DAC1_EQ_BAND_5_B,  0x0400);
-		wm8994_write(codec_, WM8994_AIF1_DAC1_EQ_BAND_5_PG, 0x323C);
+			// hardware EQ
+			wm8994_write(codec_, WM8994_AIF1_DAC1_EQ_GAINS_1,   0x041D);
+			wm8994_write(codec_, WM8994_AIF1_DAC1_EQ_GAINS_2,   0x4C00);
+			wm8994_write(codec_, WM8994_AIF1_DAC1_EQ_BAND_1_A,  0x0FE3);
+			wm8994_write(codec_, WM8994_AIF1_DAC1_EQ_BAND_1_B,  0x0403);
+			wm8994_write(codec_, WM8994_AIF1_DAC1_EQ_BAND_1_PG, 0x0074);
+			wm8994_write(codec_, WM8994_AIF1_DAC1_EQ_BAND_2_A,  0x1F03);
+			wm8994_write(codec_, WM8994_AIF1_DAC1_EQ_BAND_2_B,  0xF0F9);
+			wm8994_write(codec_, WM8994_AIF1_DAC1_EQ_BAND_2_C,  0x040A);
+			wm8994_write(codec_, WM8994_AIF1_DAC1_EQ_BAND_2_PG, 0x03DA);
+			wm8994_write(codec_, WM8994_AIF1_DAC1_EQ_BAND_3_A,  0x1ED2);
+			wm8994_write(codec_, WM8994_AIF1_DAC1_EQ_BAND_3_B,  0xF11A);
+			wm8994_write(codec_, WM8994_AIF1_DAC1_EQ_BAND_3_C,  0x040A);
+			wm8994_write(codec_, WM8994_AIF1_DAC1_EQ_BAND_3_PG, 0x045D);
+			wm8994_write(codec_, WM8994_AIF1_DAC1_EQ_BAND_4_A,  0x0E76);
+			wm8994_write(codec_, WM8994_AIF1_DAC1_EQ_BAND_4_B,  0xFCE4);
+			wm8994_write(codec_, WM8994_AIF1_DAC1_EQ_BAND_4_C,  0x040A);
+			wm8994_write(codec_, WM8994_AIF1_DAC1_EQ_BAND_4_PG, 0x330D);
+			wm8994_write(codec_, WM8994_AIF1_DAC1_EQ_BAND_5_A,  0xFC8F);
+			wm8994_write(codec_, WM8994_AIF1_DAC1_EQ_BAND_5_B,  0x0400);
+			wm8994_write(codec_, WM8994_AIF1_DAC1_EQ_BAND_5_PG, 0x323C);
 
-		// Speaker Boost tuning
-		wm8994_write(codec_, WM8994_CLASSD,                 0x0170);
-	}
-	else
-	{
-		// DRC settings
-		wm8994_write(codec_, WM8994_AIF1_DRC1_3, 0x0028);
-		wm8994_write(codec_, WM8994_AIF1_DRC1_4, 0x0186);
+			// Speaker Boost tuning
+			wm8994_write(codec_, WM8994_CLASSD,                 0x0170);
+		}
+		else
+		{
+			// DRC settings
+			wm8994_write(codec_, WM8994_AIF1_DRC1_3, 0x0028);
+			wm8994_write(codec_, WM8994_AIF1_DRC1_4, 0x0186);
 
-		// hardware EQ
-		wm8994_write(codec_, WM8994_AIF1_DAC1_EQ_GAINS_1,   0x0019);
-		wm8994_write(codec_, WM8994_AIF1_DAC1_EQ_GAINS_2,   0x6280);
-		wm8994_write(codec_, WM8994_AIF1_DAC1_EQ_BAND_1_A,  0x0FC3);
-		wm8994_write(codec_, WM8994_AIF1_DAC1_EQ_BAND_1_B,  0x03FD);
-		wm8994_write(codec_, WM8994_AIF1_DAC1_EQ_BAND_1_PG, 0x00F4);
-		wm8994_write(codec_, WM8994_AIF1_DAC1_EQ_BAND_2_A,  0x1F30);
-		wm8994_write(codec_, WM8994_AIF1_DAC1_EQ_BAND_2_B,  0xF0CD);
-		wm8994_write(codec_, WM8994_AIF1_DAC1_EQ_BAND_2_C,  0x040A);
-		wm8994_write(codec_, WM8994_AIF1_DAC1_EQ_BAND_2_PG, 0x032C);
-		wm8994_write(codec_, WM8994_AIF1_DAC1_EQ_BAND_3_A,  0x1C52);
-		wm8994_write(codec_, WM8994_AIF1_DAC1_EQ_BAND_3_B,  0xF379);
-		wm8994_write(codec_, WM8994_AIF1_DAC1_EQ_BAND_3_C,  0x040A);
-		wm8994_write(codec_, WM8994_AIF1_DAC1_EQ_BAND_3_PG, 0x0DC1);
-		wm8994_write(codec_, WM8994_CLASSD,                 0x0170);
+			// hardware EQ
+			wm8994_write(codec_, WM8994_AIF1_DAC1_EQ_GAINS_1,   0x0019);
+			wm8994_write(codec_, WM8994_AIF1_DAC1_EQ_GAINS_2,   0x6280);
+			wm8994_write(codec_, WM8994_AIF1_DAC1_EQ_BAND_1_A,  0x0FC3);
+			wm8994_write(codec_, WM8994_AIF1_DAC1_EQ_BAND_1_B,  0x03FD);
+			wm8994_write(codec_, WM8994_AIF1_DAC1_EQ_BAND_1_PG, 0x00F4);
+			wm8994_write(codec_, WM8994_AIF1_DAC1_EQ_BAND_2_A,  0x1F30);
+			wm8994_write(codec_, WM8994_AIF1_DAC1_EQ_BAND_2_B,  0xF0CD);
+			wm8994_write(codec_, WM8994_AIF1_DAC1_EQ_BAND_2_C,  0x040A);
+			wm8994_write(codec_, WM8994_AIF1_DAC1_EQ_BAND_2_PG, 0x032C);
+			wm8994_write(codec_, WM8994_AIF1_DAC1_EQ_BAND_3_A,  0x1C52);
+			wm8994_write(codec_, WM8994_AIF1_DAC1_EQ_BAND_3_B,  0xF379);
+			wm8994_write(codec_, WM8994_AIF1_DAC1_EQ_BAND_3_C,  0x040A);
+			wm8994_write(codec_, WM8994_AIF1_DAC1_EQ_BAND_3_PG, 0x0DC1);
+			wm8994_write(codec_, WM8994_CLASSD,                 0x0170);
 
-		// Speaker Boost tuning
-		wm8994_write(codec_, WM8994_CLASSD,                 0x0168);
+			// Speaker Boost tuning
+			wm8994_write(codec_, WM8994_CLASSD,                 0x0168);
+		}
 	}
 }
 #endif
@@ -437,7 +438,7 @@ unsigned short mono_downmix_get_value(unsigned short val)
 {
 	// depends on the output path in order to preserve mono downmixing
 	// on speaker
-	if (is_path(SPEAKER))
+	if (! is_path(SPEAKER))
 	{
 		if (mono_downmix)
 			val |= WM8994_AIF1DAC1_MONO;
