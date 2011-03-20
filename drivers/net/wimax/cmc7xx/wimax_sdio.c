@@ -59,10 +59,13 @@ static int swmxdev_ioctl(struct inode *inode, struct file *file, u32 cmd,
 	switch (cmd) {
 	case CONTROL_IOCTL_WIMAX_POWER_CTL: {
 		pr_debug("CONTROL_IOCTL_WIMAX_POWER_CTL..");
-		if (val == 0)
+		if (val == 0) {
+			pr_debug("WIMAX POWER OFF");
 			ret = gpdata->power(0);
-		else
+		} else {
+			pr_debug("WIMAX POWER ON");
 			ret = gpdata->power(1);
+		}
 		break;
 	}
 	case CONTROL_IOCTL_WIMAX_MODE_CHANGE: {
@@ -738,7 +741,7 @@ static int wimax_probe(struct platform_device *pdev)
 	}
 
 	pdata->g_cfg->card_removed = true;
-
+	pdata->power(0);
 	mutex_init(&pdata->g_cfg->suspend_mutex);
 
 	/* initialize wake locks */
