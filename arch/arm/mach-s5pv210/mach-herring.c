@@ -1583,10 +1583,52 @@ static struct i2c_board_info i2c_devs15[] __initdata = {
 
 static struct wimax_cfg wimax_config;
 
+static unsigned int wimax_sdio_on_table[][4] = {
+	{GPIO_WIMAX_SDIO_CLK, 2, GPIO_LEVEL_NONE, S3C_GPIO_PULL_UP},
+	{GPIO_WIMAX_SDIO_CMD, 2, GPIO_LEVEL_NONE, S3C_GPIO_PULL_UP},
+	{GPIO_WIMAX_SDIO_D0, 2, GPIO_LEVEL_NONE, S3C_GPIO_PULL_UP},
+	{GPIO_WIMAX_SDIO_D1, 2, GPIO_LEVEL_NONE, S3C_GPIO_PULL_UP},
+	{GPIO_WIMAX_SDIO_D2, 2, GPIO_LEVEL_NONE, S3C_GPIO_PULL_UP},
+	{GPIO_WIMAX_SDIO_D3, 2, GPIO_LEVEL_NONE, S3C_GPIO_PULL_UP},
+};
+
+static unsigned int wimax_sdio_off_table[][4] = {
+	{GPIO_WIMAX_SDIO_CLK, 0, GPIO_LEVEL_NONE, S3C_GPIO_PULL_NONE},
+	{GPIO_WIMAX_SDIO_CMD, 0, GPIO_LEVEL_NONE, S3C_GPIO_PULL_NONE},
+	{GPIO_WIMAX_SDIO_D0, 0, GPIO_LEVEL_NONE, S3C_GPIO_PULL_NONE},
+	{GPIO_WIMAX_SDIO_D1, 0, GPIO_LEVEL_NONE, S3C_GPIO_PULL_NONE},
+	{GPIO_WIMAX_SDIO_D2, 0, GPIO_LEVEL_NONE, S3C_GPIO_PULL_NONE},
+	{GPIO_WIMAX_SDIO_D3, 0, GPIO_LEVEL_NONE, S3C_GPIO_PULL_NONE},
+};
+
+static int wimax_sdio_en(int onoff)
+{
+	u32 i;
+	u32 sdio;
+	unsigned int (*wimax_gpio_table)[4];
+
+	wimax_gpio_table = onoff ? wimax_sdio_on_table : wimax_sdio_off_table;
+
+	for (i = 0; i < ARRAY_SIZE(wimax_sdio_on_table); i++) {
+		sdio = wimax_gpio_table[i][0];
+		s3c_gpio_cfgpin(sdio,
+			S3C_GPIO_SFN(wimax_gpio_table[i][1]));
+		s3c_gpio_setpull(sdio, wimax_gpio_table[i][3]);
+
+		if (wimax_gpio_table[i][2] != GPIO_LEVEL_NONE)
+			gpio_set_value(sdio, wimax_gpio_table[i][2]);
+	}
+	return 0;
+}
+
+static void wimax_deinit_gpios(void);
 /* signal wimax modem to wakeup if asleep */
 static void wimax_wakeup_assert(int enable)
 {
-	gpio_set_value(GPIO_WIMAX_WAKEUP, !enable);
+	if (herring_is_cdma_wimax_rev(0) || herring_is_cdma_wimax_rev(1))
+		gpio_set_value(GPIO_WIMAX_WAKEUP, !enable);
+	else
+		gpio_set_value(GPIO_USB_SEL, !enable);
 }
 
 static int get_wimax_sleep_mode(void)
@@ -1621,109 +1663,84 @@ void switch_usb_wimax(void)
 
 void wimax_init_gpios(void)
 {
-	/* g_pdata->wimax_int set Input and Pull up */
-	s3c_gpio_cfgpin(GPIO_USB_SEL, S3C_GPIO_INPUT);
-	s3c_gpio_setpull(GPIO_USB_SEL, S3C_GPIO_PULL_UP);
+	s3c_gpio_cfgpin(GPIO_WIMAX_RESET_N, S3C_GPIO_OUTPUT);
+	gpio_set_value(GPIO_WIMAX_RESET_N, 0);
 
-	/* WiMAX active */
-	s3c_gpio_cfgpin(GPIO_WIMAX_CON0, S3C_GPIO_INPUT);
-	s3c_gpio_setpull(GPIO_WIMAX_CON0, S3C_GPIO_PULL_UP);
+	s3c_gpio_cfgpin(GPIO_WIMAX_DBGEN_28V, S3C_GPIO_OUTPUT);
+	gpio_set_value(GPIO_WIMAX_DBGEN_28V, 0);
+
+	s3c_gpio_cfgpin(GPIO_WIMAX_I2C_CON, S3C_GPIO_OUTPUT);
+	gpio_set_value(GPIO_WIMAX_I2C_CON, 1);
+	msleep(10);
+
+	if (herring_is_cdma_wimax_rev(0) || herring_is_cdma_wimax_rev(1)) {
+		s3c_gpio_setpull(GPIO_USB_SEL, S3C_GPIO_PULL_UP);
+		s3c_gpio_cfgpin(GPIO_WIMAX_WAKEUP, S3C_GPIO_OUTPUT);
+	} else {
+		/* g_pdata->wimax_int set Input and Pull up */
+		s3c_gpio_setpull(GPIO_WIMAX_WAKEUP, S3C_GPIO_PULL_UP);
+		s3c_gpio_cfgpin(GPIO_USB_SEL, S3C_GPIO_OUTPUT);
+	}
+	wimax_wakeup_assert(0);
 
 	/*
 	* IDLE, VI setting pin: high for suspend idle,
 	* low for suspend vi
 	*/
-	gpio_set_value(GPIO_WIMAX_IF_MODE1, 1);/* default idle */
-
-	/* IDLE, VI interrupt for WiMAX */
-	gpio_set_value(GPIO_WIMAX_CON2, 1);/* active low interrupt */
-
-	/* PDA Active */
-	gpio_set_value(GPIO_WIMAX_CON1, 1);
-
-}
-
-void wimax_deinit_gpios(void)
-{
-	/* Disable WiMAX JTAG for freerun */
-	s3c_gpio_cfgpin(GPIO_WIMAX_DBGEN_28V, S3C_GPIO_OUTPUT);
-	s3c_gpio_setpull(GPIO_WIMAX_DBGEN_28V, S3C_GPIO_PULL_NONE);
-	gpio_set_value(GPIO_WIMAX_DBGEN_28V, 0);
-
-	/* g_pdata->wimax_int set Output low */
-	s3c_gpio_cfgpin(GPIO_USB_SEL, S3C_GPIO_OUTPUT);
-	s3c_gpio_setpull(GPIO_USB_SEL, S3C_GPIO_PULL_NONE);
-	gpio_set_value(GPIO_USB_SEL, 0);
-
-	/* MODE pin */
-	s3c_gpio_cfgpin(GPIO_WIMAX_WAKEUP, S3C_GPIO_OUTPUT);
-	s3c_gpio_setpull(GPIO_WIMAX_WAKEUP, S3C_GPIO_PULL_NONE);
-	gpio_set_value(GPIO_WIMAX_WAKEUP, 0);
+	s3c_gpio_cfgpin(GPIO_WIMAX_IF_MODE1, S3C_GPIO_OUTPUT);
+	gpio_set_value(GPIO_WIMAX_IF_MODE1, 1);
 
 	s3c_gpio_cfgpin(GPIO_WIMAX_IF_MODE0, S3C_GPIO_OUTPUT);
-	s3c_gpio_setpull(GPIO_WIMAX_IF_MODE0, S3C_GPIO_PULL_NONE);
-	gpio_set_value(GPIO_WIMAX_IF_MODE0, 0);
-
-	/* WiMAX active */
-	s3c_gpio_cfgpin(GPIO_WIMAX_CON0, S3C_GPIO_OUTPUT);
-	s3c_gpio_setpull(GPIO_WIMAX_CON0, S3C_GPIO_PULL_NONE);
-	gpio_set_value(GPIO_WIMAX_CON0, 0);
-
-	/* IDLE, VI setting pin: high for suspend idle,
-	   low for suspend vi */
-	s3c_gpio_cfgpin(GPIO_WIMAX_IF_MODE1, S3C_GPIO_OUTPUT);
-	s3c_gpio_setpull(GPIO_WIMAX_IF_MODE1, S3C_GPIO_PULL_NONE);
-	gpio_set_value(GPIO_WIMAX_IF_MODE1, 0);
 
 	/* IDLE, VI interrupt for WiMAX */
 	s3c_gpio_cfgpin(GPIO_WIMAX_CON2, S3C_GPIO_OUTPUT);
-	s3c_gpio_setpull(GPIO_WIMAX_CON2, S3C_GPIO_PULL_NONE);
-	gpio_set_value(GPIO_WIMAX_CON2, 0);
+	gpio_set_value(GPIO_WIMAX_CON2, 1);/* active low interrupt */
 
 	/* PDA Active */
 	s3c_gpio_cfgpin(GPIO_WIMAX_CON1, S3C_GPIO_OUTPUT);
-	s3c_gpio_setpull(GPIO_WIMAX_CON1, S3C_GPIO_PULL_NONE);
-	gpio_set_value(GPIO_WIMAX_CON1, 0);
+	signal_ap_active(1);
 
-	/* power related */
-	s3c_gpio_cfgpin(GPIO_WIMAX_RESET_N, S3C_GPIO_OUTPUT);
-	s3c_gpio_setpull(GPIO_WIMAX_RESET_N, S3C_GPIO_PULL_NONE);
-	gpio_set_value(GPIO_WIMAX_RESET_N, 0);
-
-	s3c_gpio_cfgpin(GPIO_WIMAX_EN, S3C_GPIO_OUTPUT);
-	s3c_gpio_setpull(GPIO_WIMAX_EN, S3C_GPIO_PULL_NONE);
-	gpio_set_value(GPIO_WIMAX_EN, 0);
-
-	s3c_gpio_cfgpin(GPIO_UART_SEL, S3C_GPIO_OUTPUT);
-	s3c_gpio_setpull(GPIO_UART_SEL, S3C_GPIO_PULL_NONE);
-
-	s3c_gpio_cfgpin(GPIO_UART_SEL1, S3C_GPIO_OUTPUT);
-	s3c_gpio_setpull(GPIO_UART_SEL1, S3C_GPIO_PULL_NONE);
-
-	s3c_gpio_cfgpin(GPIO_USB_HS_SEL, S3C_GPIO_OUTPUT);
-	s3c_gpio_setpull(GPIO_USB_HS_SEL, S3C_GPIO_PULL_NONE);
-	switch_usb_ap();
 }
 
 static void hw_set_wimax_mode(void)
 {
+	bool	legacy_rev;
+
+	legacy_rev = herring_is_cdma_wimax_rev(0) ||
+		herring_is_cdma_wimax_rev(1);
+
 	switch (wimax_config.wimax_mode) {
 	case SDIO_MODE:
-		gpio_set_value(GPIO_WIMAX_WAKEUP, 1);
+		pr_debug("SDIO MODE");
+		if (legacy_rev)
+			gpio_set_value(GPIO_WIMAX_WAKEUP, 1);
+		else
+			gpio_set_value(GPIO_USB_SEL, 1);
 		gpio_set_value(GPIO_WIMAX_IF_MODE0, 1);
 		break;
 	case WTM_MODE:
 	case AUTH_MODE:
-		gpio_set_value(GPIO_WIMAX_WAKEUP, 0);
+		if (legacy_rev)
+			gpio_set_value(GPIO_WIMAX_WAKEUP, 0);
+		else
+			gpio_set_value(GPIO_USB_SEL, 0);
 		gpio_set_value(GPIO_WIMAX_IF_MODE0, 0);
 		break;
 	case DM_MODE:
-		gpio_set_value(GPIO_WIMAX_WAKEUP, 1);
+		pr_debug("DM MODE");
+		if (legacy_rev)
+			gpio_set_value(GPIO_WIMAX_WAKEUP, 1);
+		else
+			gpio_set_value(GPIO_USB_SEL, 1);
 		gpio_set_value(GPIO_WIMAX_IF_MODE0, 0);
 		break;
 	case USB_MODE:
 	case USIM_RELAY_MODE:
-		gpio_set_value(GPIO_WIMAX_WAKEUP, 0);
+		pr_debug("USB MODE");
+		if (legacy_rev)
+			gpio_set_value(GPIO_WIMAX_WAKEUP, 0);
+		else
+			gpio_set_value(GPIO_USB_SEL, 0);
 		gpio_set_value(GPIO_WIMAX_IF_MODE0, 1);
 		break;
 	}
@@ -1749,17 +1766,20 @@ int gpio_wimax_power(int enable)
 
 	pr_debug("Wimax power ON");
 
+	wimax_sdio_en(1);
 	wimax_init_gpios();
 
 	if (wimax_config.wimax_mode != SDIO_MODE)
 		switch_usb_wimax();
 
+	gpio_set_value(GPIO_WIMAX_I2C_CON, 1);
+	msleep(10);
+
 	gpio_set_value(GPIO_WIMAX_EN, 1);
 
+	msleep(10);
 	pr_debug("RESET");
 
-	gpio_set_value(GPIO_WIMAX_RESET_N, 0);
-	msleep(10);
 	gpio_set_value(GPIO_WIMAX_RESET_N, 1);
 
 	/* Delay important for bootloader initialization */
@@ -1782,6 +1802,7 @@ wimax_power_off:
 
 	/*Not critial, just some safty margin*/
 	msleep(200);
+	wimax_sdio_en(0);
 
 	return WIMAX_POWER_SUCCESS;
 }
@@ -1802,6 +1823,70 @@ static struct platform_device s3c_device_cmc732 = {
 	.id			= 1,
 	.dev.platform_data	= &wimax732_pdata,
 };
+
+void wimax_deinit_gpios(void)
+{
+	/* Disable WiMAX JTAG for freerun */
+	s3c_gpio_cfgpin(GPIO_WIMAX_DBGEN_28V, S3C_GPIO_INPUT);
+	s3c_gpio_setpull(GPIO_WIMAX_DBGEN_28V, S3C_GPIO_PULL_NONE);
+
+	/* g_pdata->wimax_int set Output low */
+	s3c_gpio_cfgpin(GPIO_USB_SEL, S3C_GPIO_INPUT);
+	s3c_gpio_setpull(GPIO_USB_SEL, S3C_GPIO_PULL_NONE);
+
+	/* MODE pin */
+	s3c_gpio_cfgpin(GPIO_WIMAX_WAKEUP, S3C_GPIO_INPUT);
+	s3c_gpio_setpull(GPIO_WIMAX_WAKEUP, S3C_GPIO_PULL_NONE);
+
+	s3c_gpio_cfgpin(GPIO_WIMAX_IF_MODE0, S3C_GPIO_INPUT);
+	s3c_gpio_setpull(GPIO_WIMAX_IF_MODE0, S3C_GPIO_PULL_NONE);
+
+	/* WiMAX active */
+	s3c_gpio_cfgpin(GPIO_WIMAX_CON0, S3C_GPIO_INPUT);
+	s3c_gpio_setpull(GPIO_WIMAX_CON0, S3C_GPIO_PULL_NONE);
+
+	/* IDLE, VI setting pin: high for suspend idle,
+	   low for suspend vi */
+	s3c_gpio_cfgpin(GPIO_WIMAX_IF_MODE1, S3C_GPIO_INPUT);
+	s3c_gpio_setpull(GPIO_WIMAX_IF_MODE1, S3C_GPIO_PULL_NONE);
+
+	/* IDLE, VI interrupt for WiMAX */
+	s3c_gpio_cfgpin(GPIO_WIMAX_CON2, S3C_GPIO_INPUT);
+	s3c_gpio_setpull(GPIO_WIMAX_CON2, S3C_GPIO_PULL_NONE);
+
+	/* PDA Active */
+	s3c_gpio_cfgpin(GPIO_WIMAX_CON1, S3C_GPIO_INPUT);
+	s3c_gpio_setpull(GPIO_WIMAX_CON1, S3C_GPIO_PULL_NONE);
+
+	/* power related */
+	s3c_gpio_cfgpin(GPIO_WIMAX_RESET_N, S3C_GPIO_INPUT);
+	s3c_gpio_setpull(GPIO_WIMAX_RESET_N, S3C_GPIO_PULL_NONE);
+
+	s3c_gpio_cfgpin(GPIO_WIMAX_EN, S3C_GPIO_OUTPUT);
+	s3c_gpio_setpull(GPIO_WIMAX_EN, S3C_GPIO_PULL_NONE);
+
+	/* EEPROM switch to WiMAX */
+	s3c_gpio_cfgpin(GPIO_WIMAX_I2C_CON, S3C_GPIO_INPUT);
+	s3c_gpio_setpull(GPIO_WIMAX_I2C_CON, S3C_GPIO_PULL_NONE);
+
+	gpio_set_value(GPIO_WIMAX_EN, 0);
+	s3c_gpio_cfgpin(GPIO_WIMAX_I2C_CON, S3C_GPIO_INPUT);
+
+	s3c_gpio_cfgpin(GPIO_UART_SEL, S3C_GPIO_OUTPUT);
+	s3c_gpio_setpull(GPIO_UART_SEL, S3C_GPIO_PULL_NONE);
+
+	s3c_gpio_cfgpin(GPIO_UART_SEL1, S3C_GPIO_OUTPUT);
+	s3c_gpio_setpull(GPIO_UART_SEL1, S3C_GPIO_PULL_NONE);
+
+	s3c_gpio_cfgpin(GPIO_USB_HS_SEL, S3C_GPIO_OUTPUT);
+	s3c_gpio_setpull(GPIO_USB_HS_SEL, S3C_GPIO_PULL_NONE);
+	switch_usb_ap();
+
+	if (herring_is_cdma_wimax_rev(0) || herring_is_cdma_wimax_rev(1))
+		wimax732_pdata.wimax_int = GPIO_USB_SEL;
+	else
+		wimax732_pdata.wimax_int = GPIO_WIMAX_WAKEUP;
+}
 
 static void touch_keypad_gpio_init(void)
 {
@@ -4180,7 +4265,8 @@ void s3c_config_gpio_table(void)
 			if (herring_init_gpios[i].val != S3C_GPIO_SETPIN_NONE)
 				gpio_set_value(gpio, herring_init_gpios[i].val);
 
-			s3c_gpio_set_drvstrength(gpio, herring_init_gpios[i].drv);
+			s3c_gpio_set_drvstrength(gpio,
+					herring_init_gpios[i].drv);
 		}
 	}
 
