@@ -211,6 +211,7 @@ int hw_device_wakeup(struct net_adapter *adapter)
 	if (!pdata->is_modem_awake()) {
 		pr_debug("FATAL ERROR!! MODEM DOES NOT WAKEUP!!");
 		adapter->halted = true;
+		return STATUS_UNSUCCESSFUL;
 	}
 
 	if (pdata->g_cfg->wimax_status == WIMAX_STATE_AWAKE_REQUESTED) {
@@ -225,7 +226,7 @@ int hw_device_wakeup(struct net_adapter *adapter)
 		}
 	}
 
-	return 0;
+	return STATUS_SUCCESS;
 }
 
 int cmc732_send_thread(void *data)
@@ -251,8 +252,10 @@ int cmc732_send_thread(void *data)
 
 		if ((pdata->g_cfg->wimax_status == WIMAX_STATE_IDLE ||
 			pdata->g_cfg->wimax_status == WIMAX_STATE_VIRTUAL_IDLE)
-			&& !pdata->is_modem_awake())
-			hw_device_wakeup(adapter);
+			&& !pdata->is_modem_awake()) {
+			if(hw_device_wakeup(adapter))
+				break;
+		}
 
 		spin_lock(&adapter->hw.lock);
 		if (!list_empty(&adapter->hw.q_send)) {
