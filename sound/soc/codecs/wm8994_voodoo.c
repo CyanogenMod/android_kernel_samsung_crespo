@@ -21,7 +21,7 @@
 #endif
 
 #define SUBJECT "wm8994_voodoo.c"
-#define VOODOO_SOUND_VERSION 5
+#define VOODOO_SOUND_VERSION 6
 
 bool bypass_write_hook = false;
 
