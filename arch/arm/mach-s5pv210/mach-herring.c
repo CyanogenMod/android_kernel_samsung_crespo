@@ -202,10 +202,7 @@ static void uart_switch_init(void)
 	s3c_gpio_setpull(GPIO_UART_SEL, S3C_GPIO_PULL_NONE);
 	s3c_gpio_cfgpin(GPIO_UART_SEL, S3C_GPIO_OUTPUT);
 
-	if (herring_is_cdma_wimax_dev())
-		gpio_direction_output(GPIO_UART_SEL, 0);
-	else
-		gpio_direction_output(GPIO_UART_SEL, 1);
+	gpio_direction_output(GPIO_UART_SEL, 1);
 
 	gpio_export(GPIO_UART_SEL, 1);
 
