@@ -970,6 +970,92 @@ static struct max8998_adc_table_data temper_table_tft[] =  {
 	{ 1702,		(-90)	},
 	{ 1720,		(-100)	},
 };
+
+static struct max8998_adc_table_data temper_table_cdma_wimax_oled[] =  {
+	/* ADC, Temperature (C/10) */
+	{ 206,		700	},
+	{ 214,		690	},
+	{ 222,		680	},
+	{ 230,		670	},
+	{ 238,		660	},
+	{ 245,		650	},
+	{ 253,		640	},
+	{ 261,		630	},
+	{ 274,		620	},
+	{ 287,		610	},
+	{ 300,		600	},
+	{ 314,		590	},
+	{ 327,		580	},
+	{ 339,		570	},
+	{ 350,		560	},
+	{ 362,		550	},
+	{ 374,		540	},
+	{ 386,		530	},
+	{ 401,		520	},
+	{ 415,		510	},
+	{ 430,		500	},
+	{ 444,		490	},
+	{ 459,		480	},
+	{ 477,		470	},
+	{ 495,		460	},
+	{ 513,		450	},
+	{ 526,		440	},
+	{ 539,		430	},
+	{ 559,		420	},
+	{ 580,		410	},
+	{ 600,		400	},
+	{ 618,		390	},
+	{ 642,		380	},
+	{ 649,		370	},
+	{ 674,		360	},
+	{ 695,		350	},
+	{ 717,		340	},
+	{ 739,		330	},
+	{ 760,		320	},
+	{ 782,		310	},
+	{ 803,		300	},
+	{ 825,		290	},
+	{ 847,		280	},
+	{ 870,		270	},
+	{ 894,		260	},
+	{ 918,		250	},
+	{ 942,		240	},
+	{ 966,		230	},
+	{ 990,		220	},
+	{ 1014,		210	},
+	{ 1038,		200	},
+	{ 1062,		190	},
+	{ 1086,		180	},
+	{ 1110,		170	},
+	{ 1134,		160	},
+	{ 1158,		150	},
+	{ 1182,		140	},
+	{ 1206,		130	},
+	{ 1228,		120	},
+	{ 1251,		110	},
+	{ 1274,		100	},
+	{ 1297,		90	},
+	{ 1320,		80	},
+	{ 1341,		70	},
+	{ 1362,		60	},
+	{ 1384,		50	},
+	{ 1405,		40	},
+	{ 1427,		30	},
+	{ 1450,		20	},
+	{ 1474,		10	},
+	{ 1498,		0	},
+	{ 1514,		(-10)	},
+	{ 1533,		(-20)	},
+	{ 1544,		(-30)	},
+	{ 1567,		(-40)	},
+	{ 1585,		(-50)	},
+	{ 1604,		(-60)	},
+	{ 1623,		(-70)	},
+	{ 1641,		(-80)	},
+	{ 1659,		(-90)	},
+	{ 1678,		(-100)	},
+};
+
 struct max8998_charger_callbacks *callbacks;
 static enum cable_type_t set_cable_status;
 
@@ -990,9 +1076,16 @@ static struct max8998_charger_data herring_charger = {
 static void set_adc_table(void)
 {
 	if (!herring_is_tft_dev()) {
-		herring_charger.adc_table = temper_table_oled;
-		herring_charger.adc_array_size =
-			ARRAY_SIZE(temper_table_oled);
+		if (herring_is_cdma_wimax_dev()) {
+			herring_charger.adc_table =
+				temper_table_cdma_wimax_oled;
+			herring_charger.adc_array_size =
+				ARRAY_SIZE(temper_table_cdma_wimax_oled);
+		} else {
+			herring_charger.adc_table = temper_table_oled;
+			herring_charger.adc_array_size =
+				ARRAY_SIZE(temper_table_oled);
+		}
 	} else {
 		herring_charger.adc_table = temper_table_tft;
 		herring_charger.adc_array_size =
