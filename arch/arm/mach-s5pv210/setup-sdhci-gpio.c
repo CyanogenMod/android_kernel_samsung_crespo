@@ -23,6 +23,8 @@
 #include <plat/regs-sdhci.h>
 #include <plat/sdhci.h>
 
+#include "herring.h"
+
 void s5pv210_setup_sdhci0_cfg_gpio(struct platform_device *dev, int width)
 {
 	struct s3c_sdhci_platdata *pdata = dev->dev.platform_data;
@@ -72,17 +74,20 @@ void s5pv210_setup_sdhci2_cfg_gpio(struct platform_device *dev, int width)
 {
 	struct s3c_sdhci_platdata *pdata = dev->dev.platform_data;
 
-	/* Set all the necessary GPG2[0:1] pins to special-function 2 */
-	s3c_gpio_cfgrange_nopull(S5PV210_GPG2(0), 2, S3C_GPIO_SFN(2));
-
 	switch (width) {
 	case 8:
 		/* Data pin GPG3[3:6] to special-function 3 */
 		s3c_gpio_cfgrange_nopull(S5PV210_GPG3(3), 4, S3C_GPIO_SFN(3));
 	case 4:
+		if (machine_is_herring() && herring_is_cdma_wimax_dev())
+			break;
+
 		/* Data pin GPG2[3:6] to special-function 2 */
 		s3c_gpio_cfgrange_nopull(S5PV210_GPG2(3), 4, S3C_GPIO_SFN(2));
 	default:
+		/* Set all the necessary GPG2[0:1] pins to special-function 2 */
+		s3c_gpio_cfgrange_nopull(S5PV210_GPG2(0), 2, S3C_GPIO_SFN(2));
+
 		break;
 	}
 
