@@ -116,17 +116,13 @@ void s5pv210_setup_sdhci2_cfg_gpio(struct platform_device *dev, int width)
 	case 0:
 	case 1:
 	case 4:
+		if (machine_is_herring() && herring_is_cdma_wimax_dev())
+			break;
 		/* Set all the necessary GPIO function and pull up/down */
 		for (gpio = S5PV210_GPG2(0); gpio <= S5PV210_GPG2(6); gpio++) {
 			if (gpio != S5PV210_GPG2(2)) {
 				s3c_gpio_cfgpin(gpio, S3C_GPIO_SFN(2));
-				if (machine_is_herring() &&
-						herring_is_cdma_wimax_dev())
-					s3c_gpio_setpull(gpio,
-							S3C_GPIO_PULL_UP);
-				else
-					s3c_gpio_setpull(gpio,
-							S3C_GPIO_PULL_NONE);
+				s3c_gpio_setpull(gpio, S3C_GPIO_PULL_NONE);
 			}
 			s3c_gpio_set_drvstrength(gpio, S3C_GPIO_DRVSTR_2X);
 		}
