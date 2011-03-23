@@ -49,6 +49,7 @@ u32 sd_send(struct net_adapter *adapter, u8 *buffer, u32 len)
 		pr_debug("sd_send : error occurred during	\
 				fetch bank index!! nRet = %d, nWriteIdx = %d",
 				nRet, nWriteIdx);
+		sdio_release_host(adapter->func);
 		return STATUS_UNSUCCESSFUL;
 	}
 
