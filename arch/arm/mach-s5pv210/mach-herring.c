@@ -4380,6 +4380,19 @@ void s3c_config_gpio_table(void)
 		gpio_set_value(gpio, S3C_GPIO_SETPIN_NONE);
 		s3c_gpio_set_drvstrength(gpio, S3C_GPIO_DRVSTR_4X);
 
+		gpio = S5PV210_GPG2(0);
+		s3c_gpio_setpull(gpio, S3C_GPIO_PULL_NONE);
+		gpio = S5PV210_GPG2(1);
+		s3c_gpio_setpull(gpio, S3C_GPIO_PULL_NONE);
+		gpio = S5PV210_GPG2(3);
+		s3c_gpio_setpull(gpio, S3C_GPIO_PULL_NONE);
+		gpio = S5PV210_GPG2(4);
+		s3c_gpio_setpull(gpio, S3C_GPIO_PULL_NONE);
+		gpio = S5PV210_GPG2(5);
+		s3c_gpio_setpull(gpio, S3C_GPIO_PULL_NONE);
+		gpio = S5PV210_GPG2(6);
+		s3c_gpio_setpull(gpio, S3C_GPIO_PULL_NONE);
+
 		/* WIMAX_EN */
 		gpio = S5PV210_GPH1(0);
 		s3c_gpio_cfgpin(gpio, S3C_GPIO_OUTPUT);
