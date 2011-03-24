@@ -236,10 +236,10 @@ int cmc732_send_thread(void *data)
 	struct wimax732_platform_data *pdata;
 	struct buffer_descriptor	*bufdsc = NULL;
 	int				nRet = 0;
+	bool	reset_modem = false;
 
 	pdata = adapter->pdata;
 
-	mutex_init(&pdata->g_cfg->suspend_mutex);
 	do {
 		wait_event_interruptible(adapter->send_event,
 				(!list_empty(&adapter->hw.q_send))
@@ -254,8 +254,11 @@ int cmc732_send_thread(void *data)
 		if ((pdata->g_cfg->wimax_status == WIMAX_STATE_IDLE ||
 			pdata->g_cfg->wimax_status == WIMAX_STATE_VIRTUAL_IDLE)
 			&& !pdata->is_modem_awake()) {
-			if(hw_device_wakeup(adapter))
+			if (hw_device_wakeup(adapter)) {
+				reset_modem = true;
+				mutex_unlock(&pdata->g_cfg->suspend_mutex);
 				break;
+			}
 		}
 
 		spin_lock(&adapter->hw.lock);
@@ -279,12 +282,16 @@ int cmc732_send_thread(void *data)
 		if (nRet != STATUS_SUCCESS) {
 			pr_debug("SendData Fail******");
 			++adapter->XmitErr;
+			reset_modem = true;
+			break;
 		}
 	} while (adapter);
 
 	pr_debug("cmc732_send_thread exiting");
 
 	adapter->halted = true;
+	if (reset_modem)
+		pdata->power(0);
 
 	do_exit(0);
 

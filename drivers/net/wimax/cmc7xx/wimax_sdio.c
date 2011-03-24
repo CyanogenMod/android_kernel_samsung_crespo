@@ -728,6 +728,7 @@ static int wimax_probe(struct platform_device *pdev)
 		pr_debug("misc_register() failed");
 		return error;
 	}
+	mutex_init(&pdata->g_cfg->suspend_mutex);
 
 	for (i = 0; i < ARRAY_SIZE(adapter_table); i++)
 		adapter_table[i].driver_data =
@@ -742,7 +743,6 @@ static int wimax_probe(struct platform_device *pdev)
 
 	pdata->g_cfg->card_removed = true;
 	pdata->power(0);
-	mutex_init(&pdata->g_cfg->suspend_mutex);
 
 	/* initialize wake locks */
 	wake_lock_init(&pdata->g_cfg->wimax_wake_lock,
