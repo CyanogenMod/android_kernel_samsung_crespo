@@ -198,7 +198,7 @@ static long akmd_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 						    &rwbuf.raw[1]);
 		if (ret < 0)
 			return ret;
-		if (copy_to_user(argp, rwbuf.raw+1, rwbuf.raw[0]))
+		if (copy_to_user(argp+1, rwbuf.raw+1, rwbuf.raw[0]))
 			return -EFAULT;
 		return 0;
 	case ECS_IOCTL_RESET:
