@@ -2252,6 +2252,9 @@ static void wm8994_set_cdma_voicecall_common_setting(struct snd_soc_codec *codec
 {
 	int val;
 
+	wm8994_write(codec, WM8994_ANTIPOP_2, 0x0068);
+	wm8994_write(codec, WM8994_POWER_MANAGEMENT_1, 0x0003);
+	msleep(50);
 	/* GPIO Configuration */
 	wm8994_write(codec, WM8994_GPIO_1, 0xA101);
 	wm8994_write(codec, WM8994_GPIO_2, 0x8100);
