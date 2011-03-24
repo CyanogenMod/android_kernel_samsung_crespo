@@ -37,4 +37,4 @@ unsigned short tune_fll_value(unsigned short val);
 #define M110S
 #endif
 
-enum unified_path { HEADPHONES, SPEAKER, MAIN_MICROPHONE };
+enum unified_path { HEADPHONES, RADIO_HEADPHONES, SPEAKER, MAIN_MICROPHONE };
