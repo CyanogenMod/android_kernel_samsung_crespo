@@ -117,11 +117,11 @@ u32 hw_send_data(struct net_adapter *adapter, void *buffer , u32 length)
 	u8				*ptr;
 
 	bufdsc = (struct buffer_descriptor *)
-		kmalloc(sizeof(struct buffer_descriptor), GFP_KERNEL);
+		kmalloc(sizeof(struct buffer_descriptor), GFP_ATOMIC);
 	if (bufdsc == NULL)
 		return STATUS_RESOURCES;
 
-	bufdsc->buffer = kmalloc(BUFFER_DATA_SIZE, GFP_KERNEL);
+	bufdsc->buffer = kmalloc(BUFFER_DATA_SIZE, GFP_ATOMIC);
 	if (bufdsc->buffer == NULL) {
 		kfree(bufdsc);
 		return STATUS_RESOURCES;
