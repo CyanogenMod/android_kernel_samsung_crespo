@@ -133,10 +133,10 @@ u32 control_send(struct net_adapter *adapter, void *buffer, u32 length)
 		return STATUS_RESOURCES;/* changed from SUCCESS return status */
 
 	bufdsc = (struct buffer_descriptor *)
-		kmalloc(sizeof(*bufdsc), GFP_KERNEL);
+		kmalloc(sizeof(*bufdsc), GFP_ATOMIC);
 	if (bufdsc == NULL)
 		return STATUS_RESOURCES;
-	bufdsc->buffer = kmalloc(BUFFER_DATA_SIZE, GFP_KERNEL);
+	bufdsc->buffer = kmalloc(BUFFER_DATA_SIZE, GFP_ATOMIC);
 	if (bufdsc->buffer == NULL) {
 		kfree(bufdsc);
 		return STATUS_RESOURCES;
