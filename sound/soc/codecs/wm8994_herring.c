@@ -91,7 +91,7 @@ struct gain_info_t cdma_playback_gain_table[PLAYBACK_GAIN_NUM] = {
 		.mode = PLAYBACK_SPK,
 		.reg  = WM8994_SPEAKER_VOLUME_LEFT,	/* 26h */
 		.mask = WM8994_SPKOUTL_VOL_MASK,
-		.gain = WM8994_SPKOUT_VU | 0x3F     /* +5dB */
+		.gain = WM8994_SPKOUT_VU | 0x3E     /* +5dB */
 	}, {
 		.mode = PLAYBACK_SPK,
 		.reg  = WM8994_SPEAKER_VOLUME_RIGHT,	/* 27h */
@@ -101,7 +101,7 @@ struct gain_info_t cdma_playback_gain_table[PLAYBACK_GAIN_NUM] = {
 		.mode = PLAYBACK_SPK,
 		.reg  = WM8994_CLASSD,			/* 25h */
 		.mask = WM8994_SPKOUTL_BOOST_MASK,
-		.gain = 0x07 << WM8994_SPKOUTL_BOOST_SHIFT  /* +7.5dB */
+		.gain = 0x05 << WM8994_SPKOUTL_BOOST_SHIFT  /* +7.5dB */
 	}, {
 		.mode = PLAYBACK_SPK,
 		.reg  = WM8994_AIF1_DAC1_LEFT_VOLUME,	/* 402h */
@@ -116,12 +116,12 @@ struct gain_info_t cdma_playback_gain_table[PLAYBACK_GAIN_NUM] = {
 		.mode = PLAYBACK_HP,
 		.reg  = WM8994_LEFT_OUTPUT_VOLUME,	/* 1Ch */
 		.mask = WM8994_HPOUT1L_VOL_MASK,
-		.gain = WM8994_HPOUT1_VU | 0x36 /* -8dB */
+		.gain = WM8994_HPOUT1_VU | 0x31 /* -8dB */
 	}, {
 		.mode = PLAYBACK_HP,
 		.reg  = WM8994_RIGHT_OUTPUT_VOLUME,	/* 1Dh */
 		.mask = WM8994_HPOUT1R_VOL_MASK,
-		.gain = WM8994_HPOUT1_VU | 0x36 /* -8dB */
+		.gain = WM8994_HPOUT1_VU | 0x31 /* -8dB */
 	}, {
 		.mode = PLAYBACK_HP,
 		.reg  = WM8994_LEFT_OPGA_VOLUME,	/* 20h */
@@ -146,7 +146,7 @@ struct gain_info_t cdma_playback_gain_table[PLAYBACK_GAIN_NUM] = {
 		.mode = PLAYBACK_SPK_HP,
 		.reg  = WM8994_SPEAKER_VOLUME_LEFT,	/* 26h */
 		.mask = WM8994_SPKOUTL_VOL_MASK,
-		.gain = WM8994_SPKOUT_VU | 0x3F
+		.gain = WM8994_SPKOUT_VU | 0x3E
 	}, {
 		.mode = PLAYBACK_SPK_HP,
 		.reg  = WM8994_SPEAKER_VOLUME_RIGHT,	/* 27h */
@@ -156,7 +156,7 @@ struct gain_info_t cdma_playback_gain_table[PLAYBACK_GAIN_NUM] = {
 		.mode = PLAYBACK_SPK_HP,
 		.reg  = WM8994_CLASSD,			/* 25h */
 		.mask = WM8994_SPKOUTL_BOOST_MASK,
-		.gain = 0x7 << WM8994_SPKOUTL_BOOST_SHIFT
+		.gain = 0x5 << WM8994_SPKOUTL_BOOST_SHIFT
 	}, {
 		.mode = PLAYBACK_SPK_HP,
 		.reg  = WM8994_LEFT_OUTPUT_VOLUME,	/* 1Ch */
