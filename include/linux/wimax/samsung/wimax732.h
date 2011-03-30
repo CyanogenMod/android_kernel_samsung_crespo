@@ -50,7 +50,7 @@ struct wimax_cfg {
 	int			temp_tgid;	/* handles unexpected close */
 	struct wake_lock	wimax_wake_lock;	/* resume wake lock */
 	struct wake_lock	wimax_rxtx_lock;/* sdio wake lock */
-	struct mutex suspend_mutex;
+	struct wake_lock	wimax_tx_lock;/* sdio send lock*/
 	u8		wimax_status;
 	u8		wimax_mode;/* wimax mode (SDIO, USB, etc..) */
 	u8		sleep_mode;/* suspend mode (0: VI, 1: IDLE) */
