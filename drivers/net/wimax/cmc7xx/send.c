@@ -13,7 +13,6 @@
  */
 #include "headers.h"
 #include "download.h"
-#include <linux/mutex.h>
 
 static int hw_sdio_write_bank_index(struct net_adapter *adapter, int *write_idx)
 {
@@ -248,7 +247,7 @@ int cmc732_send_thread(void *data)
 		if ((!adapter) || adapter->halted)
 			break;
 
-		mutex_lock(&pdata->g_cfg->suspend_mutex);
+		wake_lock(&adapter->pdata->g_cfg->wimax_tx_lock);
 		pdata->wakeup_assert(1);
 
 		if ((pdata->g_cfg->wimax_status == WIMAX_STATE_IDLE ||
@@ -256,7 +255,8 @@ int cmc732_send_thread(void *data)
 			&& !pdata->is_modem_awake()) {
 			if (hw_device_wakeup(adapter)) {
 				reset_modem = true;
-				mutex_unlock(&pdata->g_cfg->suspend_mutex);
+				wake_unlock(
+					&adapter->pdata->g_cfg->wimax_tx_lock);
 				break;
 			}
 		}
@@ -271,19 +271,17 @@ int cmc732_send_thread(void *data)
 
 		if (!bufdsc) {
 			pr_debug("Fail...node is null");
-			mutex_unlock(&pdata->g_cfg->suspend_mutex);
+			wake_unlock(&adapter->pdata->g_cfg->wimax_tx_lock);
 			continue;
 		}
 		nRet = sd_send_data(adapter, bufdsc);
 		pdata->wakeup_assert(0);
-		mutex_unlock(&pdata->g_cfg->suspend_mutex);
 		kfree(bufdsc->buffer);
 		kfree(bufdsc);
+		wake_unlock(&adapter->pdata->g_cfg->wimax_tx_lock);
 		if (nRet != STATUS_SUCCESS) {
 			pr_debug("SendData Fail******");
 			++adapter->XmitErr;
-			reset_modem = true;
-			break;
 		}
 	} while (adapter);
 
