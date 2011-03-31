@@ -665,8 +665,10 @@ int wimax_suspend(struct platform_device *pdev, pm_message_t state)
 		return 0;
 
 	pdata = pdev->dev.platform_data;
-	mutex_lock(&pdata->g_cfg->suspend_mutex);
-
+	if (!mutex_trylock(&pdata->g_cfg->suspend_mutex)) {
+		pr_debug("wimax send processing\n");
+		return -EBUSY;
+	}
 	/* AP active pin LOW */
 	pdata->signal_ap_active(0);
 
@@ -749,6 +751,8 @@ static int wimax_probe(struct platform_device *pdev)
 			WAKE_LOCK_SUSPEND, "wimax_wakeup");
 	wake_lock_init(&pdata->g_cfg->wimax_rxtx_lock,
 			WAKE_LOCK_SUSPEND, "wimax_rxtx");
+	wake_lock_init(&pdata->g_cfg->wimax_tx_lock,
+			WAKE_LOCK_SUSPEND, "wimax_tx");
 
 	return error;
 }
@@ -761,6 +765,7 @@ static int wimax_remove(struct platform_device *pdev)
 	/* destroy wake locks */
 	wake_lock_destroy(&pdata->g_cfg->wimax_wake_lock);
 	wake_lock_destroy(&pdata->g_cfg->wimax_rxtx_lock);
+	wake_lock_destroy(&pdata->g_cfg->wimax_tx_lock);
 
 	sdio_unregister_driver(&adapter_driver);
 	misc_deregister(&pdata->swmxctl_dev);

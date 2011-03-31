@@ -248,6 +248,7 @@ int cmc732_send_thread(void *data)
 		if ((!adapter) || adapter->halted)
 			break;
 
+		wake_lock(&pdata->g_cfg->wimax_tx_lock);
 		mutex_lock(&pdata->g_cfg->suspend_mutex);
 		pdata->wakeup_assert(1);
 
@@ -257,6 +258,7 @@ int cmc732_send_thread(void *data)
 			if (hw_device_wakeup(adapter)) {
 				reset_modem = true;
 				mutex_unlock(&pdata->g_cfg->suspend_mutex);
+				wake_unlock(&pdata->g_cfg->wimax_tx_lock);
 				break;
 			}
 		}
@@ -272,11 +274,13 @@ int cmc732_send_thread(void *data)
 		if (!bufdsc) {
 			pr_debug("Fail...node is null");
 			mutex_unlock(&pdata->g_cfg->suspend_mutex);
+			wake_unlock(&pdata->g_cfg->wimax_tx_lock);
 			continue;
 		}
 		nRet = sd_send_data(adapter, bufdsc);
 		pdata->wakeup_assert(0);
 		mutex_unlock(&pdata->g_cfg->suspend_mutex);
+		wake_unlock(&pdata->g_cfg->wimax_tx_lock);
 		kfree(bufdsc->buffer);
 		kfree(bufdsc);
 		if (nRet != STATUS_SUCCESS) {
