@@ -127,8 +127,6 @@ u32 control_send(struct net_adapter *adapter, void *buffer, u32 length)
 	struct hw_packet_header		*hdr;
 	u8				*ptr;
 
-	adapter->pdata->wakeup_assert(1);
-
 	if ((length + sizeof(struct hw_packet_header)) >= WIMAX_MAX_TOTAL_SIZE)
 		return STATUS_RESOURCES;/* changed from SUCCESS return status */
 
