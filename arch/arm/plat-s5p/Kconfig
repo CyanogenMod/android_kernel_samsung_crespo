@@ -123,6 +123,7 @@ config HRT_RTC
 # MFC part
 config S5P_DEV_MFC
 	bool
+	default y if CPU_FREQ
 	default n
 	help
 	  Compile in platform device definitions for MFC

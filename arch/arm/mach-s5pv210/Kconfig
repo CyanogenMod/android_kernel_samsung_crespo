@@ -246,21 +246,21 @@ config S5P_ADC
 
 config S5PV210_SETUP_FIMC0
 	bool
-	depends on VIDEO_FIMC
+	depends on VIDEO_FIMC || CPU_FREQ
 	default y
 	help
 	  Common setup code for FIMC controller 0.
 
 config S5PV210_SETUP_FIMC1
 	bool
-	depends on VIDEO_FIMC
+	depends on VIDEO_FIMC || CPU_FREQ
 	default y
 	help
 	  Common setup code for FIMC controller 1.
 
 config S5PV210_SETUP_FIMC2
 	bool
-	depends on VIDEO_FIMC
+	depends on VIDEO_FIMC || CPU_FREQ
 	default y
 	help
 	  Common setup code for FIMC controller 2.

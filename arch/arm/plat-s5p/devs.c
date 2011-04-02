@@ -351,7 +351,7 @@ void __init s3cfb_set_platdata(struct s3c_platform_fb *pd)
 }
 #endif
 
-#ifdef CONFIG_VIDEO_FIMC
+#if defined(CONFIG_VIDEO_FIMC) || defined(CONFIG_CPU_FREQ) /* TODO: use existing dev */
 static struct resource s3c_fimc0_resource[] = {
 	[0] = {
 		.start	= S5P_PA_FIMC0,
