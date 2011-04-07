@@ -73,8 +73,8 @@ void s5pv210_setup_sdhci_cfg_card(struct platform_device *dev,
 
 		if (card->type == MMC_TYPE_MMC)  /* MMC */
 			range_start = 20 * 1000 * 1000;
-		else    /* SD, SDIO */
-			range_start = 25 * 1000 * 1000;
+		//else    /* SD, SDIO */
+		//	range_start = 25 * 1000 * 1000;
 
 		range_end = 37 * 1000 * 1000;
 
@@ -84,10 +84,10 @@ void s5pv210_setup_sdhci_cfg_card(struct platform_device *dev,
 		else if (machine_is_herring() && herring_is_cdma_wimax_dev() &&
 								dev->id == 2) {
 			ctrl3 = S3C_SDHCI_CTRL3_FCSELTX_BASIC;
-			if(card->type & MMC_TYPE_SDIO)
+			//if(card->type & MMC_TYPE_SDIO)
 				ctrl3 |= S3C_SDHCI_CTRL3_FCSELRX_BASIC;
-			else
-				ctrl3 |= S3C_SDHCI_CTRL3_FCSELRX_INVERT;
+			//else
+			//	ctrl3 |= S3C_SDHCI_CTRL3_FCSELRX_INVERT;
 		} else
 			ctrl3 = S3C_SDHCI_CTRL3_FCSELTX_BASIC |
 				S3C_SDHCI_CTRL3_FCSELRX_INVERT;
