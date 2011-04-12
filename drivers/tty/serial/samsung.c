@@ -910,7 +910,7 @@ static struct uart_driver s3c24xx_uart_drv = {
 	.driver_name	= "s3c2410_serial",
 	.nr		= CONFIG_SERIAL_SAMSUNG_UARTS,
 	.cons		= S3C24XX_SERIAL_CONSOLE,
-	.dev_name	= S3C24XX_SERIAL_NAME,
+	.dev_name	= "s3c2410_serial",
 	.major		= S3C24XX_SERIAL_MAJOR,
 	.minor		= S3C24XX_SERIAL_MINOR,
 };
