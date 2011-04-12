@@ -45,6 +45,7 @@ struct sdhci_s3c {
 	struct resource		*ioarea;
 	struct s3c_sdhci_platdata *pdata;
 	unsigned int		cur_clk;
+	bool			cur_clk_set;
 	int			ext_cd_irq;
 	int			ext_cd_gpio;
 
@@ -187,13 +188,14 @@ static void sdhci_s3c_set_clock(struct sdhci_host *host, unsigned int clock)
 
 	/* select the new clock source */
 
-	if (ourhost->cur_clk != best_src) {
+	if (ourhost->cur_clk != best_src || !ourhost->cur_clk_set) {
 		struct clk *clk = ourhost->clk_bus[best_src];
 
 		/* turn clock off to card before changing clock source */
 		writew(0, host->ioaddr + SDHCI_CLOCK_CONTROL);
 
 		ourhost->cur_clk = best_src;
+		ourhost->cur_clk_set = true;
 		host->max_clk = clk_get_rate(clk);
 
 		ctrl = readl(host->ioaddr + S3C_SDHCI_CONTROL2);
