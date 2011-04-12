@@ -24,6 +24,7 @@
 #include <plat/sdhci.h>
 
 #include <plat/gpio-cfg.h>
+#include <plat/devs.h>
 #include <mach/regs-gpio.h>
 #include <mach/gpio.h>
 
@@ -141,6 +142,13 @@ void s5pv210_adjust_sdhci_cfg_card(struct s3c_sdhci_platdata *pdata,
 	writel(ctrl3, r + S3C_SDHCI_CONTROL3);
 }
 
+void universal_sdhci2_cfg_ext_cd(void)
+{
+	printk(KERN_DEBUG "Universal :SD Detect configuration\n");
+	s3c_gpio_setpull(S5PV210_GPH3(4), S3C_GPIO_PULL_NONE);
+	irq_set_irq_type(IRQ_EINT(28), IRQ_TYPE_EDGE_BOTH);
+}
+
 static struct s3c_sdhci_platdata hsmmc0_platdata = {
 #if defined(CONFIG_S5PV210_SD_CH0_8BIT)
 	.max_width	= 8,
@@ -161,25 +169,95 @@ static struct s3c_sdhci_platdata hsmmc2_platdata = {
 static struct s3c_sdhci_platdata hsmmc3_platdata = { 0 };
 #endif
 
+static DEFINE_MUTEX(notify_lock);
+
+#define DEFINE_MMC_CARD_NOTIFIER(num) \
+static void (*hsmmc##num##_notify_func)(struct platform_device *, int state); \
+static int ext_cd_init_hsmmc##num(void (*notify_func)( \
+					struct platform_device *, int state)) \
+{ \
+	mutex_lock(&notify_lock); \
+	WARN_ON(hsmmc##num##_notify_func); \
+	hsmmc##num##_notify_func = notify_func; \
+	mutex_unlock(&notify_lock); \
+	return 0; \
+} \
+static int ext_cd_cleanup_hsmmc##num(void (*notify_func)( \
+					struct platform_device *, int state)) \
+{ \
+	mutex_lock(&notify_lock); \
+	WARN_ON(hsmmc##num##_notify_func != notify_func); \
+	hsmmc##num##_notify_func = NULL; \
+	mutex_unlock(&notify_lock); \
+	return 0; \
+}
+
+#ifdef CONFIG_S3C_DEV_HSMMC2
+DEFINE_MMC_CARD_NOTIFIER(2)
+#endif
+#ifdef CONFIG_S3C_DEV_HSMMC3
+DEFINE_MMC_CARD_NOTIFIER(3)
+#endif
+
+/*
+ * call this when you need sd stack to recognize insertion or removal of card
+ * that can't be told by SDHCI regs
+ */
+void sdhci_s3c_force_presence_change(struct platform_device *pdev)
+{
+	void (*notify_func)(struct platform_device *, int state) = NULL;
+	mutex_lock(&notify_lock);
+#ifdef CONFIG_S3C_DEV_HSMMC2
+	if (pdev == &s3c_device_hsmmc2)
+		notify_func = hsmmc2_notify_func;
+#endif
+#ifdef CONFIG_S3C_DEV_HSMMC3
+	if (pdev == &s3c_device_hsmmc3)
+		notify_func = hsmmc3_notify_func;
+#endif
+
+	if (notify_func)
+		notify_func(pdev, 1);
+	else
+		pr_warn("%s: called for device with no notifier\n", __func__);
+	mutex_unlock(&notify_lock);
+}
+EXPORT_SYMBOL_GPL(sdhci_s3c_force_presence_change);
+
 void s3c_sdhci_set_platdata(void)
 {
 #if defined(CONFIG_S3C_DEV_HSMMC)
+	if (machine_is_herring()) { /* TODO: move to mach-herring.c */
+		hsmmc0_platdata.cd_type = S3C_SDHCI_CD_PERMANENT;
+	}
 	s3c_sdhci0_set_platdata(&hsmmc0_platdata);
 #endif
 #if defined(CONFIG_S3C_DEV_HSMMC2)
 	if (machine_is_herring()) {
 		if (herring_is_cdma_wimax_dev()) {
+			hsmmc2_platdata.cd_type = S3C_SDHCI_CD_EXTERNAL;
+			hsmmc2_platdata.ext_cd_init = ext_cd_init_hsmmc2;
+			hsmmc2_platdata.ext_cd_cleanup = ext_cd_cleanup_hsmmc2;
 			hsmmc2_platdata.built_in = 1;
 			hsmmc2_platdata.must_maintain_clock = 1;
 			hsmmc2_platdata.enable_intr_on_resume = 1;
+		} else {
+			hsmmc2_platdata.cd_type = S3C_SDHCI_CD_GPIO;
+			hsmmc2_platdata.ext_cd_gpio = S5PV210_GPH3(4);
+			hsmmc2_platdata.ext_cd_gpio_invert = true;
+			universal_sdhci2_cfg_ext_cd();
 		}
 	}
 
 	s3c_sdhci2_set_platdata(&hsmmc2_platdata);
 #endif
 #if defined(CONFIG_S3C_DEV_HSMMC3)
-	if (machine_is_herring())
+	if (machine_is_herring()) {
+		hsmmc3_platdata.cd_type = S3C_SDHCI_CD_EXTERNAL;
+		hsmmc3_platdata.ext_cd_init = ext_cd_init_hsmmc3;
+		hsmmc3_platdata.ext_cd_cleanup = ext_cd_cleanup_hsmmc3;
 		hsmmc3_platdata.built_in = 1;
+	}
 	s3c_sdhci3_set_platdata(&hsmmc3_platdata);
 #endif
 };
