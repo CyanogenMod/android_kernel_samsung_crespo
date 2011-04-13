@@ -10,8 +10,8 @@
  * published by the Free Software Foundation.
 */
 
+#include <linux/memblock.h>
 #include <linux/mm.h>
-#include <linux/bootmem.h>
 #include <linux/swap.h>
 #include <asm/setup.h>
 #include <linux/io.h>
@@ -81,6 +81,7 @@ void s5p_reserve_bootmem(struct s5p_media_device *mdevs, int nr_mdevs)
 {
 	struct s5p_media_device *mdev;
 	int i;
+	int ret;
 
 	media_devs = mdevs;
 	nr_media_devs = nr_mdevs;
@@ -90,16 +91,15 @@ void s5p_reserve_bootmem(struct s5p_media_device *mdevs, int nr_mdevs)
 		if (mdev->memsize <= 0)
 			continue;
 
-		if (mdev->paddr)
-			mdev->paddr = virt_to_phys(__alloc_bootmem(
-				mdev->memsize,
-				PAGE_SIZE,
-				mdev->paddr));
-		else
-			mdev->paddr = virt_to_phys(__alloc_bootmem(
-				mdev->memsize,
-				PAGE_SIZE,
-				meminfo.bank[mdev->bank].start));
+		if (!mdev->paddr) {
+			mdev->paddr = memblock_alloc(mdev->memsize, PAGE_SIZE);
+			memblock_free(mdev->paddr, mdev->memsize);
+		}
+
+		ret = memblock_remove(mdev->paddr, mdev->memsize);
+		if (ret < 0)
+			pr_err("memblock_reserve(%x, %x) failed\n", 
+				mdev->paddr, mdev->memsize);
 
 		printk(KERN_INFO "s5pv210: %lu bytes system memory reserved "
 			"for %s at 0x%08x\n", (unsigned long) mdev->memsize,
