@@ -16,7 +16,6 @@
 #include <linux/completion.h>
 #include <media/v4l2-device.h>
 #include <media/v4l2-subdev.h>
-#include <media/v4l2-i2c-drv.h>
 #include <media/s5k4ecgx.h>
 #include <linux/videodev2_samsung.h>
 
@@ -643,13 +642,10 @@ struct s5k4ecgx_state {
 	const struct s5k4ecgx_regs *regs;
 };
 
-static const struct v4l2_fmtdesc capture_fmts[] = {
+static const struct v4l2_mbus_framefmt capture_fmts[] = {
 	{
-		.index		= 0,
-		.type		= V4L2_BUF_TYPE_VIDEO_CAPTURE,
-		.flags		= FORMAT_FLAGS_COMPRESSED,
-		.description	= "JPEG + Postview",
-		.pixelformat	= V4L2_PIX_FMT_JPEG,
+		.code		= V4L2_MBUS_FMT_FIXED,
+		.colorspace	= V4L2_COLORSPACE_JPEG,
 	},
 };
 
@@ -1561,35 +1557,34 @@ static void s5k4ecgx_init_parameters(struct v4l2_subdev *sd)
 static void s5k4ecgx_set_framesize(struct v4l2_subdev *sd,
 				const struct s5k4ecgx_framesize *frmsize,
 				int frmsize_count, bool exact_match);
-static int s5k4ecgx_s_fmt(struct v4l2_subdev *sd, struct v4l2_format *fmt)
+static int s5k4ecgx_s_mbus_fmt(struct v4l2_subdev *sd, struct v4l2_mbus_framefmt *fmt)
 {
 	struct s5k4ecgx_state *state =
 		container_of(sd, struct s5k4ecgx_state, sd);
 	struct i2c_client *client = v4l2_get_subdevdata(sd);
 
-	dev_dbg(&client->dev, "%s: pixelformat = 0x%x (%c%c%c%c),"
+	dev_dbg(&client->dev, "%s: code = 0x%x, field = 0x%x,"
 		" colorspace = 0x%x, width = %d, height = %d\n",
-		__func__, fmt->fmt.pix.pixelformat,
-		fmt->fmt.pix.pixelformat,
-		fmt->fmt.pix.pixelformat >> 8,
-		fmt->fmt.pix.pixelformat >> 16,
-		fmt->fmt.pix.pixelformat >> 24,
-		fmt->fmt.pix.colorspace,
-		fmt->fmt.pix.width, fmt->fmt.pix.height);
+		__func__, fmt->code, fmt->field,
+		fmt->colorspace,
+		fmt->width, fmt->height);
 
-	if (fmt->fmt.pix.pixelformat == V4L2_PIX_FMT_JPEG &&
-		fmt->fmt.pix.colorspace != V4L2_COLORSPACE_JPEG) {
+	if (fmt->code == V4L2_MBUS_FMT_FIXED &&
+		fmt->colorspace != V4L2_COLORSPACE_JPEG) {
 		dev_err(&client->dev,
 			"%s: mismatch in pixelformat and colorspace\n",
 			__func__);
 		return -EINVAL;
 	}
 
-	state->pix.width = fmt->fmt.pix.width;
-	state->pix.height = fmt->fmt.pix.height;
-	state->pix.pixelformat = fmt->fmt.pix.pixelformat;
+	state->pix.width = fmt->width;
+	state->pix.height = fmt->height;
+	if (fmt->colorspace == V4L2_COLORSPACE_JPEG)
+		state->pix.pixelformat = V4L2_PIX_FMT_JPEG;
+	else
+		state->pix.pixelformat = 0; /* is this used anywhere? */
 
-	if (fmt->fmt.pix.colorspace == V4L2_COLORSPACE_JPEG) {
+	if (fmt->colorspace == V4L2_COLORSPACE_JPEG) {
 		state->oprmode = S5K4ECGX_OPRMODE_IMAGE;
 		/*
 		 * In case of image capture mode,
@@ -1634,36 +1629,32 @@ static int s5k4ecgx_enum_framesizes(struct v4l2_subdev *sd,
 	return 0;
 }
 
-static int s5k4ecgx_enum_fmt(struct v4l2_subdev *sd,
-			struct v4l2_fmtdesc *fmtdesc)
+static int s5k4ecgx_enum_mbus_fmt(struct v4l2_subdev *sd, unsigned int index,
+				  enum v4l2_mbus_pixelcode *code)
 {
-	pr_debug("%s: index = %d\n", __func__, fmtdesc->index);
+	pr_debug("%s: index = %d\n", __func__, index);
 
-	if (fmtdesc->index >= ARRAY_SIZE(capture_fmts))
+	if (index >= ARRAY_SIZE(capture_fmts))
 		return -EINVAL;
 
-	memcpy(fmtdesc, &capture_fmts[fmtdesc->index], sizeof(*fmtdesc));
+	*code = capture_fmts[index].code;
 
 	return 0;
 }
 
-static int s5k4ecgx_try_fmt(struct v4l2_subdev *sd, struct v4l2_format *fmt)
+static int s5k4ecgx_try_mbus_fmt(struct v4l2_subdev *sd, struct v4l2_mbus_framefmt *fmt)
 {
 	int num_entries;
 	int i;
 
 	num_entries = ARRAY_SIZE(capture_fmts);
 
-	pr_debug("%s: pixelformat = 0x%x (%c%c%c%c), num_entries = %d\n",
-		__func__, fmt->fmt.pix.pixelformat,
-		fmt->fmt.pix.pixelformat,
-		fmt->fmt.pix.pixelformat >> 8,
-		fmt->fmt.pix.pixelformat >> 16,
-		fmt->fmt.pix.pixelformat >> 24,
-		num_entries);
+	pr_debug("%s: code = 0x%x, colorspace = 0x%x, num_entries = %d\n",
+		__func__, fmt->code, fmt->colorspace, num_entries);
 
 	for (i = 0; i < num_entries; i++) {
-		if (capture_fmts[i].pixelformat == fmt->fmt.pix.pixelformat) {
+		if (capture_fmts[i].code == fmt->code &&
+		    capture_fmts[i].colorspace == fmt->colorspace) {
 			pr_debug("%s: match found, returning 0\n", __func__);
 			return 0;
 		}
@@ -2745,56 +2736,18 @@ static int s5k4ecgx_init(struct v4l2_subdev *sd, u32 val)
 	return 0;
 }
 
-/*
- * s_config subdev ops
- * With camera device, we need to re-initialize
- * every single opening time therefor,
- * it is not necessary to be initialized on probe time.
- * except for version checking
- * NOTE: version checking is optional
- */
-static int s5k4ecgx_s_config(struct v4l2_subdev *sd,
-			int irq, void *platform_data)
-{
-	struct i2c_client *client = v4l2_get_subdevdata(sd);
-	struct s5k4ecgx_state *state =
-		container_of(sd, struct s5k4ecgx_state, sd);
-	struct s5k4ecgx_platform_data *pdata = client->dev.platform_data;
-
-	/*
-	 * Assign default format and resolution
-	 * Use configured default information in platform data
-	 * or without them, use default information in driver
-	 */
-	state->pix.width = pdata->default_width;
-	state->pix.height = pdata->default_height;
-
-	if (!pdata->pixelformat)
-		state->pix.pixelformat = DEFAULT_PIX_FMT;
-	else
-		state->pix.pixelformat = pdata->pixelformat;
-
-	if (!pdata->freq)
-		state->freq = DEFAULT_MCLK;	/* 24MHz default */
-	else
-		state->freq = pdata->freq;
-
-	return 0;
-}
-
 static const struct v4l2_subdev_core_ops s5k4ecgx_core_ops = {
 	.init = s5k4ecgx_init,	/* initializing API */
-	.s_config = s5k4ecgx_s_config,	/* Fetch platform data */
 	.g_ctrl = s5k4ecgx_g_ctrl,
 	.s_ctrl = s5k4ecgx_s_ctrl,
 	.s_ext_ctrls = s5k4ecgx_s_ext_ctrls,
 };
 
 static const struct v4l2_subdev_video_ops s5k4ecgx_video_ops = {
-	.s_fmt = s5k4ecgx_s_fmt,
+	.s_mbus_fmt = s5k4ecgx_s_mbus_fmt,
 	.enum_framesizes = s5k4ecgx_enum_framesizes,
-	.enum_fmt = s5k4ecgx_enum_fmt,
-	.try_fmt = s5k4ecgx_try_fmt,
+	.enum_mbus_fmt = s5k4ecgx_enum_mbus_fmt,
+	.try_mbus_fmt = s5k4ecgx_try_mbus_fmt,
 	.g_parm = s5k4ecgx_g_parm,
 	.s_parm = s5k4ecgx_s_parm,
 };
@@ -2833,6 +2786,24 @@ static int s5k4ecgx_probe(struct i2c_client *client,
 	sd = &state->sd;
 	strcpy(sd->name, S5K4ECGX_DRIVER_NAME);
 
+	/*
+	 * Assign default format and resolution
+	 * Use configured default information in platform data
+	 * or without them, use default information in driver
+	 */
+	state->pix.width = pdata->default_width;
+	state->pix.height = pdata->default_height;
+
+	if (!pdata->pixelformat)
+		state->pix.pixelformat = DEFAULT_PIX_FMT;
+	else
+		state->pix.pixelformat = pdata->pixelformat;
+
+	if (!pdata->freq)
+		state->freq = DEFAULT_MCLK;	/* 24MHz default */
+	else
+		state->freq = pdata->freq;
+
 	/* Registering subdev */
 	v4l2_i2c_subdev_init(sd, client, &s5k4ecgx_ops);
 
@@ -2863,16 +2834,27 @@ static const struct i2c_device_id s5k4ecgx_id[] = {
 
 MODULE_DEVICE_TABLE(i2c, s5k4ecgx_id);
 
-static struct v4l2_i2c_driver_data v4l2_i2c_data = {
-	.name = S5K4ECGX_DRIVER_NAME,
+static struct i2c_driver v4l2_i2c_driver = {
+	.driver.name = S5K4ECGX_DRIVER_NAME,
 	.probe = s5k4ecgx_probe,
 	.remove = s5k4ecgx_remove,
 	.id_table = s5k4ecgx_id,
 };
 
+static int __init v4l2_i2c_drv_init(void)
+{
+	return i2c_add_driver(&v4l2_i2c_driver);
+}
+
+static void __exit v4l2_i2c_drv_cleanup(void)
+{
+	i2c_del_driver(&v4l2_i2c_driver);
+}
+
+module_init(v4l2_i2c_drv_init);
+module_exit(v4l2_i2c_drv_cleanup);
+
 MODULE_DESCRIPTION("LSI S5K4ECGX 5MP SOC camera driver");
 MODULE_AUTHOR("Seok-Young Jang <quartz.jang@samsung.com>");
 MODULE_LICENSE("GPL");
-
-
 

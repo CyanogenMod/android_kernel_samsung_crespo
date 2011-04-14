@@ -615,7 +615,7 @@ static int fimc_configure_subdev(struct fimc_control *ctrl)
 	 * so nothing happens but pass platform data through
 	 */
 	sd = v4l2_i2c_new_subdev_board(&ctrl->v4l2_dev, i2c_adap,
-			name, i2c_info, &addr);
+			i2c_info, &addr);
 	if (!sd) {
 		fimc_err("%s: v4l2 subdev board registering failed\n",
 				__func__);
@@ -686,6 +686,7 @@ int fimc_enum_fmt_vid_capture(struct file *file, void *fh,
 	int i = f->index;
 	int num_entries = 0;
 	int ret = 0;
+	enum v4l2_mbus_pixelcode code;
 
 	fimc_dbg("%s\n", __func__);
 
@@ -697,11 +698,10 @@ int fimc_enum_fmt_vid_capture(struct file *file, void *fh,
 	num_entries = sizeof(capture_fmts)/sizeof(struct v4l2_fmtdesc);
 
 	if (i >= num_entries) {
-		f->index -= num_entries;
 		mutex_lock(&ctrl->v4l2_lock);
-		ret = subdev_call(ctrl, video, enum_fmt, f);
+		ret = subdev_call(ctrl, video, enum_mbus_fmt,
+				  f->index - num_entries, &code);
 		mutex_unlock(&ctrl->v4l2_lock);
-		f->index += num_entries;
 		return ret;
 	}
 
@@ -808,6 +808,7 @@ int fimc_s_fmt_vid_capture(struct file *file, void *fh, struct v4l2_format *f)
 {
 	struct fimc_control *ctrl = ((struct fimc_prv_data *)fh)->ctrl;
 	struct fimc_capinfo *cap;
+	struct v4l2_mbus_framefmt mbus_fmt;
 	int ret = 0;
 	int depth;
 
@@ -837,6 +838,7 @@ int fimc_s_fmt_vid_capture(struct file *file, void *fh, struct v4l2_format *f)
 	cap = ctrl->cap;
 	memset(cap, 0, sizeof(*cap));
 	memcpy(&cap->fmt, &f->fmt.pix, sizeof(cap->fmt));
+	v4l2_fill_mbus_format(&mbus_fmt, &f->fmt.pix, 0);
 
 	/*
 	 * Note that expecting format only can be with
@@ -858,7 +860,8 @@ int fimc_s_fmt_vid_capture(struct file *file, void *fh, struct v4l2_format *f)
 		 * When the pixelformat is JPEG, the application is requesting
 		 * for data in JPEG compressed format.
 		 */
-		ret = subdev_call(ctrl, video, try_fmt, f);
+		mbus_fmt.code = V4L2_MBUS_FMT_FIXED;
+		ret = subdev_call(ctrl, video, try_mbus_fmt, &mbus_fmt);
 		if (ret < 0) {
 			mutex_unlock(&ctrl->v4l2_lock);
 			return -EINVAL;
@@ -874,8 +877,9 @@ int fimc_s_fmt_vid_capture(struct file *file, void *fh, struct v4l2_format *f)
 		cap->lastirq = 1;
 	}
 
-	if (ctrl->id != 2)
-		ret = subdev_call(ctrl, video, s_fmt, f);
+	if (ctrl->id != 2) {
+		ret = subdev_call(ctrl, video, s_mbus_fmt, &mbus_fmt);
+	}
 
 	mutex_unlock(&ctrl->v4l2_lock);
 
