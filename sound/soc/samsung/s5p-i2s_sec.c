@@ -25,6 +25,7 @@
 #include <mach/regs-audss.h>
 #include <mach/dma.h>
 #include "s3c-dma.h"
+#include "s3c-idma.h"
 #include "s3c-i2s-v2.h"
 
 #define S3C64XX_DIV_BCLK	S3C_I2SV2_DIV_BCLK
@@ -49,7 +50,7 @@ static struct s3c_dma_params s5p_i2s_sec_pcm_out = {
 
 static inline struct s3c_i2sv2_info *to_info(struct snd_soc_dai *cpu_dai)
 {
-	return cpu_dai->private_data;
+	return snd_soc_dai_get_drvdata(cpu_dai);
 }
 
 static void s5p_snd_rxctrl(int on)
@@ -226,7 +227,7 @@ int s5p_i2s_hw_params(struct snd_pcm_substream *substream,
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
 	u32 iismod;
 
-	snd_soc_dai_set_dma_data(rtd->dai->cpu_dai,
+	snd_soc_dai_set_dma_data(rtd->cpu_dai,
 				substream, &s5p_i2s_sec_pcm_out);
 
 	iismod = readl(s5p_i2s0_regs + S3C2412_IISMOD);

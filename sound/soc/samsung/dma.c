@@ -413,7 +413,11 @@ static void dma_free_dma_buffers(struct snd_pcm *pcm)
 
 	pr_debug("Entered %s\n", __func__);
 
+#ifdef CONFIG_S5P_INTERNAL_DMA
+	for (stream = 1; stream < 2; stream++) {
+#else
 	for (stream = 0; stream < 2; stream++) {
+#endif
 		substream = pcm->streams[stream].substream;
 		if (!substream)
 			continue;
@@ -442,13 +446,14 @@ static int dma_new(struct snd_card *card,
 	if (!card->dev->coherent_dma_mask)
 		card->dev->coherent_dma_mask = 0xffffffff;
 
+#ifndef CONFIG_S5P_INTERNAL_DMA
 	if (dai->driver->playback.channels_min) {
 		ret = preallocate_dma_buffer(pcm,
 			SNDRV_PCM_STREAM_PLAYBACK);
 		if (ret)
 			goto out;
 	}
-
+#endif
 	if (dai->driver->capture.channels_min) {
 		ret = preallocate_dma_buffer(pcm,
 			SNDRV_PCM_STREAM_CAPTURE);
@@ -459,11 +464,14 @@ out:
 	return ret;
 }
 
-static struct snd_soc_platform_driver samsung_asoc_platform = {
+struct snd_soc_platform_driver samsung_asoc_platform = {
 	.ops		= &dma_ops,
 	.pcm_new	= dma_new,
 	.pcm_free	= dma_free_dma_buffers,
 };
+EXPORT_SYMBOL_GPL(samsung_asoc_platform);
+
+#ifndef CONFIG_S5P_INTERNAL_DMA
 
 static int __devinit samsung_asoc_platform_probe(struct platform_device *pdev)
 {
@@ -497,6 +505,8 @@ static void __exit samsung_asoc_exit(void)
 	platform_driver_unregister(&asoc_dma_driver);
 }
 module_exit(samsung_asoc_exit);
+
+#endif
 
 MODULE_AUTHOR("Ben Dooks, <ben@simtec.co.uk>");
 MODULE_DESCRIPTION("Samsung ASoC DMA Driver");

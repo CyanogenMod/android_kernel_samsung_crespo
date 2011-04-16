@@ -29,7 +29,9 @@
 #define LPAM_DMA_STOP    0
 #define LPAM_DMA_START   1
 
-extern struct snd_soc_platform idma_soc_platform;
+extern struct snd_soc_platform_driver idma_soc_platform;
 extern int i2s_trigger_stop;
 extern bool audio_clk_gated ;
+void s5p_idma_init(void *regs);
+
 #endif /* __S3C_IDMA_H_ */

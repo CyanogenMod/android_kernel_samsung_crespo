@@ -508,16 +508,15 @@ static int s3c_idma_pcm_new(struct snd_card *card,
 	if (!card->dev->coherent_dma_mask)
 		card->dev->coherent_dma_mask = DMA_BIT_MASK(32);
 
-	if (dai->playback.channels_min)
+	if (dai->driver->playback.channels_min)
 		ret = s3c_idma_preallocate_buffer(pcm,
 				SNDRV_PCM_STREAM_PLAYBACK);
 
 	return ret;
 }
 
-struct snd_soc_platform idma_soc_platform = {
-	.name = "s5p-lp-audio",
-	.pcm_ops = &s3c_idma_ops,
+struct snd_soc_platform_driver idma_soc_platform = {
+	.ops = &s3c_idma_ops,
 	.pcm_new = s3c_idma_pcm_new,
 	.pcm_free = s3c_idma_pcm_free,
 };

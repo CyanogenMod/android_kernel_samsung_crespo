@@ -356,6 +356,9 @@ config SND_SOC_WM8993
 config SND_SOC_WM8994
 	tristate
 
+config SND_SOC_WM8994_SAMSUNG
+	tristate
+
 config SND_SOC_WM8995
 	tristate
 

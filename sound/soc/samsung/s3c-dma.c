@@ -147,7 +147,7 @@ static int s3c_dma_hw_params(struct snd_pcm_substream *substream,
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
 	unsigned long totbytes = params_buffer_bytes(params);
 	struct s3c_dma_params *dma =
-		snd_soc_dai_get_dma_data(rtd->dai->cpu_dai, substream);
+		snd_soc_dai_get_dma_data(rtd->cpu_dai, substream);
 	int ret = 0;
 
 
@@ -449,14 +449,14 @@ static int s3c_dma_new(struct snd_card *card,
 	if (!card->dev->coherent_dma_mask)
 		card->dev->coherent_dma_mask = 0xffffffff;
 #ifndef CONFIG_S5P_INTERNAL_DMA
-	if (dai->playback.channels_min) {
+	if (dai->driver->playback.channels_min) {
 		ret = s3c_preallocate_dma_buffer(pcm,
 			SNDRV_PCM_STREAM_PLAYBACK);
 		if (ret)
 			goto out;
 	}
 #endif
-	if (dai->capture.channels_min) {
+	if (dai->driver->capture.channels_min) {
 		ret = s3c_preallocate_dma_buffer(pcm,
 			SNDRV_PCM_STREAM_CAPTURE);
 		if (ret)
@@ -466,9 +466,8 @@ static int s3c_dma_new(struct snd_card *card,
 	return ret;
 }
 
-struct snd_soc_platform s3c24xx_soc_platform = {
-	.name		= "s3c24xx-audio",
-	.pcm_ops	= &s3c_dma_ops,
+struct snd_soc_platform_driver s3c24xx_soc_platform = {
+	.ops		= &s3c_dma_ops,
 	.pcm_new	= s3c_dma_new,
 	.pcm_free	= s3c_dma_free_dma_buffers,
 };

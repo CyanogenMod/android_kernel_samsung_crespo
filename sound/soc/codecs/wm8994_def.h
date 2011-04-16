@@ -69,6 +69,10 @@
 #define WM8994_DC_SERVO_ANA_1                   0x5B
 #define WM8994_DC_SERVO_ANA_2                   0x5C
 #define WM8994_ANALOGUE_HP_1                    0x60
+#define WM8958_MIC_DETECT_1                     0xD0
+#define WM8958_MIC_DETECT_2                     0xD1
+#define WM8958_MIC_DETECT_3                     0xD2
+#define WM8994_CHIP_REVISION                    0x100
 #define WM8994_CONTROL_INTERFACE                0x101
 #define WM8994_WRITE_SEQUENCER_CTRL_1           0x110
 #define WM8994_WRITE_SEQUENCER_CTRL_2           0x111
@@ -239,6 +243,7 @@
 #define WM8994_INTERRUPT_CONTROL                0x740
 #define WM8994_IRQ_DEBOUNCE                     0x748
 #define WM8994_IRQ_POLARITY                     0x749
+#define WM8958_DSP2_EXECCONTROL                 0xA0D
 #define WM8994_WRITE_SEQUENCER_0                0x3000
 #define WM8994_WRITE_SEQUENCER_1                0x3001
 #define WM8994_WRITE_SEQUENCER_2                0x3002

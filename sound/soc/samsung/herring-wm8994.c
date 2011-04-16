@@ -21,7 +21,7 @@
 #include "../codecs/wm8994.h"
 #include "s3c-dma.h"
 #include "s5pc1xx-i2s.h"
-#include "s3c-i2s-v2.h"
+//#include "s3c-i2s-v2.h"
 
 #include <linux/io.h>
 
@@ -42,8 +42,8 @@ int smdkc110_hw_params(struct snd_pcm_substream *substream,
 	struct snd_pcm_hw_params *params)
 {
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
-	struct snd_soc_dai *cpu_dai = rtd->dai->cpu_dai;
-	struct snd_soc_dai *codec_dai = rtd->dai->codec_dai;
+	struct snd_soc_dai *cpu_dai = rtd->cpu_dai;
+	struct snd_soc_dai *codec_dai = rtd->codec_dai;
 	int bfs, rfs, ret;
 	u32 ap_codec_clk;
 #ifndef CONFIG_SND_S5P_WM8994_MASTER
@@ -290,20 +290,22 @@ static struct snd_soc_ops smdkc110_ops = {
 
 /* digital audio interface glue - connects codec <--> CPU */
 static struct snd_soc_dai_link smdkc1xx_dai = {
-	.name = "WM8994",
+	.name = "herring",
 	.stream_name = "WM8994 HiFi Playback",
-	.cpu_dai = &s3c64xx_i2s_dai[I2S_NUM],
-	.codec_dai = &wm8994_dai,
+	.cpu_dai_name = "samsung-i2s.0",
+	.codec_dai_name = "WM8994 PAIFRX",
+	.platform_name = "samsung-audio",
+	.codec_name = "wm8994-samsung-codec.4-001a",
 	.ops = &smdkc110_ops,
 };
 
 static struct snd_soc_card smdkc100 = {
 	.name = "smdkc110",
-	.platform = &s3c_dma_wrapper,
 	.dai_link = &smdkc1xx_dai,
 	.num_links = 1,
 };
 
+#if 0
 static struct wm8994_setup_data smdkc110_wm8994_setup = {
 	/*
 		The I2C address of the WM89940 is 0x34. To the I2C driver
@@ -319,6 +321,7 @@ static struct snd_soc_device smdkc1xx_snd_devdata = {
 	.codec_dev = &soc_codec_dev_wm8994,
 	.codec_data = &smdkc110_wm8994_setup,
 };
+#endif
 
 static struct platform_device *smdkc1xx_snd_device;
 static int __init smdkc110_audio_init(void)
@@ -331,8 +334,7 @@ static int __init smdkc110_audio_init(void)
 	if (!smdkc1xx_snd_device)
 		return -ENOMEM;
 
-	platform_set_drvdata(smdkc1xx_snd_device, &smdkc1xx_snd_devdata);
-	smdkc1xx_snd_devdata.dev = &smdkc1xx_snd_device->dev;
+	platform_set_drvdata(smdkc1xx_snd_device, &smdkc100);
 	ret = platform_device_add(smdkc1xx_snd_device);
 
 	if (ret)

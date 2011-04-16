@@ -12,8 +12,6 @@
 #include <sound/soc.h>
 #include <linux/mfd/wm8994/wm8994_pdata.h>
 
-extern struct snd_soc_codec_device soc_codec_dev_wm8994;
-
 /* Sources for AIF1/2 SYSCLK - use with set_dai_sysclk() */
 #define WM8994_SYSCLK_MCLK1 1
 #define WM8994_SYSCLK_MCLK2 2
@@ -27,10 +25,10 @@ extern struct snd_soc_codec_device soc_codec_dev_wm8994;
 
 #include "wm8994_def.h"
 
-extern struct snd_soc_dai wm8994_dai;
-
 #define WM8994_SYSCLK_MCLK     1
 #define WM8994_SYSCLK_FLL      2
+
+//#define WM8994_CACHE_SIZE 1570
 
 #define AUDIO_COMMON_DEBUG	0
 
@@ -136,7 +134,7 @@ enum wm8994_dc_servo_slots {
 };
 
 struct wm8994_priv {
-	struct snd_soc_codec codec;
+	struct snd_soc_codec *codec;
 	int master;
 	int sysclk_source;
 	unsigned int mclk_rate;

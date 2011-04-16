@@ -14,6 +14,7 @@
 #include <linux/slab.h>
 #include <linux/clk.h>
 #include <linux/io.h>
+#include <linux/regulator/consumer.h>
 
 #include <sound/soc.h>
 #include <sound/pcm_params.h>
@@ -146,6 +147,8 @@ struct i2s_dai {
 	unsigned rfs, bfs;
 	/* I2S Controller's core clock */
 	struct clk *clk;
+	/* I2S Controller's power domain */
+	struct regulator *regulator;
 	/* Clock for generating I2S signals */
 	struct clk *op_clk;
 	/* Array of clock names for op_clk */
@@ -572,8 +575,12 @@ static int i2s_set_fmt(struct snd_soc_dai *dai,
 	unsigned int fmt)
 {
 	struct i2s_dai *i2s = to_info(dai);
-	u32 mod = readl(i2s->addr + I2SMOD);
+	u32 mod;
 	u32 tmp = 0;
+
+	dev_info(&i2s->pdev->dev, "base %p\n", i2s->addr);
+	
+	mod = readl(i2s->addr + I2SMOD);
 
 	/* Format is priority */
 	switch (fmt & SND_SOC_DAIFMT_FORMAT_MASK) {
@@ -951,6 +958,9 @@ static int i2s_resume(struct snd_soc_dai *dai)
 
 static int samsung_i2s_dai_probe(struct snd_soc_dai *dai)
 {
+	struct clk *fout_epll, *mout_epll;
+	struct clk *mout_audss = NULL;
+	struct clk *sclk_audio, *iis_clk, *iis_busclk, *iis_ipclk; /* these belong shomewhere else */
 	struct i2s_dai *i2s = to_info(dai);
 	struct i2s_dai *other = i2s->pri_dai ? : i2s->sec_dai;
 
@@ -970,6 +980,59 @@ static int samsung_i2s_dai_probe(struct snd_soc_dai *dai)
 		return -ENOENT;
 	}
 	clk_enable(i2s->clk);
+
+	/* Get i2s power domain regulator */
+	i2s->regulator = regulator_get(&i2s->pdev->dev, "pd");
+	if (IS_ERR(i2s->regulator)) {
+		dev_err(&i2s->pdev->dev, "%s: failed to get resource %s\n",
+				__func__, "i2s");
+		return PTR_ERR(i2s->regulator);
+	}
+
+	/* Enable Power domain */
+	regulator_enable(i2s->regulator);
+
+	fout_epll = clk_get(&i2s->pdev->dev, "fout_epll");
+	if (IS_ERR(fout_epll))
+		dev_err(&i2s->pdev->dev, "failed to get fout_epll\n");
+
+	mout_epll = clk_get(&i2s->pdev->dev, "mout_epll");
+	if (IS_ERR(mout_epll))
+		dev_err(&i2s->pdev->dev, "failed to get mout_epll\n");
+	clk_set_parent(mout_epll, fout_epll);
+
+	sclk_audio = clk_get(&i2s->pdev->dev, "sclk_audio");
+	if (IS_ERR(sclk_audio))
+		dev_err(&i2s->pdev->dev, "failed to get sclk_audio\n");
+	clk_set_parent(sclk_audio, mout_epll);
+
+	/* Need not to enable in general */
+	clk_enable(sclk_audio);
+
+	/* When I2S V5.1 used, initialize audio subsystem clock */
+	/* CLKMUX_ASS */
+	if (&i2s->pdev->id == 0) {
+		mout_audss = clk_get(NULL, "mout_audss");
+		if (IS_ERR(mout_audss))
+			dev_err(&i2s->pdev->dev, "failed to get mout_audss\n");
+		clk_set_parent(mout_audss, fout_epll);
+		/*MUX-I2SA*/
+		iis_clk = clk_get(&i2s->pdev->dev, "audio-bus");
+		if (IS_ERR(iis_clk))
+			dev_err(&i2s->pdev->dev, "failed to get audio-bus\n");
+		clk_set_parent(iis_clk, mout_audss);
+		/*getting AUDIO BUS CLK*/
+		iis_busclk = clk_get(NULL, "dout_audio_bus_clk_i2s");
+		if (IS_ERR(iis_busclk))
+			printk(KERN_ERR "failed to get audss_hclk\n");
+		iis_ipclk = clk_get(&i2s->pdev->dev, "i2s_v50");
+		if (IS_ERR(iis_ipclk))
+			dev_err(&i2s->pdev->dev, "failed to get i2s_v50_clock\n");
+		clk_enable(iis_ipclk);
+		clk_enable(iis_clk);
+		clk_enable(iis_busclk);
+	}
+
 
 	if (other) {
 		other->addr = i2s->addr;
