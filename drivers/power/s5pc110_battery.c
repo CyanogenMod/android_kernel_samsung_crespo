@@ -163,7 +163,7 @@ static bool max8998_check_vdcin(struct chg_data *chg)
 	u8 data = 0;
 	int ret;
 
-	ret = max8998_read_reg(chg->iodev, MAX8998_REG_STATUS2, &data);
+	ret = max8998_read_reg(chg->iodev->i2c, MAX8998_REG_STATUS2, &data);
 
 	if (ret < 0) {
 		pr_err("max8998_read_reg error\n");
@@ -434,10 +434,11 @@ static void s3c_bat_discharge_reason(struct chg_data *chg)
 static int max8998_charging_control(struct chg_data *chg)
 {
 	int ret;
+	struct i2c_client *i2c = chg->iodev->i2c;
 
 	if (!chg->charging) {
 		/* disable charging */
-		ret = max8998_update_reg(chg->iodev, MAX8998_REG_CHGR2,
+		ret = max8998_update_reg(i2c, MAX8998_REG_CHGR2,
 			(1 << MAX8998_SHIFT_CHGEN), MAX8998_MASK_CHGEN);
 		if (ret < 0)
 			goto err;
@@ -447,7 +448,7 @@ static int max8998_charging_control(struct chg_data *chg)
 		/* enable charging */
 		if (chg->cable_status == CABLE_TYPE_AC) {
 			/* ac */
-			ret = max8998_write_reg(chg->iodev, MAX8998_REG_CHGR1,
+			ret = max8998_write_reg(i2c, MAX8998_REG_CHGR1,
 						(2 << MAX8998_SHIFT_TOPOFF) |
 						(3 << MAX8998_SHIFT_RSTR) |
 						(5 << MAX8998_SHIFT_ICHG));
@@ -457,7 +458,7 @@ static int max8998_charging_control(struct chg_data *chg)
 			pr_debug("%s : TA charging enabled", __func__);
 		} else {
 			/* usb */
-			ret = max8998_write_reg(chg->iodev, MAX8998_REG_CHGR1,
+			ret = max8998_write_reg(i2c, MAX8998_REG_CHGR1,
 						(6 << MAX8998_SHIFT_TOPOFF) |
 						(3 << MAX8998_SHIFT_RSTR) |
 						(2 << MAX8998_SHIFT_ICHG));
@@ -467,7 +468,7 @@ static int max8998_charging_control(struct chg_data *chg)
 			pr_debug("%s : USB charging enabled", __func__);
 		}
 
-		ret = max8998_write_reg(chg->iodev, MAX8998_REG_CHGR2,
+		ret = max8998_write_reg(i2c, MAX8998_REG_CHGR2,
 					(2 << MAX8998_SHIFT_ESAFEOUT) |
 					(2 << MAX8998_SHIFT_FT) |
 					(0 << MAX8998_SHIFT_CHGEN));
@@ -613,14 +614,16 @@ static irqreturn_t max8998_int_work_func(int irq, void *max8998_chg)
 	int ret;
 	u8 data = 0;
 	struct chg_data *chg;
+	struct i2c_client *i2c;
 
 	chg = max8998_chg;
+	i2c = chg->iodev->i2c;
 
-	ret = max8998_read_reg(chg->iodev, MAX8998_REG_IRQ1, &data);
+	ret = max8998_read_reg(i2c, MAX8998_REG_IRQ1, &data);
 	if (ret < 0)
 		goto err;
 
-	ret = max8998_read_reg(chg->iodev, MAX8998_REG_IRQ3, &data);
+	ret = max8998_read_reg(i2c, MAX8998_REG_IRQ3, &data);
 	if (ret < 0)
 		goto err;
 
@@ -644,6 +647,7 @@ static __devinit int max8998_charger_probe(struct platform_device *pdev)
 	struct max8998_dev *iodev = dev_get_drvdata(pdev->dev.parent);
 	struct max8998_platform_data *pdata = dev_get_platdata(iodev->dev);
 	struct chg_data *chg;
+	struct i2c_client *i2c = iodev->i2c;
 	int ret = 0;
 
 	pr_info("%s : MAX8998 Charger Driver Loading\n", __func__);
@@ -695,41 +699,41 @@ static __devinit int max8998_charger_probe(struct platform_device *pdev)
 
 	platform_set_drvdata(pdev, chg);
 
-	ret = max8998_update_reg(iodev, MAX8998_REG_CHGR1, /* disable */
+	ret = max8998_update_reg(i2c, MAX8998_REG_CHGR1, /* disable */
 		(0x3 << MAX8998_SHIFT_RSTR), MAX8998_MASK_RSTR);
 	if (ret < 0)
 		goto err_kfree;
 
-	ret = max8998_update_reg(iodev, MAX8998_REG_CHGR2, /* 6 Hr */
+	ret = max8998_update_reg(i2c, MAX8998_REG_CHGR2, /* 6 Hr */
 		(0x2 << MAX8998_SHIFT_FT), MAX8998_MASK_FT);
 	if (ret < 0)
 		goto err_kfree;
 
-	ret = max8998_update_reg(iodev, MAX8998_REG_CHGR2, /* 4.2V */
+	ret = max8998_update_reg(i2c, MAX8998_REG_CHGR2, /* 4.2V */
 		(0x0 << MAX8998_SHIFT_BATTSL), MAX8998_MASK_BATTSL);
 	if (ret < 0)
 		goto err_kfree;
 
-	ret = max8998_update_reg(iodev, MAX8998_REG_CHGR2, /* 105c */
+	ret = max8998_update_reg(i2c, MAX8998_REG_CHGR2, /* 105c */
 		(0x0 << MAX8998_SHIFT_TMP), MAX8998_MASK_TMP);
 	if (ret < 0)
 		goto err_kfree;
 
 	pr_info("%s : pmic interrupt registered\n", __func__);
-	ret = max8998_write_reg(iodev, MAX8998_REG_IRQM1,
+	ret = max8998_write_reg(i2c, MAX8998_REG_IRQM1,
 		~(MAX8998_MASK_DCINR | MAX8998_MASK_DCINF));
 	if (ret < 0)
 		goto err_kfree;
 
-	ret = max8998_write_reg(iodev, MAX8998_REG_IRQM2, 0xFF);
+	ret = max8998_write_reg(i2c, MAX8998_REG_IRQM2, 0xFF);
 	if (ret < 0)
 		goto err_kfree;
 
-	ret = max8998_write_reg(iodev, MAX8998_REG_IRQM3, ~0x4);
+	ret = max8998_write_reg(i2c, MAX8998_REG_IRQM3, ~0x4);
 	if (ret < 0)
 		goto err_kfree;
 
-	ret = max8998_write_reg(iodev, MAX8998_REG_IRQM4, 0xFF);
+	ret = max8998_write_reg(i2c, MAX8998_REG_IRQM4, 0xFF);
 	if (ret < 0)
 		goto err_kfree;
 
@@ -741,7 +745,7 @@ static __devinit int max8998_charger_probe(struct platform_device *pdev)
 	INIT_WORK(&chg->bat_work, s3c_bat_work);
 
 	chg->monitor_wqueue =
-		create_freezeable_workqueue(dev_name(&pdev->dev));
+		create_freezable_workqueue(dev_name(&pdev->dev));
 	if (!chg->monitor_wqueue) {
 		pr_err("Failed to create freezeable workqueue\n");
 		ret = -ENOMEM;
@@ -771,7 +775,7 @@ static __devinit int max8998_charger_probe(struct platform_device *pdev)
 		goto err_supply_unreg_usb;
 	}
 
-	ret = request_threaded_irq(iodev->i2c_client->irq, NULL,
+	ret = request_threaded_irq(iodev->i2c->irq, NULL,
 			max8998_int_work_func,
 			IRQF_TRIGGER_FALLING, "max8998-charger", chg);
 	if (ret) {
@@ -779,7 +783,7 @@ static __devinit int max8998_charger_probe(struct platform_device *pdev)
 		goto err_supply_unreg_ac;
 	}
 
-	ret = enable_irq_wake(iodev->i2c_client->irq);
+	ret = enable_irq_wake(iodev->i2c->irq);
 	if (ret) {
 		pr_err("Failed to enable pmic irq wake\n");
 		goto err_irq;
@@ -795,7 +799,7 @@ static __devinit int max8998_charger_probe(struct platform_device *pdev)
 	return 0;
 
 err_irq:
-	free_irq(iodev->i2c_client->irq, NULL);
+	free_irq(iodev->i2c->irq, NULL);
 err_supply_unreg_ac:
 	power_supply_unregister(&chg->psy_ac);
 err_supply_unreg_usb:
@@ -821,7 +825,7 @@ static int __devexit max8998_charger_remove(struct platform_device *pdev)
 	struct chg_data *chg = platform_get_drvdata(pdev);
 
 	alarm_cancel(&chg->alarm);
-	free_irq(chg->iodev->i2c_client->irq, NULL);
+	free_irq(chg->iodev->i2c->irq, NULL);
 	flush_workqueue(chg->monitor_wqueue);
 	destroy_workqueue(chg->monitor_wqueue);
 	power_supply_unregister(&chg->psy_bat);
