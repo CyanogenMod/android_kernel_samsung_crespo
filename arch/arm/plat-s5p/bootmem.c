@@ -80,8 +80,8 @@ EXPORT_SYMBOL(s5p_get_media_memsize_bank);
 void s5p_reserve_bootmem(struct s5p_media_device *mdevs, int nr_mdevs)
 {
 	struct s5p_media_device *mdev;
-	int i;
-	int ret;
+	u64 start, end;
+	int i, ret;
 
 	media_devs = mdevs;
 	nr_media_devs = nr_mdevs;
@@ -92,16 +92,19 @@ void s5p_reserve_bootmem(struct s5p_media_device *mdevs, int nr_mdevs)
 			continue;
 
 		if (!mdev->paddr) {
-			mdev->paddr = memblock_alloc(mdev->memsize, PAGE_SIZE);
-			memblock_free(mdev->paddr, mdev->memsize);
+			start = meminfo.bank[mdev->bank].start;
+			end = start + meminfo.bank[mdev->bank].size;
+
+			mdev->paddr = memblock_find_in_range(start, end,
+						mdev->memsize, PAGE_SIZE);
 		}
 
 		ret = memblock_remove(mdev->paddr, mdev->memsize);
 		if (ret < 0)
-			pr_err("memblock_reserve(%x, %x) failed\n", 
+			pr_err("memblock_reserve(%x, %x) failed\n",
 				mdev->paddr, mdev->memsize);
 
-		printk(KERN_INFO "s5pv210: %lu bytes system memory reserved "
+		printk(KERN_INFO "s5p: %lu bytes system memory reserved "
 			"for %s at 0x%08x\n", (unsigned long) mdev->memsize,
 			mdev->name, mdev->paddr);
 	}
