@@ -30,6 +30,19 @@ static struct cpufreq_freqs freqs;
 #define APLL_VAL_1000	((1 << 31) | (125 << 16) | (3 << 8) | 1)
 #define APLL_VAL_800	((1 << 31) | (100 << 16) | (3 << 8) | 1)
 
+#define SLEEP_FREQ	(800 * 1000) /* Use 800MHz when entering sleep */
+
+/*
+ * relation has an additional symantics other than the standard of cpufreq
+ *	DISALBE_FURTHER_CPUFREQ: disable further access to target until being re-enabled.
+ *	ENABLE_FURTUER_CPUFREQ: re-enable access to target
+*/
+enum cpufreq_access {
+	DISABLE_FURTHER_CPUFREQ = 0x10,
+	ENABLE_FURTHER_CPUFREQ = 0x20,
+};
+static bool no_cpufreq_access;
+
 /*
  * DRAM configurations to calculate refresh counter for changing
  * frequency of memory.
@@ -146,6 +159,21 @@ static int s5pv210_target(struct cpufreq_policy *policy,
 	unsigned int index, priv_index;
 	unsigned int pll_changing = 0;
 	unsigned int bus_speed_changing = 0;
+	int ret = 0;
+
+	if (relation & ENABLE_FURTHER_CPUFREQ)
+		no_cpufreq_access = false;
+	if (no_cpufreq_access) {
+#ifdef CONFIG_PM_VERBOSE
+		pr_err("%s:%d denied access to %s as it is disabled"
+				"temporarily\n", __FILE__, __LINE__, __func__);
+#endif
+		ret = -EINVAL;
+		goto out;
+	}
+	if (relation & DISABLE_FURTHER_CPUFREQ)
+		no_cpufreq_access = true;
+	relation &= ~(ENABLE_FURTHER_CPUFREQ | DISABLE_FURTHER_CPUFREQ);
 
 	freqs.old = s5pv210_getspeed(0);
 
@@ -388,7 +416,8 @@ static int s5pv210_target(struct cpufreq_policy *policy,
 
 	printk(KERN_DEBUG "Perf changed[L%d]\n", index);
 
-	return 0;
+out:
+	return ret;
 }
 
 #ifdef CONFIG_PM
