@@ -513,6 +513,7 @@ static int mfc_probe(struct platform_device *pdev)
 	struct resource *res;
 	size_t size;
 	int ret;
+	unsigned int mfc_port1_alloc_paddr;
 
 	if (!pdev || !pdev->dev.platform_data) {
 		dev_err(&pdev->dev, "Unable to probe mfc!\n");
@@ -581,14 +582,17 @@ static int mfc_probe(struct platform_device *pdev)
 		goto err_vaddr_map;
 	}
 
-	mfc_port1_base_paddr = (unsigned int)pdata->buf_phy_base[1];
+	mfc_port1_alloc_paddr = (unsigned int)pdata->buf_phy_base[1];
 	mfc_port1_memsize =  (unsigned int)pdata->buf_phy_size[1];
+
+	mfc_port1_base_paddr = (unsigned int)s5p_get_media_membase_bank(1);
+	mfc_port1_base_paddr = ALIGN_TO_128KB(mfc_port1_base_paddr);
 
 	mfc_debug(" mfc_port1_base_paddr= 0x%x \n", mfc_port1_base_paddr);
 	mfc_debug(" mfc_port1_memsize = 0x%x \n", mfc_port1_memsize);
 
-	mfc_port1_base_paddr = ALIGN_TO_128KB(mfc_port1_base_paddr);
-	mfc_port1_base_vaddr = phys_to_virt(mfc_port1_base_paddr);
+	mfc_port1_alloc_paddr = ALIGN_TO_128KB(mfc_port1_alloc_paddr);
+	mfc_port1_base_vaddr = phys_to_virt(mfc_port1_alloc_paddr);
 
 	if (mfc_port1_base_vaddr == NULL) {
 		mfc_err("fail to mapping port1 buffer\n");
@@ -596,10 +600,13 @@ static int mfc_probe(struct platform_device *pdev)
 		goto err_vaddr_map;
 	}
 
+	mfc_set_port1_buff_paddr(mfc_port1_alloc_paddr);
+
 	mfc_debug("mfc_port0_base_paddr = 0x%08x, mfc_port1_base_paddr = 0x%08x <<\n",
 		(unsigned int)mfc_port0_base_paddr, (unsigned int)mfc_port1_base_paddr);
 	mfc_debug("mfc_port0_base_vaddr = 0x%08x, mfc_port1_base_vaddr = 0x%08x <<\n",
 		(unsigned int)mfc_port0_base_vaddr, (unsigned int)mfc_port1_base_vaddr);
+	mfc_debug("mfc_port1_alloc_paddr = 0x%08x <<\n", (unsigned int)mfc_port1_alloc_paddr);
 
 	/* Get mfc power domain regulator */
 	mfc_pd_regulator = regulator_get(&pdev->dev, "pd");

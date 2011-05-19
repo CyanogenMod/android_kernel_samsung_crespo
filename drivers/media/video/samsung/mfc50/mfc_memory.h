@@ -101,6 +101,7 @@ unsigned int mfc_get_port0_buff_paddr(void);
 unsigned char *mfc_get_port0_buff_vaddr(void);
 unsigned int mfc_get_port1_buff_paddr(void);
 unsigned char *mfc_get_port1_buff_vaddr(void);
+void mfc_set_port1_buff_paddr(unsigned int addr);
 
 extern void __iomem *mfc_sfr_base_vaddr;
 
