@@ -10,6 +10,7 @@
  * published by the Free Software Foundation.
 */
 
+#include <linux/err.h>
 #include <linux/memblock.h>
 #include <linux/mm.h>
 #include <linux/swap.h>
@@ -21,6 +22,8 @@
 
 static struct s5p_media_device *media_devs;
 static int nr_media_devs;
+
+static dma_addr_t media_base[NR_BANKS];
 
 static struct s5p_media_device *s5p_get_media_device(int dev_id, int bank)
 {
@@ -77,7 +80,19 @@ size_t s5p_get_media_memsize_bank(int dev_id, int bank)
 }
 EXPORT_SYMBOL(s5p_get_media_memsize_bank);
 
-void s5p_reserve_bootmem(struct s5p_media_device *mdevs, int nr_mdevs)
+dma_addr_t s5p_get_media_membase_bank(int bank)
+{
+	if (bank > meminfo.nr_banks) {
+		printk(KERN_ERR "invalid bank.\n");
+		return -EINVAL;
+	}
+
+	return media_base[bank];
+}
+EXPORT_SYMBOL(s5p_get_media_membase_bank);
+
+void s5p_reserve_bootmem(struct s5p_media_device *mdevs,
+			 int nr_mdevs, size_t boundary)
 {
 	struct s5p_media_device *mdev;
 	u64 start, end;
@@ -85,6 +100,9 @@ void s5p_reserve_bootmem(struct s5p_media_device *mdevs, int nr_mdevs)
 
 	media_devs = mdevs;
 	nr_media_devs = nr_mdevs;
+
+	for (i = 0; i < meminfo.nr_banks; i++)
+		media_base[i] = meminfo.bank[i].start + meminfo.bank[i].size;
 
 	for (i = 0; i < nr_media_devs; i++) {
 		mdev = &media_devs[i];
@@ -95,6 +113,9 @@ void s5p_reserve_bootmem(struct s5p_media_device *mdevs, int nr_mdevs)
 			start = meminfo.bank[mdev->bank].start;
 			end = start + meminfo.bank[mdev->bank].size;
 
+			if (boundary && (boundary < end - start))
+				start = end - boundary;
+
 			mdev->paddr = memblock_find_in_range(start, end,
 						mdev->memsize, PAGE_SIZE);
 		}
@@ -104,9 +125,13 @@ void s5p_reserve_bootmem(struct s5p_media_device *mdevs, int nr_mdevs)
 			pr_err("memblock_reserve(%x, %x) failed\n",
 				mdev->paddr, mdev->memsize);
 
+		if (media_base[mdev->bank] > mdev->paddr)
+			media_base[mdev->bank] = mdev->paddr;
+
 		printk(KERN_INFO "s5p: %lu bytes system memory reserved "
-			"for %s at 0x%08x\n", (unsigned long) mdev->memsize,
-			mdev->name, mdev->paddr);
+			"for %s at 0x%08x, %d-bank base(0x%08x)\n",
+			(unsigned long) mdev->memsize, mdev->name, mdev->paddr,
+			mdev->bank, media_base[mdev->bank]);
 	}
 }
 

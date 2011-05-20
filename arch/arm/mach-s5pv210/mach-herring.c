@@ -5487,7 +5487,8 @@ static void __init herring_map_io(void)
 #ifndef CONFIG_S5P_HIGH_RES_TIMERS
 	s5p_set_timer_source(S5P_PWM3, S5P_PWM4);
 #endif
-	s5p_reserve_bootmem(herring_media_devs, ARRAY_SIZE(herring_media_devs));
+	s5p_reserve_bootmem(herring_media_devs,
+			ARRAY_SIZE(herring_media_devs), S5P_RANGE_MFC);
 #ifdef CONFIG_MTD_ONENAND
 	s5p_device_onenand.name = "s5pc110-onenand";
 #endif

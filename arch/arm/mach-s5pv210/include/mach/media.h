@@ -27,5 +27,6 @@
 #define S5P_MDEV_FIMD       10
 #define S5P_MDEV_MAX        11
 
+#define S5P_RANGE_MFC	    SZ_256M
 #endif
 
