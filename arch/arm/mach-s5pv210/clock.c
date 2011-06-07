@@ -688,6 +688,9 @@ static struct clk init_clocks[] = {
 		.name		= "clk_out",
 		.id		= -1,
 		.ops		= &s5pc11x_clkout_ops,
+	}, {
+		.name		= "apb_pclk",
+		.id		= -1,
 	},
 };
 
