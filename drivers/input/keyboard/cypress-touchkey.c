@@ -1,6 +1,7 @@
 /*
  * Copyright 2006-2010, Cypress Semiconductor Corporation.
  * Copyright (C) 2010, Samsung Electronics Co. Ltd. All Rights Reserved.
+ * Copyright 2011, Michael Richter (alias neldar)
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -28,6 +29,7 @@
 #include <linux/earlysuspend.h>
 #include <linux/input/cypress-touchkey.h>
 #include <linux/firmware.h>
+#include <linux/bln.h>
 
 #define SCANCODE_MASK		0x07
 #define UPDOWN_EVENT_MASK	0x08
@@ -54,6 +56,8 @@ struct cypress_touchkey_devdata {
 	bool is_powering_on;
 	bool has_legacy_keycode;
 };
+
+static struct cypress_touchkey_devdata *blndevdata;
 
 static int i2c_touchkey_read_byte(struct cypress_touchkey_devdata *devdata,
 					u8 *val)
@@ -209,6 +213,14 @@ static void cypress_touchkey_early_suspend(struct early_suspend *h)
 		return;
 
 	disable_irq(devdata->client->irq);
+
+#ifdef CONFIG_GENERIC_BLN
+	/*
+	 * Disallow powering off the touchkey controller
+	 * while a led notification is ongoing
+	 */
+	if(!bln_is_ongoing())
+#endif
 	devdata->pdata->touchkey_onoff(TOUCHKEY_OFF);
 
 	all_keys_up(devdata);
@@ -292,6 +304,14 @@ static int update_firmware(struct cypress_touchkey_devdata *devdata)
 	return ret;
 }
 
+static void enable_touchkey_backlights(void){
+       i2c_touchkey_write_byte(blndevdata, blndevdata->backlight_on);
+}
+
+static void disable_touchkey_backlights(void){
+       i2c_touchkey_write_byte(blndevdata, blndevdata->backlight_off);
+}
+
 static int cypress_touchkey_open(struct input_dev *input_dev)
 {
 	struct device *dev = &input_dev->dev;
@@ -329,6 +349,54 @@ done:
 	input_dev->open = NULL;
 	return 0;
 }
+
+static void cypress_touchkey_enable_led_notification(void){
+	/* is_powering_on signals whether touchkey lights are used for touchmode */
+	if (blndevdata->is_powering_on){
+		/* reconfigure gpio for sleep mode */
+		blndevdata->pdata->touchkey_sleep_onoff(TOUCHKEY_ON);
+
+		/*
+		 * power on the touchkey controller
+		 * This is actually not needed, but it is intentionally
+		 * left for the case that the early_resume() function
+		 * did not power on the touchkey controller for some reasons
+		 */
+		blndevdata->pdata->touchkey_onoff(TOUCHKEY_ON);
+
+		/* write to i2cbus, enable backlights */
+		enable_touchkey_backlights();
+	}
+	else
+		pr_info("%s: cannot set notification led, touchkeys are enabled\n",__FUNCTION__);
+}
+
+static void cypress_touchkey_disable_led_notification(void){
+	/*
+	 * reconfigure gpio for sleep mode, this has to be done
+	 * independently from the power status
+	 */
+	blndevdata->pdata->touchkey_sleep_onoff(TOUCHKEY_OFF);
+
+	/* if touchkeys lights are not used for touchmode */
+	if (blndevdata->is_powering_on){
+		disable_touchkey_backlights();
+
+		#if 0
+		/*
+		 * power off the touchkey controller
+		 * This is actually not needed, the early_suspend function
+		 * should take care of powering off the touchkey controller
+		 */
+		blndevdata->pdata->touchkey_onoff(TOUCHKEY_OFF);
+		#endif
+	}
+}
+
+static struct bln_implementation cypress_touchkey_bln = {
+	.enable = cypress_touchkey_enable_led_notification,
+	.disable = cypress_touchkey_disable_led_notification,
+};
 
 static int cypress_touchkey_probe(struct i2c_client *client,
 		const struct i2c_device_id *id)
@@ -429,7 +497,12 @@ static int cypress_touchkey_probe(struct i2c_client *client,
 
 	devdata->is_powering_on = false;
 
+#ifdef CONFIG_GENERIC_BLN
+	blndevdata = devdata;
+	register_bln_implementation(&cypress_touchkey_bln);
+#endif
 	return 0;
+
 
 err_req_irq:
 err_backlight_on:
