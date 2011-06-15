@@ -5670,7 +5670,6 @@ static void __init herring_machine_init(void)
 	arm_pm_restart = herring_pm_restart;
 
 	setup_ram_console_mem();
-	s3c_usb_set_serial();
 	platform_add_devices(herring_devices, ARRAY_SIZE(herring_devices));
 	if (!herring_is_tft_dev())
 		platform_device_register(&herring_i2c5_device);
