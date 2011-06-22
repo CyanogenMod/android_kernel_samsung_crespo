@@ -184,23 +184,23 @@ static long pn544_dev_ioctl(struct file *filp,
 			pr_info("%s power on with firmware\n", __func__);
 			gpio_set_value(pn544_dev->ven_gpio, 1);
 			gpio_set_value(pn544_dev->firm_gpio, 1);
-			msleep(10);
+			msleep(20);
 			gpio_set_value(pn544_dev->ven_gpio, 0);
-			msleep(10);
+			msleep(60);
 			gpio_set_value(pn544_dev->ven_gpio, 1);
-			msleep(10);
+			msleep(20);
 		} else if (arg == 1) {
 			/* power on */
 			pr_info("%s power on\n", __func__);
 			gpio_set_value(pn544_dev->firm_gpio, 0);
 			gpio_set_value(pn544_dev->ven_gpio, 1);
-			msleep(10);
+			msleep(20);
 		} else  if (arg == 0) {
 			/* power off */
 			pr_info("%s power off\n", __func__);
 			gpio_set_value(pn544_dev->firm_gpio, 0);
 			gpio_set_value(pn544_dev->ven_gpio, 0);
-			msleep(10);
+			msleep(60);
 		} else {
 			pr_err("%s bad arg %lu\n", __func__, arg);
 			return -EINVAL;
