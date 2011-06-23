@@ -130,6 +130,7 @@ struct s3c_udc {
 
 	struct regulator *udc_vcc_d, *udc_vcc_a;
 	int udc_enabled;
+	int soft_disconnected;
 };
 
 extern struct s3c_udc *the_controller;
