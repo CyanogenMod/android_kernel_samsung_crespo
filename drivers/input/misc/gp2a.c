@@ -426,6 +426,9 @@ static int gp2a_setup_irq(struct gp2a_data *gp2a)
 	disable_irq(irq);
 	gp2a->irq = irq;
 
+	/* sync input device with proximity gpio pin default value */
+	gp2a_irq_handler(gp2a->irq, gp2a);
+
 	gp2a_dbgmsg("success\n");
 
 	goto done;
@@ -474,12 +477,6 @@ static int gp2a_i2c_probe(struct i2c_client *client,
 		"prx_wake_lock");
 	mutex_init(&gp2a->power_lock);
 
-	ret = gp2a_setup_irq(gp2a);
-	if (ret) {
-		pr_err("%s: could not setup irq\n", __func__);
-		goto err_setup_irq;
-	}
-
 	/* allocate proximity input_device */
 	input_dev = input_allocate_device();
 	if (!input_dev) {
@@ -491,6 +488,13 @@ static int gp2a_i2c_probe(struct i2c_client *client,
 	input_dev->name = "proximity";
 	input_set_capability(input_dev, EV_ABS, ABS_DISTANCE);
 	input_set_abs_params(input_dev, ABS_DISTANCE, 0, 1, 0, 0);
+
+	ret = gp2a_setup_irq(gp2a);
+	if (ret) {
+		pr_err("%s: could not setup irq\n", __func__);
+		input_free_device(input_dev);
+		goto err_setup_irq;
+	}
 
 	gp2a_dbgmsg("registering proximity input device\n");
 	ret = input_register_device(input_dev);
@@ -563,10 +567,10 @@ err_create_workqueue:
 err_sysfs_create_group_proximity:
 	input_unregister_device(gp2a->proximity_input_dev);
 err_input_register_device_proximity:
-err_input_allocate_device_proximity:
 	free_irq(gp2a->irq, gp2a);
 	gpio_free(gp2a->pdata->p_out);
 err_setup_irq:
+err_input_allocate_device_proximity:
 	mutex_destroy(&gp2a->power_lock);
 	wake_lock_destroy(&gp2a->prx_wake_lock);
 	kfree(gp2a);
