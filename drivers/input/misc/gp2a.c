@@ -312,8 +312,12 @@ static int lightsensor_get_adcvalue(struct gp2a_data *gp2a)
 	unsigned int adc_min = 0;
 	int value = 0;
 
-	/* get ADC */
+	/* get ADC value */
 	value = gp2a->pdata->light_adc_value();
+	if (value < 0) {
+		pr_err("adc returned error %d\n", value);
+		return value;
+	}
 	gp2a_dbgmsg("adc returned light value %d\n", value);
 
 	adc_index = (gp2a->adc_index_count++) % ADC_BUFFER_NUM;
@@ -340,7 +344,7 @@ static int lightsensor_get_adcvalue(struct gp2a_data *gp2a)
 	}
 	adc_avr_value = (adc_total-(adc_max+adc_min))/(ADC_BUFFER_NUM-2);
 
-	if (gp2a->adc_index_count == ADC_BUFFER_NUM-1)
+	if (gp2a->adc_index_count == ADC_BUFFER_NUM)
 		gp2a->adc_index_count = 0;
 
 	gp2a_dbgmsg("average adc light value %d\n", adc_avr_value);
@@ -352,8 +356,10 @@ static void gp2a_work_func_light(struct work_struct *work)
 	struct gp2a_data *gp2a = container_of(work, struct gp2a_data,
 					      work_light);
 	int adc = lightsensor_get_adcvalue(gp2a);
-	input_report_abs(gp2a->light_input_dev, ABS_MISC, adc);
-	input_sync(gp2a->light_input_dev);
+	if (adc >= 0) {
+		input_report_abs(gp2a->light_input_dev, ABS_MISC, adc);
+		input_sync(gp2a->light_input_dev);
+	}
 }
 
 /* This function is for light sensor.  It operates every a few seconds.
