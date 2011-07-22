@@ -300,7 +300,9 @@ err:
 static void report_input_data(struct mxt224_data *data)
 {
 	int i;
+	int num_fingers_down;
 
+	num_fingers_down = 0;
 	for (i = 0; i < data->num_fingers; i++) {
 		if (data->fingers[i].z == -1)
 			continue;
@@ -309,18 +311,18 @@ static void report_input_data(struct mxt224_data *data)
 					data->fingers[i].x);
 		input_report_abs(data->input_dev, ABS_MT_POSITION_Y,
 					data->fingers[i].y);
-		input_report_abs(data->input_dev, ABS_MT_TOUCH_MAJOR,
+		input_report_abs(data->input_dev, ABS_MT_PRESSURE,
 					data->fingers[i].z);
-		input_report_abs(data->input_dev, ABS_MT_WIDTH_MAJOR,
+		input_report_abs(data->input_dev, ABS_MT_TOUCH_MAJOR,
 					data->fingers[i].w);
 		input_report_abs(data->input_dev, ABS_MT_TRACKING_ID, i);
 		input_mt_sync(data->input_dev);
-
-		if (data->fingers[i].z == 0)
-			data->fingers[i].z = -1;
+		num_fingers_down++;
 	}
 	data->finger_mask = 0;
 
+	if (num_fingers_down == 0)
+		input_mt_sync(data->input_dev);
 	input_sync(data->input_dev);
 }
 
@@ -344,7 +346,7 @@ static irqreturn_t mxt224_irq_thread(int irq, void *ptr)
 			report_input_data(data);
 
 		if (msg[1] & RELEASE_MSG_MASK) {
-			data->fingers[id].z = 0;
+			data->fingers[id].z = -1;
 			data->fingers[id].w = msg[5];
 			data->finger_mask |= 1U << id;
 		} else if ((msg[1] & DETECT_MSG_MASK) && (msg[1] &
@@ -358,7 +360,7 @@ static irqreturn_t mxt224_irq_thread(int irq, void *ptr)
 			data->finger_mask |= 1U << id;
 		} else if ((msg[1] & SUPPRESS_MSG_MASK) &&
 			   (data->fingers[id].z != -1)) {
-			data->fingers[id].z = 0;
+			data->fingers[id].z = -1;
 			data->fingers[id].w = msg[5];
 			data->finger_mask |= 1U << id;
 		} else {
@@ -385,11 +387,8 @@ static int mxt224_internal_suspend(struct mxt224_data *data)
 		return ret;
 
 
-	for (i = 0; i < data->num_fingers; i++) {
-		if (data->fingers[i].z == -1)
-			continue;
-		data->fingers[i].z = 0;
-	}
+	for (i = 0; i < data->num_fingers; i++)
+		data->fingers[i].z = -1;
 	report_input_data(data);
 
 	data->power_off();
@@ -496,9 +495,9 @@ static int __devinit mxt224_probe(struct i2c_client *client,
 			pdata->max_x, 0, 0);
 	input_set_abs_params(input_dev, ABS_MT_POSITION_Y, pdata->min_y,
 			pdata->max_y, 0, 0);
-	input_set_abs_params(input_dev, ABS_MT_TOUCH_MAJOR, pdata->min_z,
+	input_set_abs_params(input_dev, ABS_MT_PRESSURE, pdata->min_z,
 			pdata->max_z, 0, 0);
-	input_set_abs_params(input_dev, ABS_MT_WIDTH_MAJOR, pdata->min_w,
+	input_set_abs_params(input_dev, ABS_MT_TOUCH_MAJOR, pdata->min_w,
 			pdata->max_w, 0, 0);
 	input_set_abs_params(input_dev, ABS_MT_TRACKING_ID, 0,
 			data->num_fingers - 1, 0, 0);
