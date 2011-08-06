@@ -33,6 +33,7 @@ config FB_S3C_TRACE_UNDERRUN
 
 config FB_S3C_DEFAULT_WINDOW
 	int "Default Window (0-4)"
+	range 0 4
 	depends on FB_S3C
 	default "2"
 	---help---
@@ -41,11 +42,27 @@ config FB_S3C_DEFAULT_WINDOW
 config FB_S3C_NR_BUFFERS
 	int "Number of frame buffers (1-3)"
 	depends on FB_S3C
-	default "1"
+	default "2"
 	---help---
 	  This indicates the number of buffers for pan display,
 	  1 means no pan display and
 	  2 means the double size of video buffer will be allocated for default window
+
+config FB_S3C_NUM_OVLY_WIN
+	int "Number of overlay window (0-3)"
+	range 0 3
+	depends on FB_S3C
+	default "1"
+	---help---
+	  This indicates the number of overlay windows for video rendering
+
+config FB_S3C_NUM_BUF_OVLY_WIN
+	int "Number of buffers for overlay window (2-3)"
+	range 2 3
+	depends on FB_S3C
+	default "3"
+	---help---
+	  This indicates the number of buffers for overlay windows
 
 config FB_S3C_VIRTUAL
 	bool "Virtual Screen"
