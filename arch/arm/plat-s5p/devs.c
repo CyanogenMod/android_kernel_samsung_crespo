@@ -39,7 +39,7 @@
 #include <plat/media.h>
 #include <plat/jpeg.h>
 #include <mach/media.h>
-
+#include <s3cfb.h>
 
 /* RTC */
 static struct resource s5p_rtc_resource[] = {
@@ -176,7 +176,10 @@ static struct s3c_platform_fb default_fb_data __initdata = {
 void __init s3cfb_set_platdata(struct s3c_platform_fb *pd)
 {
 	struct s3c_platform_fb *npd;
-	int i;
+	struct s3cfb_lcd *lcd;
+	phys_addr_t pmem_start;
+	int i, default_win, num_overlay_win;
+	int frame_size;
 
 	if (!pd)
 		pd = &default_fb_data;
@@ -188,17 +191,40 @@ void __init s3cfb_set_platdata(struct s3c_platform_fb *pd)
 		for (i = 0; i < npd->nr_wins; i++)
 			npd->nr_buffers[i] = 1;
 
-		npd->nr_buffers[npd->default_win] = CONFIG_FB_S3C_NR_BUFFERS;
+		default_win = npd->default_win;
+		num_overlay_win = CONFIG_FB_S3C_NUM_OVLY_WIN;
+
+		if (num_overlay_win >= default_win) {
+			printk(KERN_WARNING "%s: NUM_OVLY_WIN should be less than default \
+					window number. set to 0.\n", __func__);
+			num_overlay_win = 0;
+		}
+
+		for (i = 0; i < num_overlay_win; i++)
+			npd->nr_buffers[i] = CONFIG_FB_S3C_NUM_BUF_OVLY_WIN;
+		npd->nr_buffers[default_win] = CONFIG_FB_S3C_NR_BUFFERS;
+
+		lcd = (struct s3cfb_lcd *)npd->lcd;
+		frame_size = (lcd->width * lcd->height * 4);
 
 		s3cfb_get_clk_name(npd->clk_name);
 		npd->backlight_onoff = NULL;
 		npd->clk_on = s3cfb_clk_on;
 		npd->clk_off = s3cfb_clk_off;
 
-		/* starting physical address of memory region */
-		npd->pmem_start = s5p_get_media_memory_bank(S5P_MDEV_FIMD, 1);
-		/* size of memory region */
-		npd->pmem_size = s5p_get_media_memsize_bank(S5P_MDEV_FIMD, 1);
+		/* set starting physical address & size of memory region for overlay
+		 * window */
+		pmem_start = s5p_get_media_memory_bank(S5P_MDEV_FIMD, 1);
+		for (i = 0; i < num_overlay_win; i++) {
+			npd->pmem_start[i] = pmem_start;
+			npd->pmem_size[i] = frame_size * npd->nr_buffers[i];
+			pmem_start += npd->pmem_size[i];
+		}
+
+		/* set starting physical address & size of memory region for default
+		 * window */
+		npd->pmem_start[default_win] = pmem_start;
+		npd->pmem_size[default_win] = frame_size * npd->nr_buffers[default_win];
 
 		s3c_device_fb.dev.platform_data = npd;
 	}

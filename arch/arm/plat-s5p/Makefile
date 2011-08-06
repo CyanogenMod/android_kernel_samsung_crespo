@@ -56,3 +56,6 @@ endif
 
 obj-$(CONFIG_S5P_DEV_MFC)	+= dev-mfc.o
 obj-$(CONFIG_S5P_SETUP_MFC)	+= setup-mfc.o
+
+
+EXTRA_CFLAGS += -Idrivers/video/samsung
