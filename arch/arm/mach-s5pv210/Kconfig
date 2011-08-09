@@ -63,6 +63,13 @@ config S5PV210_SETUP_FIMC
 	help
 	  Common setup code for the camera interfaces.
 
+config S5PV210_POWER_DOMAIN
+	bool
+	depends on REGULATOR
+	default y
+	help
+	  Enable S5PV210 power domain support.
+
 comment "MMC/SD slot setup"
 depends on PLAT_S5P
 
@@ -210,6 +217,7 @@ config MACH_S5PC110_CRESPO
 	select S3C_DEV_HSMMC2
 	select S3C_DEV_HSMMC3 if !S5PV210_SD_CH2_8BIT
 	select S5PV210_SETUP_SDHCI
+	select S5PV210_POWER_DOMAIN
 	select S5P_DEV_CSIS0
 	select S5P_SETUP_MIPIPHY
 	help
