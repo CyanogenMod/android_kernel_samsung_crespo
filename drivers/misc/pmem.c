@@ -250,7 +250,8 @@ static int pmem_free(int id, int index)
 	 */
 	do {
 		buddy = PMEM_BUDDY_INDEX(id, curr);
-		if (PMEM_IS_FREE(id, buddy) &&
+		if (buddy < pmem[id].num_entries &&
+					PMEM_IS_FREE(id, buddy) &&
 				PMEM_ORDER(id, buddy) == PMEM_ORDER(id, curr)) {
 			PMEM_ORDER(id, buddy)++;
 			PMEM_ORDER(id, curr)++;
