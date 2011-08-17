@@ -85,6 +85,11 @@ static unsigned long isolate_freepages_block(struct zone *zone,
 
 		if (!pfn_valid_within(blockpfn))
 			continue;
+
+		/* Watch for unexpected holes punched in the memmap */
+		if (!memmap_valid_within(blockpfn, page, zone))
+			continue;
+
 		nr_scanned++;
 
 		if (!PageBuddy(page))
@@ -179,6 +184,11 @@ static void isolate_freepages(struct zone *zone,
 		 * pages do not belong to a single zone.
 		 */
 		page = pfn_to_page(pfn);
+
+		/* Watch for unexpected holes punched in the memmap */
+		if (!memmap_valid_within(pfn, page, zone))
+			continue;
+
 		if (page_zone(page) != zone)
 			continue;
 
@@ -326,6 +336,11 @@ static isolate_migrate_t isolate_migratepages(struct zone *zone,
 
 		/* Get the page and skip if free */
 		page = pfn_to_page(low_pfn);
+
+		/* Watch for unexpected holes punched in the memmap */
+		if (!memmap_valid_within(low_pfn, page, zone))
+			continue;
+
 		if (PageBuddy(page))
 			continue;
 
