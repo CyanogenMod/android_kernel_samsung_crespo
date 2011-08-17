@@ -1272,9 +1272,9 @@ static int s3c24xx_serial_resume(struct platform_device *dev)
 	if (port) {
 		clk_enable(ourport->clk);
 		s3c24xx_serial_resetport(port, s3c24xx_port_to_cfg(port));
-		clk_disable(ourport->clk);
 		s3c_pm_do_restore(uart_save + port->line * SAVE_UART_PORT,
 				SAVE_UART_PORT);
+		clk_disable(ourport->clk);
 		uart_resume_port(&s3c24xx_uart_drv, port);
 	}
 
