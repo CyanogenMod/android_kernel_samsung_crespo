@@ -390,6 +390,7 @@ void handle_nested_irq(unsigned int irq)
 {
 	struct irq_desc *desc = irq_to_desc(irq);
 	struct irqaction *action;
+	int mask_this_irq = 0;
 	irqreturn_t action_ret;
 
 	might_sleep();
@@ -399,8 +400,10 @@ void handle_nested_irq(unsigned int irq)
 	kstat_incr_irqs_this_cpu(irq, desc);
 
 	action = desc->action;
-	if (unlikely(!action || (desc->status & IRQ_DISABLED)))
+	if (unlikely(!action || (desc->status & IRQ_DISABLED))) {
+		mask_this_irq = 1;
 		goto out_unlock;
+	}
 
 	desc->status |= IRQ_INPROGRESS;
 	raw_spin_unlock_irq(&desc->lock);
@@ -414,6 +417,11 @@ void handle_nested_irq(unsigned int irq)
 
 out_unlock:
 	raw_spin_unlock_irq(&desc->lock);
+	if (unlikely(mask_this_irq)) {
+		chip_bus_lock(irq, desc);
+		mask_irq(desc, irq);
+		chip_bus_sync_unlock(irq, desc);
+	}
 }
 EXPORT_SYMBOL_GPL(handle_nested_irq);
 
