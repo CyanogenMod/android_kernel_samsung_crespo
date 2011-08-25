@@ -667,7 +667,11 @@ static void mfc_set_encode_init_param(struct mfc_inst_ctx *mfc_ctx, union mfc_ar
 
 	/* Set circular intra refresh MB count */
 	WRITEL(enc_init_mpeg4_arg->in_mb_refresh, MFC_ENC_CIR_CTRL);
-	WRITEL(MEM_STRUCT_TILE_ENC, MFC_ENC_MAP_FOR_CUR);
+
+	if (enc_init_mpeg4_arg->in_frame_map == 1)
+		WRITEL(MEM_STRUCT_TILE_ENC, MFC_ENC_MAP_FOR_CUR);
+	else
+		WRITEL(MEM_STRUCT_LINEAR, MFC_ENC_MAP_FOR_CUR);
 
 	/* Set padding control */
 	WRITEL((enc_init_mpeg4_arg->in_pad_ctrl_on << 31) |

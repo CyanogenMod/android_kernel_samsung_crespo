@@ -143,6 +143,8 @@ struct mfc_enc_init_mpeg4_arg {
 	int in_cb_pad_val;
 	int in_cr_pad_val;
 
+	int in_frame_map;                    /* [IN] Encoding input NV12 type linear(0) TILE(1)   */
+
 	unsigned int in_mapped_addr;
 	struct mfc_strm_ref_buf_arg out_u_addr;
 	struct mfc_strm_ref_buf_arg out_p_addr;
@@ -183,6 +185,8 @@ struct mfc_enc_init_h264_arg {
 	int in_luma_pad_val;                 /* [IN] Luma pel value used to fill padding area         */
 	int in_cb_pad_val;                   /* [IN] CB pel value used to fill padding area           */
 	int in_cr_pad_val;                   /* [IN] CR pel value used to fill padding area           */
+
+	int in_frame_map;                    /* [IN] Encoding input NV12 type linear(0) TILE(1)       */
 
 	unsigned int in_mapped_addr;
 	struct mfc_strm_ref_buf_arg out_u_addr;
