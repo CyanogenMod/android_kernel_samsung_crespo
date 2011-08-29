@@ -73,6 +73,12 @@
 #endif
 #endif
 
+#define WRITEL_SHARED_MEM(data, address)	\
+	do {									\
+		writel(data, address);				\
+		dmac_flush_range((void *)address, (void *)(address + 4)); \
+	} while (0)
+
 #if DEBUG_MAKE_RAW
 #include <linux/kernel.h>
 #include <linux/init.h>
@@ -1329,6 +1335,25 @@ enum mfc_error_code mfc_init_decode(struct mfc_inst_ctx *mfc_ctx, union mfc_args
 			(mfc_ctx->displayDelay << 16)) : 0)),
 			MFC_SI_CH0_DPB_CONFIG_CTRL);
 
+	/* Set Available Type */
+	if (mCheckType == false) {
+		nSize = mfc_ctx->img_width * mfc_ctx->img_height;
+		mfc_ctx->shared_mem.p720_limit_enable = 49425;
+		if (nSize > BOUND_MEMORY_SIZE) {
+			/* In case of no instance, we should not release codec instance */
+			if (mfc_ctx->InstNo >= 0)
+				mfc_return_inst_no(mfc_ctx->InstNo, mfc_ctx->MfcCodecType);
+
+			return MFCINST_ERR_FRM_BUF_SIZE;
+		}
+	} else {
+		mfc_ctx->shared_mem.p720_limit_enable = 49424;
+	}
+
+	WRITEL_SHARED_MEM(mfc_ctx->shared_mem.p720_limit_enable,
+			  mfc_ctx->shared_mem_vaddr + P720_LIMIT_ENABLE);
+	WRITEL((mfc_ctx->shared_mem_paddr - mfc_port0_base_paddr), MFC_SI_CH0_HOST_WR_ADR);
+
 	/* Codec Command : Decode a sequence header */
 	WRITEL((SEQ_HEADER << 16) | (mfc_ctx->InstNo), MFC_SI_CH0_INST_ID);
 
@@ -1420,23 +1445,6 @@ enum mfc_error_code mfc_init_decode(struct mfc_inst_ctx *mfc_ctx, union mfc_args
 	}
 
 	mfc_set_dec_frame_buffer(mfc_ctx);
-
-	/*
-	  * Set Available Type
-	  */
-   if (mCheckType == false) {
-		nSize = mfc_ctx->img_width * mfc_ctx->img_height;
-		mfc_ctx->shared_mem.p720_limit_enable = 49425;
-		if (nSize > BOUND_MEMORY_SIZE) {
-			/* In case of no instance, we should not release codec instance */
-			if (mfc_ctx->InstNo >= 0)
-				mfc_return_inst_no(mfc_ctx->InstNo, mfc_ctx->MfcCodecType);
-
-			return MFCINST_ERR_FRM_BUF_SIZE;
-		}
-   } else {
-	   mfc_ctx->shared_mem.p720_limit_enable = 49424;
-   }
 
 #ifdef ENABLE_DEBUG_MFC_INIT
 #if ENABLE_DEBUG_MFC_INIT
