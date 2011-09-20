@@ -1,7 +1,7 @@
 #
 # Automatically generated make config: don't edit
 # Linux kernel version: 2.6.35.14
-# Tue Sep 20 15:30:54 2011
+# Tue Sep 20 19:32:08 2011
 #
 CONFIG_ARM=y
 CONFIG_HAVE_PWM=y
@@ -970,6 +970,11 @@ CONFIG_USB_SWITCH_FSA9480=y
 # CONFIG_IWMC3200TOP is not set
 CONFIG_SAMSUNG_MODEMCTL=y
 CONFIG_PN544=y
+CONFIG_GENERIC_BLN=y
+CONFIG_BLD=y
+CONFIG_SCREEN_DIMMER=y
+CONFIG_TOUCH_WAKE=y
+CONFIG_BLX=y
 CONFIG_HAVE_IDE=y
 # CONFIG_IDE is not set
 

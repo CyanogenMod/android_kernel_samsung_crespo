@@ -27,6 +27,10 @@
 #include <linux/smp_lock.h>
 #include "input-compat.h"
 
+#ifdef CONFIG_TOUCH_WAKE
+#include <linux/touch_wake.h>
+#endif
+
 MODULE_AUTHOR("Vojtech Pavlik <vojtech@suse.cz>");
 MODULE_DESCRIPTION("Input core");
 MODULE_LICENSE("GPL");
@@ -210,6 +214,13 @@ static void input_handle_event(struct input_dev *dev,
 	case EV_KEY:
 		if (is_event_supported(code, dev->keybit, KEY_MAX) &&
 		    !!test_bit(code, dev->key) != value) {
+
+#ifdef CONFIG_TOUCH_WAKE
+ 		        if (code == KEY_POWER && value == 1)
+			    {
+				powerkey_press();
+			    }
+#endif
 
 			if (value != 2) {
 				__change_bit(code, dev->key);

@@ -28,6 +28,10 @@
 #include <plat/regs-fb.h>
 #include <linux/earlysuspend.h>
 
+#ifdef CONFIG_SCREEN_DIMMER
+#include <linux/screen_dimmer.h>
+#endif
+
 #define NT35580_POWERON_DELAY	150
 
 struct s5p_lcd {
@@ -40,6 +44,10 @@ struct s5p_lcd {
 	struct backlight_device *bl_dev;
 	struct early_suspend early_suspend;
 };
+
+#ifdef CONFIG_SCREEN_DIMMER
+static struct s5p_lcd * screendimmer_lcd;
+#endif
 
 static int nt35580_spi_write_driver(struct s5p_lcd *lcd, u16 reg)
 {
@@ -119,6 +127,28 @@ static void nt35580_ldi_disable(struct s5p_lcd *lcd)
 	mutex_unlock(&lcd->lock);
 }
 
+#ifdef CONFIG_SCREEN_DIMMER
+static void nt35580_screen_enable(void)
+{
+    nt35580_ldi_enable(screendimmer_lcd);
+
+    return ;
+}
+
+static void nt35580_screen_disable(void)
+{
+    nt35580_ldi_disable(screendimmer_lcd);
+
+    return ;
+}
+
+static struct screendimmer_implementation screendimmer_nt35580 =
+    {
+	.enable = nt35580_screen_enable,
+	.disable = nt35580_screen_disable,
+    };
+#endif
+
 static int s5p_bl_update_status(struct backlight_device *bd)
 {
 	struct s5p_lcd *lcd = bl_get_data(bd);
@@ -150,13 +180,20 @@ const struct backlight_ops s5p_bl_tft_ops = {
 
 void nt35580_early_suspend(struct early_suspend *h)
 {
-	struct s5p_lcd *lcd = container_of(h, struct s5p_lcd,
-								early_suspend);
+    struct s5p_lcd *lcd = container_of(h, struct s5p_lcd, early_suspend);
 
-	nt35580_ldi_disable(lcd);
+#ifdef CONFIG_SCREEN_DIMMER
+    if (!screen_is_dimmed())
+	{
+	    nt35580_ldi_disable(lcd);
+	}
+#else
+    nt35580_ldi_disable(lcd);
+#endif
 
-	return;
+    return;
 }
+
 void nt35580_late_resume(struct early_suspend *h)
 {
 	struct s5p_lcd *lcd = container_of(h, struct s5p_lcd,
@@ -223,6 +260,13 @@ static int __devinit nt35580_probe(struct spi_device *spi)
 	lcd->early_suspend.level = EARLY_SUSPEND_LEVEL_DISABLE_FB - 1;
 	register_early_suspend(&lcd->early_suspend);
 #endif
+	
+#ifdef CONFIG_SCREEN_DIMMER
+	screendimmer_lcd = lcd;
+	
+	register_screendimmer_implementation(&screendimmer_nt35580);
+#endif
+
 	pr_info("%s successfully probed\n", __func__);
 
 	return 0;

@@ -39,6 +39,12 @@
 #endif
 #include "s3cfb.h"
 
+#ifdef CONFIG_SCREEN_DIMMER
+#include <linux/screen_dimmer.h>
+
+static struct s3cfb_global * screendimmer_fbdev;
+#endif
+
 struct s3c_platform_fb *to_fb_plat(struct device *dev)
 {
 	struct platform_device *pdev = to_platform_device(dev);
@@ -1043,6 +1049,10 @@ static int __devinit s3cfb_probe(struct platform_device *pdev)
 	if (ret < 0)
 		dev_err(fbdev->dev, "failed to add sysfs entries\n");
 
+#ifdef CONFIG_SCREEN_DIMMER
+        screendimmer_fbdev = fbdev;
+#endif
+
 	dev_info(fbdev->dev, "registered successfully\n");
 
 	return 0;
@@ -1139,21 +1149,34 @@ static int __devexit s3cfb_remove(struct platform_device *pdev)
 
 void s3cfb_early_suspend(struct early_suspend *h)
 {
-	struct s3cfb_global *fbdev =
-		container_of(h, struct s3cfb_global, early_suspend);
+    struct s3cfb_global *fbdev = container_of(h, struct s3cfb_global, early_suspend);
 
-	pr_debug("s3cfb_early_suspend is called\n");
+    pr_debug("s3cfb_early_suspend is called\n");
 
-	s3cfb_display_off(fbdev);
-	clk_disable(fbdev->clock);
+#ifdef CONFIG_SCREEN_DIMMER
+    if (!screen_is_dimmed())
+	{  	    
+	    s3cfb_display_off(fbdev);
+	    clk_disable(fbdev->clock);
 #if defined(CONFIG_FB_S3C_TL2796)
-	lcd_cfg_gpio_early_suspend();
+	    lcd_cfg_gpio_early_suspend();
 #endif
-	regulator_disable(fbdev->vlcd);
-	regulator_disable(fbdev->vcc_lcd);
-	regulator_disable(fbdev->regulator);
+	    regulator_disable(fbdev->vlcd);
+	    regulator_disable(fbdev->vcc_lcd);
+	    regulator_disable(fbdev->regulator);
+	}
+#else
+    s3cfb_display_off(fbdev);
+    clk_disable(fbdev->clock);
+#if defined(CONFIG_FB_S3C_TL2796)
+    lcd_cfg_gpio_early_suspend();
+#endif
+    regulator_disable(fbdev->vlcd);
+    regulator_disable(fbdev->vcc_lcd);
+    regulator_disable(fbdev->regulator);
+#endif
 
-	return ;
+    return ;
 }
 
 void s3cfb_late_resume(struct early_suspend *h)
@@ -1216,6 +1239,80 @@ void s3cfb_late_resume(struct early_suspend *h)
 	pr_info("s3cfb_late_resume is complete\n");
 	return ;
 }
+
+#ifdef CONFIG_SCREEN_DIMMER
+void s3cfb_screen_disable(void)
+{
+    s3cfb_display_off(screendimmer_fbdev);
+    clk_disable(screendimmer_fbdev->clock);
+#if defined(CONFIG_FB_S3C_TL2796)
+    lcd_cfg_gpio_early_suspend();
+#endif
+    regulator_disable(screendimmer_fbdev->vlcd);
+    regulator_disable(screendimmer_fbdev->vcc_lcd);
+    regulator_disable(screendimmer_fbdev->regulator);
+
+    return ;
+}
+EXPORT_SYMBOL(s3cfb_screen_disable);
+
+void s3cfb_screen_enable(void)
+{
+    struct s3c_platform_fb *pdata = to_fb_plat(screendimmer_fbdev->dev);
+    struct platform_device *pdev = to_platform_device(screendimmer_fbdev->dev);
+    struct fb_info *fb;
+    struct s3cfb_window *win;
+    int i, j, ret;
+
+    ret = regulator_enable(screendimmer_fbdev->regulator);
+    if (ret < 0)
+	dev_err(screendimmer_fbdev->dev, "failed to enable regulator\n");
+
+    ret = regulator_enable(screendimmer_fbdev->vcc_lcd);
+    if (ret < 0)
+	dev_err(screendimmer_fbdev->dev, "failed to enable vcc_lcd\n");
+
+    ret = regulator_enable(screendimmer_fbdev->vlcd);
+    if (ret < 0)
+	dev_err(screendimmer_fbdev->dev, "failed to enable vlcd\n");
+
+#if defined(CONFIG_FB_S3C_TL2796)
+    lcd_cfg_gpio_late_resume();
+#endif
+    dev_dbg(screendimmer_fbdev->dev, "wake up from suspend\n");
+    if (pdata->cfg_gpio)
+	pdata->cfg_gpio(pdev);
+
+    clk_enable(screendimmer_fbdev->clock);
+    s3cfb_init_global(screendimmer_fbdev);
+    s3cfb_set_clock(screendimmer_fbdev);
+
+    s3cfb_display_on(screendimmer_fbdev);
+
+    for (i = pdata->default_win;
+	 i < pdata->nr_wins + pdata->default_win; i++) {
+	j = i % pdata->nr_wins;
+	fb = screendimmer_fbdev->fb[j];
+	win = fb->par;
+	if ((win->path == DATA_PATH_DMA) && (win->enabled)) {
+	    s3cfb_set_par(fb);
+	    s3cfb_set_window(screendimmer_fbdev, win->id, 1);
+	}
+    }
+
+    s3cfb_set_vsync_interrupt(screendimmer_fbdev, 1);
+    s3cfb_set_global_interrupt(screendimmer_fbdev, 1);
+
+    if (pdata->backlight_on)
+	pdata->backlight_on(pdev);
+
+    if (pdata->reset_lcd)
+	pdata->reset_lcd(pdev);
+
+    return ;
+}
+EXPORT_SYMBOL(s3cfb_screen_enable);
+#endif
 
 static struct platform_driver s3cfb_driver = {
 	.probe = s3cfb_probe,

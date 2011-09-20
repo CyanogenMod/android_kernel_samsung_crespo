@@ -19,6 +19,10 @@
 
 #include "power.h"
 
+#ifdef CONFIG_SCREEN_DIMMER
+#include <linux/screen_dimmer.h>
+#endif
+
 static wait_queue_head_t fb_state_wq;
 static DEFINE_SPINLOCK(fb_state_lock);
 static enum {
@@ -30,20 +34,39 @@ static enum {
 /* tell userspace to stop drawing, wait for it to stop */
 static void stop_drawing_early_suspend(struct early_suspend *h)
 {
-	int ret;
-	unsigned long irq_flags;
+    int ret;
+    unsigned long irq_flags;
 
-	spin_lock_irqsave(&fb_state_lock, irq_flags);
-	fb_state = FB_STATE_REQUEST_STOP_DRAWING;
-	spin_unlock_irqrestore(&fb_state_lock, irq_flags);
+#ifdef CONFIG_SCREEN_DIMMER
+    if (!screen_is_dimmed())
+	{
+	    spin_lock_irqsave(&fb_state_lock, irq_flags);
+	    fb_state = FB_STATE_REQUEST_STOP_DRAWING;
+	    spin_unlock_irqrestore(&fb_state_lock, irq_flags);
 
-	wake_up_all(&fb_state_wq);
-	ret = wait_event_timeout(fb_state_wq,
-				 fb_state == FB_STATE_STOPPED_DRAWING,
-				 HZ);
-	if (unlikely(fb_state != FB_STATE_STOPPED_DRAWING))
+	    wake_up_all(&fb_state_wq);
+	    ret = wait_event_timeout(fb_state_wq,
+				     fb_state == FB_STATE_STOPPED_DRAWING,
+				     HZ);
+	    if (unlikely(fb_state != FB_STATE_STOPPED_DRAWING))
 		pr_warning("stop_drawing_early_suspend: timeout waiting for "
 			   "userspace to stop drawing\n");
+	}
+#else
+    spin_lock_irqsave(&fb_state_lock, irq_flags);
+    fb_state = FB_STATE_REQUEST_STOP_DRAWING;
+    spin_unlock_irqrestore(&fb_state_lock, irq_flags);
+
+    wake_up_all(&fb_state_wq);
+    ret = wait_event_timeout(fb_state_wq,
+			     fb_state == FB_STATE_STOPPED_DRAWING,
+			     HZ);
+    if (unlikely(fb_state != FB_STATE_STOPPED_DRAWING))
+	pr_warning("stop_drawing_early_suspend: timeout waiting for "
+		   "userspace to stop drawing\n");
+#endif
+
+    return;   
 }
 
 /* tell userspace to start drawing */
@@ -62,6 +85,38 @@ static struct early_suspend stop_drawing_early_suspend_desc = {
 	.suspend = stop_drawing_early_suspend,
 	.resume = start_drawing_late_resume,
 };
+
+#ifdef CONFIG_SCREEN_DIMMER
+void screendimmer_stop_drawing(void)
+{
+    int ret;
+    unsigned long irq_flags;
+
+    spin_lock_irqsave(&fb_state_lock, irq_flags);
+    fb_state = FB_STATE_REQUEST_STOP_DRAWING;
+    spin_unlock_irqrestore(&fb_state_lock, irq_flags);
+
+    wake_up_all(&fb_state_wq);
+    ret = wait_event_timeout(fb_state_wq,
+			     fb_state == FB_STATE_STOPPED_DRAWING,
+			     HZ);
+    if (unlikely(fb_state != FB_STATE_STOPPED_DRAWING))
+	pr_warning("stop_drawing_early_suspend: timeout waiting for "
+		   "userspace to stop drawing\n");
+}
+EXPORT_SYMBOL(screendimmer_stop_drawing);
+
+void screendimmer_start_drawing(void)
+{
+    unsigned long irq_flags;
+
+    spin_lock_irqsave(&fb_state_lock, irq_flags);
+    fb_state = FB_STATE_DRAWING_OK;
+    spin_unlock_irqrestore(&fb_state_lock, irq_flags);
+    wake_up(&fb_state_wq);
+}
+EXPORT_SYMBOL(screendimmer_start_drawing);
+#endif
 
 static ssize_t wait_for_fb_sleep_show(struct kobject *kobj,
 				      struct kobj_attribute *attr, char *buf)

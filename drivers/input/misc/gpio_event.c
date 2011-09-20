@@ -21,6 +21,10 @@
 #include <linux/platform_device.h>
 #include <linux/slab.h>
 
+#ifdef CONFIG_TOUCH_WAKE
+#include <linux/touch_wake.h>
+#endif
+
 struct gpio_event {
 	struct gpio_event_input_devs *input_devs;
 	const struct gpio_event_platform_data *info;
@@ -166,6 +170,14 @@ static int gpio_event_probe(struct platform_device *pdev)
 					event_info->name : event_info->names[i];
 		input_dev->event = gpio_input_event;
 		ip->input_devs->dev[i] = input_dev;
+#ifdef CONFIG_TOUCH_WAKE
+		if (!strcmp(input_dev->name, "herring-keypad"))
+		    {
+			pr_info("powerkey device set\n");
+
+			set_powerkeydev(input_dev);
+		    }
+#endif
 	}
 	ip->input_devs->count = dev_count;
 	ip->info = event_info;

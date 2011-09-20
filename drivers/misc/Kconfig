@@ -461,4 +461,35 @@ config PN544
 	help
 	  NXP PN544 Near Field Communication controller support.
 
+config GENERIC_BLN
+       bool "Generic BLN support for backlight notification"
+       default y
+       help
+         Say Y here to enable the backlight notification
+         for android led-notification (modified liblight needed)
+
+config BLD
+       bool "BLD support for backlight dimmer"
+       default y
+       help
+         Say Y here to enable the backlight dimmer
+
+config SCREEN_DIMMER
+       bool "Support for screen dimmer"
+       default y
+       help
+         Say Y here to enable the screen dimmer
+
+config TOUCH_WAKE
+       bool "Support for touch wake"
+       default y
+       help
+         Say Y here to enable touch wake
+
+config BLX
+       bool "Support for Battery Life eXtender"
+       default y
+       help
+         Say Y here to enable Battery Life eXtender
+
 endif # MISC_DEVICES
