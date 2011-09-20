@@ -20,7 +20,7 @@
 * software in any way with any other Broadcom software provided under a license
 * other than the GPL, without Broadcom's express prior written consent.
 *
-* $Id: dhd_custom_gpio.c,v 1.1.4.8.4.1 2010/09/02 23:13:16 Exp $
+* $Id: dhd_custom_gpio.c,v 1.1.4.8.4.4 2011/01/20 20:23:09 Exp $
 */
 
 
@@ -47,6 +47,7 @@ int wifi_set_carddetect(int on);
 int wifi_set_power(int on, unsigned long msec);
 int wifi_get_irq_number(unsigned long *irq_flags_ptr);
 int wifi_get_mac_addr(unsigned char *buf);
+void *wifi_get_country_code(char *ccode);
 #endif
 
 #if defined(OOB_INTR_ONLY)
