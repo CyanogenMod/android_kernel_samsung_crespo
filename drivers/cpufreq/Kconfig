@@ -110,6 +110,28 @@ config CPU_FREQ_DEFAULT_GOV_CONSERVATIVE
 	  Be aware that not all cpufreq drivers support the conservative
 	  governor. If unsure have a look at the help section of the
 	  driver. Fallback governor will be the performance governor.
+
+config CPU_FREQ_DEFAULT_GOV_INTERACTIVE
+	bool "interactive"
+	select CPU_FREQ_GOV_INTERACTIVE
+	help
+	  Use the CPUFreq governor 'interactive' as default. This allows
+	  you to get a full dynamic cpu frequency capable system by simply
+	  loading your cpufreq low-level hardware driver, using the
+	  'interactive' governor for latency-sensitive workloads.
+
+config CPU_FREQ_DEFAULT_GOV_SMARTASS
+	bool "smartass"
+	select CPU_FREQ_GOV_SMARTASS
+	select CPU_FREQ_GOV_PERFORMANCE
+	help
+	  Use the CPUFreq governor 'smartass' as default.
+
+config CPU_FREQ_DEFAULT_GOV_SMARTASS2
+        bool "smartass2"
+        select CPU_FREQ_GOV_SMARTASS2
+        help
+            Use the CPUFreq governor 'smartassV2' as default.
 endchoice
 
 config CPU_FREQ_GOV_PERFORMANCE
@@ -190,4 +212,22 @@ config CPU_FREQ_GOV_CONSERVATIVE
 
 	  If in doubt, say N.
 
+config CPU_FREQ_GOV_INTERACTIVE
+	tristate "'interactive' cpufreq policy governor"
+	help
+	  'interactive' - This driver adds a dynamic cpufreq policy governor
+	  designed for latency-sensitive workloads.
+
+config CPU_FREQ_GOV_SMARTASS
+	tristate "'smartass' cpufreq governor"
+	depends on CPU_FREQ
+
+config CPU_FREQ_GOV_SMARTASS2
+        tristate "'smartassV2' cpufreq governor"
+        depends on CPU_FREQ
+        help
+            'smartassV2' - a "smart" governor
+            If in doubt, say N.
+
 endif	# CPU_FREQ
+
