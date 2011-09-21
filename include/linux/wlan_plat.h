@@ -16,11 +16,19 @@
 #define _LINUX_WLAN_PLAT_H_
 
 struct wifi_platform_data {
+#ifndef CONFIG_BCM4329_PURE_ANDROID
+	char *name;
+#endif
 	int (*set_power)(int val);
 	int (*set_reset)(int val);
 	int (*set_carddetect)(int val);
 	void *(*mem_prealloc)(int section, unsigned long size);
 	int (*get_mac_addr)(unsigned char *buf);
+	void *(*get_country_code)(char *ccode);
+#ifndef CONFIG_BCM4329_PURE_ANDROID
+	int dot11n_enable;
+	int cscan_enable;
+#endif
 };
 
 #endif
