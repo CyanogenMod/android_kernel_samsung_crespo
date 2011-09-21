@@ -374,6 +374,7 @@ static char *sysfs_allowed[] = {
 	"rndis",
 	"mtp",
 	"adb",
+    "accessory",
 };
 
 static int is_sysfschange_allowed(struct usb_function *f)
