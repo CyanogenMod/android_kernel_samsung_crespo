@@ -297,6 +297,8 @@ __dma_alloc(struct device *dev, size_t size, dma_addr_t *handle, gfp_t gfp,
 
 	if (addr)
 		*handle = page_to_dma(dev, page);
+	else
+		__dma_free_buffer(page, size);
 
 	return addr;
 }
