@@ -1711,6 +1711,7 @@ static int wimax_sdio_en(int onoff)
 		s3c_gpio_cfgpin(sdio,
 			S3C_GPIO_SFN(wimax_gpio_table[i][1]));
 		s3c_gpio_setpull(sdio, wimax_gpio_table[i][3]);
+		s3c_gpio_set_drvstrength(sdio, S3C_GPIO_DRVSTR_2X);
 
 		if (wimax_gpio_table[i][2] != GPIO_LEVEL_NONE)
 			gpio_set_value(sdio, wimax_gpio_table[i][2]);
@@ -1898,7 +1899,7 @@ wimax_power_off:
 		wimax_hsmmc_presence_check();
 
 	/*Not critial, just some safty margin*/
-	msleep(200);
+	msleep(300);
 	wimax_sdio_en(0);
 
 	return WIMAX_POWER_SUCCESS;
