@@ -84,15 +84,17 @@ endif
 ccflags-y := -fpic -fno-builtin
 asflags-y := -Wa,-march=all
 
-# Provide size of uncompressed kernel to the decompressor via a linker symbol.
-LDFLAGS_vmlinux = --defsym _image_size=$(shell stat -c "%s" $(obj)/../Image)
-# Supply ZRELADDR to the decompressor via a linker symbol.
-ifneq ($(CONFIG_AUTO_ZRELADDR),y)
-LDFLAGS_vmlinux += --defsym zreladdr=$(ZRELADDR)
-endif
+# Supply ZRELADDR and PARAMS_PHYS to the decompressor via linker symbols.  We
+# only define params_phys if the machine class defined the corresponding
+# makefile variable.
+LDFLAGS_vmlinux := --defsym zreladdr=$(ZRELADDR)
 ifeq ($(CONFIG_CPU_ENDIAN_BE8),y)
 LDFLAGS_vmlinux += --be8
 endif
+ifneq ($(PARAMS_PHYS),)
+LDFLAGS_vmlinux += --defsym params_phys=$(PARAMS_PHYS)
+endif
+
 # ?
 LDFLAGS_vmlinux += -p
 # Report unresolved symbol references
