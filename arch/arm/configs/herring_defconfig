@@ -1,7 +1,7 @@
 #
 # Automatically generated make config: don't edit
 # Linux kernel version: 2.6.35.14
-# Sun Sep 25 21:25:54 2011
+# Mon Sep 26 15:49:46 2011
 #
 CONFIG_ARM=y
 CONFIG_HAVE_PWM=y
@@ -417,6 +417,7 @@ CONFIG_VIRT_TO_BUS=y
 # CONFIG_KSM is not set
 CONFIG_DEFAULT_MMAP_MIN_ADDR=4096
 CONFIG_ALIGNMENT_TRAP=y
+CONFIG_ALLOW_CPU_ALIGNMENT=y
 # CONFIG_UACCESS_WITH_MEMCPY is not set
 
 #
@@ -428,6 +429,7 @@ CONFIG_CMDLINE="console=ttyFIQ0"
 # CONFIG_CMDLINE_FORCE is not set
 # CONFIG_XIP_KERNEL is not set
 # CONFIG_KEXEC is not set
+CONFIG_AUTO_ZRELADDR=y
 
 #
 # CPU Power Management
