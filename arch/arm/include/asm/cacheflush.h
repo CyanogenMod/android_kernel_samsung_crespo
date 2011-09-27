@@ -137,10 +137,10 @@
 #endif
 
 /*
- * This flag is used to indicate that the page pointed to by a pte
- * is dirty and requires cleaning before returning it to the user.
+ * This flag is used to indicate that the page pointed to by a pte is clean
+ * and does not require cleaning before returning it to the user.
  */
-#define PG_dcache_dirty PG_arch_1
+#define PG_dcache_clean PG_arch_1
 
 /*
  *	MM Cache Management
@@ -471,5 +471,7 @@ static inline void flush_cache_vunmap(unsigned long start, unsigned long end)
 	if (!cache_is_vipt_nonaliasing())
 		flush_cache_all();
 }
+
+#define PG_dcache_dirty	PG_arch_1
 
 #endif
