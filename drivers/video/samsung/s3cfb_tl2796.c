@@ -31,10 +31,6 @@
 #include <plat/gpio-cfg.h>
 #include <plat/regs-fb.h>
 #include <linux/earlysuspend.h>
-#ifdef CONFIG_FB_VOODOO
-#include <linux/miscdevice.h>
-#define VOODOO_COLOR_VERSION 2
-#endif
 
 #ifdef CONFIG_SCREEN_DIMMER
 #include <linux/screen_dimmer.h>
@@ -74,106 +70,6 @@ struct s5p_lcd{
 	struct early_suspend    early_suspend;
 	struct dentry *debug_dir;
 };
-
-#ifdef CONFIG_FB_VOODOO
-struct s5p_lcd *lcd_;
-
-u32 original_color_adj_mults[3];
-unsigned int panel_config_sequence = 0;
-
-int hacky_v1_offset[3] = {-14, -17, -18};
-
-static const u16 s6e63m0_SEQ_ETC_SETTING_SAMSUNG[] = {
-	/* ETC Condition Set Command  */
-	0x0F6,
-	0x100,	0x18E,
-	0x107,
-	0x0B3,
-	0x16C,
-	0x0B5,
-	0x12C,	0x112,
-	0x10C,	0x10A,
-	0x110,	0x10E,
-	0x117,	0x113,
-	0x11F,	0x11A,
-	0x12A,	0x124,
-	0x11F,	0x11B,
-	0x11A,	0x117,
-	0x12B,	0x126,
-	0x122,	0x120,
-	0x13A,	0x134,
-	0x130,	0x12C,
-	0x129,	0x126,
-	0x125,	0x123,
-	0x121,	0x120,
-	0x11E,	0x11E,
-	0x0B6,
-	0x100,	0x100,
-	0x111,	0x122,
-	0x133,	0x144,
-	0x144,	0x144,
-	0x155,	0x155,
-	0x166,	0x166,
-	0x166,	0x166,
-	0x166,	0x166,
-	0x0B7,
-	0x12C,	0x112,
-	0x10C,	0x10A,
-	0x110,	0x10E,
-	0x117,	0x113,
-	0x11F,	0x11A,
-	0x12A,	0x124,
-	0x11F,	0x11B,
-	0x11A,	0x117,
-	0x12B,	0x126,
-	0x122,	0x120,
-	0x13A,	0x134,
-	0x130,	0x12C,
-	0x129,	0x126,
-	0x125,	0x123,
-	0x121,	0x120,
-	0x11E,	0x11E,
-	0x0B8,
-	0x100,	0x100,
-	0x111,	0x122,
-	0x133,	0x144,
-	0x144,	0x144,
-	0x155,	0x155,
-	0x166,	0x166,
-	0x166,	0x166,
-	0x166,	0x166,
-	0x0B9,
-	0x12C,	0x112,
-	0x10C,	0x10A,
-	0x110,	0x10E,
-	0x117,	0x113,
-	0x11F,	0x11A,
-	0x12A,	0x124,
-	0x11F,	0x11B,
-	0x11A,	0x117,
-	0x12B,	0x126,
-	0x122,	0x120,
-	0x13A,	0x134,
-	0x130,	0x12C,
-	0x129,	0x126,
-	0x125,	0x123,
-	0x121,	0x120,
-	0x11E,	0x11E,
-	0x0BA,
-	0x100,	0x100,
-	0x111,	0x122,
-	0x133,	0x144,
-	0x144,	0x144,
-	0x155,	0x155,
-	0x166,	0x166,
-	0x166,	0x166,
-	0x166,	0x166,
-	0x011,
-	SLEEPMSEC, 120,
-	0x029,
-	ENDDEF, 0x0000
-};
-#endif
 
 #ifdef CONFIG_SCREEN_DIMMER
 static struct s5p_lcd * screendimmer_lcd;
@@ -282,14 +178,7 @@ static void setup_gamma_regs(struct s5p_lcd *lcd, u16 gamma_regs[])
 				adj = 140;
 		}
 		// record gamma 0
-#ifdef CONFIG_FB_VOODOO
-		// terrible shameful hack allowing to get back standard
-		// colors without fixing the real thing properly (gamma table)
-		// it consist on a simple (negative) offset applied on v0
-		gamma_regs[c] = ((adj + hacky_v1_offset[c]) > 0 && (adj <=255)) ? (adj + hacky_v1_offset[c]) | 0x100 : adj | 0x100;
-#else
 		gamma_regs[c] = adj | 0x100;
-#endif
 
 		// calculate brightness value for color c
 		v255 = vx[5] = gamma_lookup(lcd, brightness, bv->v255, c);
@@ -366,55 +255,20 @@ static int s6e63m0_spi_write_driver(struct s5p_lcd *lcd, u16 reg)
 	return ret ;
 }
 
-#ifdef CONFIG_FB_VOODOO_DEBUG_LOG
-static void voodoo_print_decoded_commands(short unsigned int commands_record[], int i)
-{
-	if (i == 25)
-	{
-		printk("Super AMOLED commands decoding:\n");
-		printk("Brightness gains: Red = %3d, Green = %3d, Blue = %3d\n",
-			commands_record[18]-256, commands_record[20]-256, commands_record[22]-256);
-		printk("Gamma 0:          Red = %3d, Green = %3d, Blue = %3d\n",
-			commands_record[2]-256, commands_record[3]-256, commands_record[4]-256);
-		printk("Gamma 1:          Red = %3d, Green = %3d, Blue = %3d\n",
-			commands_record[5]-256, commands_record[6]-256, commands_record[7]-256);
-		printk("Gamma 2:          Red = %3d, Green = %3d, Blue = %3d\n",
-			commands_record[8]-256, commands_record[9]-256, commands_record[10]-256);
-		printk("Gamma 3:          Red = %3d, Green = %3d, Blue = %3d\n",
-			commands_record[11]-256, commands_record[12]-256, commands_record[13]-256);
-		printk("Gamma 4:          Red = %3d, Green = %3d, Blue = %3d\n",
-			commands_record[14]-256, commands_record[15]-256, commands_record[16]-256);
-	}
-
-}
-#endif
-
 static void s6e63m0_panel_send_sequence(struct s5p_lcd *lcd,
 	const u16 *wbuf)
 {
 	int i = 0;
 
-#ifdef CONFIG_FB_VOODOO_DEBUG_LOG
-	short unsigned int commands_record[256];
-	printk("Beginning sending commands to the Super AMOLED panel:\n");
-#endif
-
 	while ((wbuf[i] & DEFMASK) != ENDDEF) {
 		if ((wbuf[i] & DEFMASK) != SLEEPMSEC) {
 			s6e63m0_spi_write_driver(lcd, wbuf[i]);
-#ifdef CONFIG_FB_VOODOO_DEBUG_LOG
-			printk("%3d = %5d - 0x%X\n", i, wbuf[i], wbuf[i]);
-			commands_record[i] = wbuf[i];
-#endif
 			i += 1;
 		} else {
 			msleep(wbuf[i+1]);
 			i += 2;
 		}
 	}
-#ifdef CONFIG_FB_VOODOO_DEBUG_LOG
-	voodoo_print_decoded_commands(commands_record, i);
-#endif
 }
 
 static void update_brightness(struct s5p_lcd *lcd)
@@ -441,14 +295,7 @@ static void tl2796_ldi_enable(struct s5p_lcd *lcd)
 
 	s6e63m0_panel_send_sequence(lcd, pdata->seq_display_set);
 	update_brightness(lcd);
-#ifdef CONFIG_FB_VOODOO
-	if (panel_config_sequence == 1)
-		s6e63m0_panel_send_sequence(lcd, pdata->seq_etc_set);
-	else
-		s6e63m0_panel_send_sequence(lcd, s6e63m0_SEQ_ETC_SETTING_SAMSUNG);
-#else
 	s6e63m0_panel_send_sequence(lcd, pdata->seq_etc_set);
-#endif
 	lcd->ldi_enable = 1;
 
 	mutex_unlock(&lcd->lock);
@@ -753,9 +600,6 @@ static void tl2796_adjust_brightness_from_mtp(struct s5p_lcd *lcd)
 
 	for (c = 0; c < 3; c++) {
 		lcd->color_mult[c] = bc[c];
-#ifdef CONFIG_FB_VOODOO
-		original_color_adj_mults[c] = bc[c];
-#endif
 		pr_info("tl2796: c%d, b-%08llx, got v %d, factory wants %d\n",
 			c, bc[c], gamma_lookup(lcd, 255, BV_255, c), v255[c]);
 	}
@@ -815,309 +659,6 @@ static void tl2796_read_mtp_info(struct s5p_lcd *lcd)
 
 	tl2796_adjust_brightness_from_mtp(lcd);
 }
-
-#ifdef CONFIG_FB_VOODOO
-/*
- *
- * Voodoo Color
- *
- */
-
-static ssize_t gamma_table_show(struct device *dev, struct device_attribute *attr, char *buf)
-{
-	int point;
-	int color;
-	for(point = 0; point < lcd_->data->gamma_table_size; point++)
-	{
-		for(color = 0; color < 3; color++)
-		{
-			sprintf(buf,"%s%u", buf, lcd_->data->gamma_table[point].v[color] );
-			if (color != 2)
-				sprintf(buf,"%s,", buf);
-		}
-
-		sprintf(buf,"%s\n", buf);
-	}
-
-	return sprintf(buf, "%s", buf);
-}
-
-static ssize_t gamma_table_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t size)
-{
-	int point = 0;
-	u32 values[3];
-	struct gamma_entry new_gamma_table[lcd_->data->gamma_table_size];
-	int unsigned bytes_read = 0;
-	int color;
-
-	// skip comments or whatever on top of the file, max 1kB
-	int i;
-	for ( i = 0; ! sscanf(buf, "%u,%u,%u%n", &values[0], &values[1], &values[2], &bytes_read) && i <= 1024; i++)
-		buf += 1;
-
-	// read the standard gamma table format
-	while (sscanf(buf, "%u,%u,%u%n", &values[0], &values[1], &values[2], &bytes_read) && point < lcd_->data->gamma_table_size)
-	{
-		buf += bytes_read;
-		color = 0;
-		printk("Voodoo color: gamma table point %2d: ", point);
-		while (color < 3)
-		{
-			switch (color)
-			{
-				case 0: printk("red = %7d ", values[color]); break;
-				case 1: printk("green = %7d ", values[color]); break;
-				case 2: printk("blue = %7d\n", values[color]); break;
-			}
-
-			new_gamma_table[point].v[color] = values[color];
-			color++;
-		}
-		point++;
-	}
-
-	if (point == lcd_->data->gamma_table_size)
-	{
-		printk("Voodoo color: updating gamma table (%d points)\n", point);
-
-		// set the new gamma table in kernel
-		for (point = 0; point < lcd_->data->gamma_table_size; point++)
-			for (color=0; color < 3; color++)
-				lcd_->data->gamma_table[point].v[color] = new_gamma_table[point].v[color];
-
-		update_brightness(lcd_);
-	}
-	else
-		printk("Voodoo color: gamma table malformed: ignored\n");
-
-	return size;
-}
-
-static ssize_t apply_custom_brightness_gammas_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t size)
-{
-	int bytes_read = 0;
-	int user_values[3];
-	u16 gamma_regs[27];
-	int i = 0;
-	int j = 0;
-	int k = 0;
-
-	// copied from update_brightness() to generate easily a valid panel command sequence
-	gamma_regs[0] = 0x0FA;
-	gamma_regs[1] = 0x102;
-	gamma_regs[23] = 0x0FA;
-	gamma_regs[24] = 0x103;
-	gamma_regs[25] = ENDDEF;
-	gamma_regs[26] = 0x0000;
-
-	setup_gamma_regs(lcd_, gamma_regs + 2);
-
-	// replace calculated values by user values
-	printk("Voodoo color: send user brightness and gamma values to the Super AMOLED panel:\n");
-	// scan for gamma points 1, 2, 3 and 4 and then brightness and black
-	while (sscanf(buf, "%d,%d,%d%n", &user_values[0], &user_values[1], &user_values[2], &bytes_read) && i <= 5)
-	{
-		printk("Voodoo color: [%d] = %d,%d,%d\n", i, user_values[0], user_values[1], user_values[2]);
-		buf += bytes_read;
-
-		// brightness
-		if (i == 0)
-			for (j = 0; j < 3; j++)
-			{
-				gamma_regs[18+k] = user_values[j]+256;
-				// skip 2 registers
-				k = k+2;
-			}
-
-		// gamma 0 to gamma 4
-		if (i > 0 && i <= 5)
-			for (j = 0; j < 3; j++)
-				gamma_regs[2+((i-1)*3)+j] = user_values[j]+256;
-
-		i++;
-	}
-
-	s6e63m0_panel_send_sequence(lcd_, gamma_regs);
-
-	return size;
-}
-
-static ssize_t red_multiplier_show(struct device *dev, struct device_attribute *attr, char *buf)
-{
-	return sprintf(buf, "%u\n", lcd_->color_mult[0]);
-}
-
-static ssize_t red_multiplier_original_show(struct device *dev, struct device_attribute *attr, char *buf)
-{
-	return sprintf(buf, "%u\n", original_color_adj_mults[0]);
-}
-
-static ssize_t red_multiplier_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t size)
-{
-	u32 value;
-	if (sscanf(buf, "%u", &value) == 1)
-	{
-		lcd_->color_mult[0] = value;
-		update_brightness(lcd_);
-	}
-	return size;
-}
-
-static ssize_t green_multiplier_show(struct device *dev, struct device_attribute *attr, char *buf)
-{
-	return sprintf(buf, "%u\n", lcd_->color_mult[1]);
-}
-
-static ssize_t green_multiplier_original_show(struct device *dev, struct device_attribute *attr, char *buf)
-{
-	return sprintf(buf, "%u\n", original_color_adj_mults[1]);
-}
-
-static ssize_t green_multiplier_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t size)
-{
-	u32 value;
-	if (sscanf(buf, "%u", &value) == 1)
-	{
-		lcd_->color_mult[1] = value;
-		update_brightness(lcd_);
-	}
-	return size;
-}
-
-static ssize_t blue_multiplier_show(struct device *dev, struct device_attribute *attr, char *buf)
-{
-	return sprintf(buf, "%u\n", lcd_->color_mult[2]);
-}
-
-static ssize_t blue_multiplier_original_show(struct device *dev, struct device_attribute *attr, char *buf)
-{
-	return sprintf(buf, "%u\n", original_color_adj_mults[2]);
-}
-
-static ssize_t blue_multiplier_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t size)
-{
-	u32 value;
-	if (sscanf(buf, "%u", &value) == 1)
-	{
-		lcd_->color_mult[2] = value;
-		update_brightness(lcd_);
-	}
-	return size;
-}
-
-static ssize_t panel_config_sequence_show(struct device *dev, struct device_attribute *attr, char *buf)
-{
-	return sprintf(buf, "%u\n", panel_config_sequence);
-}
-
-static ssize_t panel_config_sequence_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t size)
-{
-	struct s5p_panel_data *pdata = lcd_->data;
-	unsigned int value;
-	if (sscanf(buf, "%u", &value) == 1)
-	{
-		panel_config_sequence = value == 1 ? 1 : 0;
-		if (panel_config_sequence == 1)
-			s6e63m0_panel_send_sequence(lcd_, s6e63m0_SEQ_ETC_SETTING_SAMSUNG);
-		else
-			s6e63m0_panel_send_sequence(lcd_, pdata->seq_etc_set);
-	}
-	return size;
-}
-
-static ssize_t red_v1_offset_show(struct device *dev, struct device_attribute *attr, char *buf)
-{
-	return sprintf(buf, "%d\n", hacky_v1_offset[0]);
-}
-
-static ssize_t red_v1_offset_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t size)
-{
-	int value;
-	if (sscanf(buf, "%d", &value) == 1)
-	{
-		hacky_v1_offset[0] = value;
-		update_brightness(lcd_);
-	}
-	return size;
-}
-
-static ssize_t green_v1_offset_show(struct device *dev, struct device_attribute *attr, char *buf)
-{
-	return sprintf(buf, "%d\n", hacky_v1_offset[1]);
-}
-
-static ssize_t green_v1_offset_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t size)
-{
-	int value;
-	if (sscanf(buf, "%d", &value) == 1)
-	{
-		hacky_v1_offset[1] = value;
-		update_brightness(lcd_);
-	}
-	return size;
-}
-
-static ssize_t blue_v1_offset_show(struct device *dev, struct device_attribute *attr, char *buf)
-{
-	return sprintf(buf, "%d\n", hacky_v1_offset[2]);
-}
-
-static ssize_t blue_v1_offset_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t size)
-{
-	int value;
-	if (sscanf(buf, "%d", &value) == 1)
-	{
-		hacky_v1_offset[2] = value;
-		update_brightness(lcd_);
-	}
-	return size;
-}
-
-static ssize_t voodoo_color_version(struct device *dev, struct device_attribute *attr, char *buf) {
-	return sprintf(buf, "%u\n", VOODOO_COLOR_VERSION);
-}
-
-static DEVICE_ATTR(gamma_table, S_IRUGO | S_IWUGO, gamma_table_show, gamma_table_store);
-static DEVICE_ATTR(apply_custom_brightness_gammas, S_IWUGO, NULL, apply_custom_brightness_gammas_store);
-static DEVICE_ATTR(panel_config_sequence, S_IRUGO | S_IWUGO, panel_config_sequence_show, panel_config_sequence_store);
-static DEVICE_ATTR(red_multiplier, S_IRUGO | S_IWUGO, red_multiplier_show, red_multiplier_store);
-static DEVICE_ATTR(red_multiplier_original, S_IRUGO, red_multiplier_original_show, NULL);
-static DEVICE_ATTR(green_multiplier, S_IRUGO | S_IWUGO, green_multiplier_show, green_multiplier_store);
-static DEVICE_ATTR(green_multiplier_original, S_IRUGO, green_multiplier_original_show, NULL);
-static DEVICE_ATTR(blue_multiplier, S_IRUGO | S_IWUGO, blue_multiplier_show, blue_multiplier_store);
-static DEVICE_ATTR(blue_multiplier_original, S_IRUGO, blue_multiplier_original_show, NULL);
-static DEVICE_ATTR(red_v1_offset, S_IRUGO | S_IWUGO, red_v1_offset_show, red_v1_offset_store);
-static DEVICE_ATTR(green_v1_offset, S_IRUGO | S_IWUGO, green_v1_offset_show, green_v1_offset_store);
-static DEVICE_ATTR(blue_v1_offset, S_IRUGO | S_IWUGO, blue_v1_offset_show, blue_v1_offset_store);
-static DEVICE_ATTR(version, S_IRUGO, voodoo_color_version, NULL);
-
-
-static struct attribute *voodoo_color_attributes[] = {
-	&dev_attr_gamma_table.attr,
-	&dev_attr_apply_custom_brightness_gammas.attr,
-	&dev_attr_panel_config_sequence.attr,
-	&dev_attr_red_multiplier.attr,
-	&dev_attr_red_multiplier_original.attr,
-	&dev_attr_green_multiplier.attr,
-	&dev_attr_green_multiplier_original.attr,
-	&dev_attr_blue_multiplier.attr,
-	&dev_attr_blue_multiplier_original.attr,
-	&dev_attr_red_v1_offset.attr,
-	&dev_attr_green_v1_offset.attr,
-	&dev_attr_blue_v1_offset.attr,
-	&dev_attr_version.attr,
-	NULL
-};
-
-static struct attribute_group voodoo_color_group = {
-	.attrs = voodoo_color_attributes,
-};
-
-static struct miscdevice voodoo_color_device = {
-	.minor = MISC_DYNAMIC_MINOR,
-	.name = "voodoo_color",
-};
-#endif
 
 static int __devinit tl2796_probe(struct spi_device *spi)
 {
@@ -1190,18 +731,6 @@ static int __devinit tl2796_probe(struct spi_device *spi)
 	else
 		debugfs_create_file("current_gamma", S_IRUGO,
 			lcd->debug_dir, lcd, &tl2796_current_gamma_fops);
-
-#ifdef CONFIG_FB_VOODOO
-	misc_register(&voodoo_color_device);
-	if (sysfs_create_group(&voodoo_color_device.this_device->kobj, &voodoo_color_group) < 0)
-	{
-		printk("%s sysfs_create_group fail\n", __FUNCTION__);
-		pr_err("Failed to create sysfs group for device (%s)!\n", voodoo_color_device.name);
-	}
-
-	// make a copy of the codec pointer
-	lcd_ = lcd;
-#endif
 
 #ifdef CONFIG_SCREEN_DIMMER
 	screendimmer_lcd = lcd;
