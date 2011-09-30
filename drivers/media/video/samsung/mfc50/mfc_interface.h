@@ -35,6 +35,8 @@
 #define IOCTL_MFC_SET_CONFIG			0x00800101
 #define IOCTL_MFC_GET_CONFIG			0x00800102
 
+#define IOCTL_MFC_BUF_CACHE			0x00801000
+
 /* MFC H/W support maximum 32 extra DPB */
 #define MFC_MAX_EXTRA_DPB                      5
 
@@ -306,6 +308,11 @@ struct mfc_mem_free_arg {
 	unsigned int u_addr;
 };
 
+enum mfc_buffer_type {
+	MFC_BUFFER_NO_CACHE = 0,
+	MFC_BUFFER_CACHE = 1
+};
+
 union mfc_args {
 	struct mfc_enc_init_mpeg4_arg enc_init_mpeg4;
 	struct mfc_enc_init_mpeg4_arg enc_init_h263;
@@ -321,6 +328,8 @@ union mfc_args {
 	struct mfc_mem_alloc_arg mem_alloc;
 	struct mfc_mem_free_arg mem_free;
 	struct mfc_get_phys_addr_arg get_phys_addr;
+
+	enum mfc_buffer_type buf_type;
 };
 
 struct mfc_common_args {

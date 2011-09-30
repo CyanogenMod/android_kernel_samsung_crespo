@@ -174,6 +174,8 @@ struct mfc_inst_ctx {
 	unsigned int shared_mem_vaddr;
 	unsigned int IsStartedIFrame;
 	struct mfc_shared_mem shared_mem;
+	enum mfc_buffer_type buf_type;
+	unsigned int desc_buff_paddr;
 };
 
 int mfc_load_firmware(const unsigned char *data, size_t size);

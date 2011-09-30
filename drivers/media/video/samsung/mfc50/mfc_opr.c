@@ -36,6 +36,7 @@
 #include <linux/io.h>
 #include <linux/delay.h>
 #include <linux/sched.h>
+#include <linux/dma-mapping.h>
 #include <plat/regs-mfc.h>
 #include <asm/cacheflush.h>
 #include <mach/map.h>
@@ -241,7 +242,11 @@ static void mfc_set_dec_stream_buffer(struct mfc_inst_ctx *mfc_ctx, int buf_addr
 	unsigned int port0_base_paddr;
 
 	mfc_debug_L0("inst_no : %d, buf_addr : 0x%08x, buf_size : 0x%08x\n", mfc_ctx->InstNo, buf_addr, buf_size);
-
+	if (mfc_ctx->buf_type == MFC_BUFFER_CACHE) {
+		unsigned char *in_vir;
+		in_vir = phys_to_virt(buf_addr);
+		dma_map_single(NULL, in_vir, buf_size, DMA_TO_DEVICE);
+	}
 	port0_base_paddr = mfc_port0_base_paddr;
 
 	/* release buffer */
@@ -251,7 +256,7 @@ static void mfc_set_dec_stream_buffer(struct mfc_inst_ctx *mfc_ctx, int buf_addr
 	WRITEL((buf_addr - port0_base_paddr) >> 11, MFC_SI_CH0_ES_ADDR);
 	WRITEL(buf_size, MFC_SI_CH0_ES_DEC_UNIT_SIZE);
 	WRITEL(CPB_BUF_SIZE, MFC_SI_CH0_CPB_SIZE);
-	WRITEL((buf_addr + CPB_BUF_SIZE - port0_base_paddr) >> 11, MFC_SI_CH0_DESC_ADDR);
+	WRITEL((mfc_ctx->desc_buff_paddr - port0_base_paddr) >> 11, MFC_SI_CH0_DESC_ADDR);
 	WRITEL(DESC_BUF_SIZE, MFC_SI_CH0_DESC_SIZE);
 
 	mfc_debug_L0("stream_paddr: 0x%08x, desc_paddr: 0x%08x\n", buf_addr, buf_addr + CPB_BUF_SIZE);
@@ -1145,6 +1150,10 @@ static enum mfc_error_code mfc_encode_header(struct mfc_inst_ctx *mfc_ctx, union
 
 	init_arg->out_header_size = READL(MFC_SI_ENC_STREAM_SIZE);
 
+	if (mfc_ctx->buf_type == MFC_BUFFER_CACHE) {
+		dma_unmap_single(NULL, init_arg->out_p_addr.strm_ref_y,
+				init_arg->out_header_size, DMA_FROM_DEVICE);
+	}
 	mfc_debug("encoded header size (%d)\n", init_arg->out_header_size);
 
 	return MFCINST_RET_OK;
@@ -1201,6 +1210,23 @@ static enum mfc_error_code mfc_encode_one_frame(struct mfc_inst_ctx *mfc_ctx, un
 
 	mfc_ctx->forceSetFrameType = DONT_CARE;
 
+	if (mfc_ctx->buf_type == MFC_BUFFER_CACHE) {
+		unsigned char *in_vir;
+		unsigned int aligned_width;
+		unsigned int aligned_height;
+
+		in_vir = phys_to_virt(enc_arg->in_Y_addr);
+		aligned_width = ALIGN_TO_128B(mfc_ctx->img_width);
+		aligned_height = ALIGN_TO_32B(mfc_ctx->img_height);
+		dma_map_single(NULL, in_vir, aligned_width*aligned_height,
+				DMA_TO_DEVICE);
+
+		in_vir = phys_to_virt(enc_arg->in_CbCr_addr);
+		aligned_height = ALIGN_TO_32B(mfc_ctx->img_height/2);
+		dma_map_single(NULL, in_vir, aligned_width*aligned_height,
+				DMA_TO_DEVICE);
+	}
+
 	/* Try frame encoding */
 	WRITEL((FRAME << 16) | (mfc_ctx->InstNo), MFC_SI_CH0_INST_ID);
 	interrupt_flag = mfc_wait_for_done(R2H_CMD_FRAME_DONE_RET);
@@ -1220,6 +1246,11 @@ static enum mfc_error_code mfc_encode_one_frame(struct mfc_inst_ctx *mfc_ctx, un
 	enc_arg->out_encoded_size = READL(MFC_SI_ENC_STREAM_SIZE);
 	enc_arg->out_encoded_Y_paddr = READL(MFC_SI_ENCODED_Y_ADDR);
 	enc_arg->out_encoded_C_paddr = READL(MFC_SI_ENCODED_C_ADDR);
+
+	if (mfc_ctx->buf_type == MFC_BUFFER_CACHE) {
+		dma_unmap_single(NULL, enc_arg->in_strm_st,
+				enc_arg->out_encoded_size, DMA_FROM_DEVICE);
+	}
 
 	mfc_debug("-- frame type(%d) encodedSize(%d)\r\n",
 		   enc_arg->out_frame_type, enc_arg->out_encoded_size);
@@ -1708,6 +1739,23 @@ enum mfc_error_code mfc_exe_decode(struct mfc_inst_ctx *mfc_ctx, union mfc_args 
 
 		mfc_ctx->shared_mem.start_byte_num = 0;
 
+	}
+
+	if (mfc_ctx->buf_type == MFC_BUFFER_CACHE) {
+		if (((READL(MFC_SI_DISPLAY_STATUS) & 0x3) == DECODING_DISPLAY) ||
+		((READL(MFC_SI_DISPLAY_STATUS) & 0x3) == DISPLAY_ONLY)) {
+			unsigned int aligned_width;
+			unsigned int aligned_height;
+
+			aligned_width = ALIGN_TO_128B(mfc_ctx->img_width);
+			aligned_height = ALIGN_TO_32B(mfc_ctx->img_height);
+			dma_unmap_single(NULL, dec_arg->out_display_Y_addr,
+				aligned_width*aligned_height, DMA_FROM_DEVICE);
+
+			aligned_height = ALIGN_TO_32B(mfc_ctx->img_height/2);
+			dma_unmap_single(NULL, dec_arg->out_display_C_addr,
+				aligned_width*aligned_height, DMA_FROM_DEVICE);
+		}
 	}
 
 	mfc_debug_L0("--\n");
