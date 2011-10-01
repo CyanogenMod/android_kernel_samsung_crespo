@@ -66,9 +66,6 @@ extern void rcu_barrier_sched(void);
 extern void synchronize_sched_expedited(void);
 extern int sched_expedited_torture_stats(char *page);
 
-/* Internal to kernel */
-extern void rcu_init(void);
-
 #ifdef CONFIG_PREEMPT_RCU
 
 /*
