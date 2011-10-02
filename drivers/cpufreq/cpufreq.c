@@ -32,6 +32,9 @@
 #define dprintk(msg...) cpufreq_debug_printk(CPUFREQ_DEBUG_CORE, \
 						"cpufreq-core", msg)
 
+/* UV */
+int exp_UV_mV[9] = { 1440000, 1390000, 1330000, 1290000, 1250000, 1200000, 1050000, 950000, 950000};
+
 /**
  * The "cpufreq driver" - the arch- or hardware-dependent low
  * level driver of CPUFreq support, and its spinlock. This lock
@@ -220,7 +223,7 @@ static void cpufreq_debug_disable_ratelimit(void)
 	spin_unlock_irqrestore(&disable_ratelimit_lock, flags);
 }
 
-void cpufreq_debug_printk(unsigned int type, const char *prefix,
+void cpufreq_debug_printk(unsigned int type, const char *prefix,return sprintf(buf, "1440mhz: %d mV\\n1200mhz:
 			const char *fmt, ...)
 {
 	char s[256];
@@ -647,6 +650,30 @@ static ssize_t show_scaling_setspeed(struct cpufreq_policy *policy, char *buf)
 	return policy->governor->show_setspeed(policy, buf);
 }
 
+/* sysfs interface for UV control */
+static ssize_t show_UV_mV_table(struct cpufreq_policy *policy, char *buf) {
+
+	return sprintf(buf, "1440mhz: %d mV\n1300mhz: %d mV\n1200mhz: %d mV\n1100mhz: %d mV\n1000mhz: %d mV\n800mhz: %d mV\n400mhz: %d mV\n200mhz: %d mV\n100mhz: %d mV\n", exp_UV_mV[0]/1000, exp_UV_mV[1]/1000, exp_UV_mV[2]/1000, exp_UV_mV[3]/1000, exp_UV_mV[4]/1000, exp_UV_mV[5]/1000, exp_UV_mV[6]/1000, exp_UV_mV[7]/1000, exp_UV_mV[8]/1000);
+
+}
+
+static ssize_t store_UV_mV_table(struct cpufreq_policy *policy,
+					const char *buf, size_t count) {
+
+	unsigned int ret = -EINVAL;
+	int i = 0;
+	ret = sscanf(buf, "%d %d %d %d %d %d %d %d %d", &exp_UV_mV[0], &exp_UV_mV[1], &exp_UV_mV[2], &exp_UV_mV[3], &exp_UV_mV[4], &exp_UV_mV[5], &exp_UV_mV[6], &exp_UV_mV[7], &exp_UV_mV[8]);
+	if(ret != 9) {
+		return -EINVAL;
+	}
+	else
+		for( i = 0; i < 9; i++ )
+		{
+		   exp_UV_mV[i] *= 1000;
+		}
+		return count;
+}
+
 /**
  * show_scaling_driver - show the current cpufreq HW/BIOS limitation
  */
@@ -676,6 +703,8 @@ cpufreq_freq_attr_rw(scaling_min_freq);
 cpufreq_freq_attr_rw(scaling_max_freq);
 cpufreq_freq_attr_rw(scaling_governor);
 cpufreq_freq_attr_rw(scaling_setspeed);
+/* UV table */
+cpufreq_freq_attr_rw(UV_mV_table);
 
 static struct attribute *default_attrs[] = {
 	&cpuinfo_min_freq.attr,
@@ -689,6 +718,7 @@ static struct attribute *default_attrs[] = {
 	&scaling_driver.attr,
 	&scaling_available_governors.attr,
 	&scaling_setspeed.attr,
+	&UV_mV_table.attr,
 	NULL
 };
 

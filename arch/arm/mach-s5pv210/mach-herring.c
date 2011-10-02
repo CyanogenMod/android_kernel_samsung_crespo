@@ -708,7 +708,7 @@ static struct regulator_init_data herring_buck1_data = {
 		.valid_ops_mask	= REGULATOR_CHANGE_VOLTAGE |
 				  REGULATOR_CHANGE_STATUS,
 		.state_mem	= {
-			.uV	= 1250000,
+			.uV	= 1472000,
 			.mode	= REGULATOR_MODE_NORMAL,
 			.disabled = 1,
 		},
@@ -726,7 +726,7 @@ static struct regulator_init_data herring_buck2_data = {
 		.valid_ops_mask	= REGULATOR_CHANGE_VOLTAGE |
 				  REGULATOR_CHANGE_STATUS,
 		.state_mem	= {
-			.uV	= 1100000,
+			.uV	= 1250000,
 			.mode	= REGULATOR_MODE_NORMAL,
 			.disabled = 1,
 		},
@@ -1542,7 +1542,7 @@ static struct platform_device s3c_device_i2c12 = {
 static struct i2c_gpio_platform_data i2c14_platdata = {
 	.sda_pin		= NFC_SDA_18V,
 	.scl_pin		= NFC_SCL_18V,
-	.udelay			= 2,
+	.udelay			= 1,
 	.sda_is_open_drain      = 0,
 	.scl_is_open_drain      = 0,
 	.scl_is_output_only     = 0,
@@ -5912,9 +5912,8 @@ void otg_phy_init(void)
 	writel(readl(S3C_USBOTG_PHYTUNE) | (0x1<<20),
 			S3C_USBOTG_PHYTUNE);
 
-	/* set DC level as 6 (6%) */
-	writel((readl(S3C_USBOTG_PHYTUNE) & ~(0xf)) | (0x1<<2) | (0x1<<1),
-			S3C_USBOTG_PHYTUNE);
+	/* set DC level as 0xf (24%) */
+	writel(readl(S3C_USBOTG_PHYTUNE) | 0xf, S3C_USBOTG_PHYTUNE);
 }
 EXPORT_SYMBOL(otg_phy_init);
 
