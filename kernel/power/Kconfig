@@ -48,7 +48,8 @@ config CAN_PM_TRACE
 	depends on PM_DEBUG && PM_SLEEP && EXPERIMENTAL
 
 config PM_TRACE
-	bool
+	bool "Power Management Trace Support"
+	depends on PM
 	help
 	  This enables code to save the last PM event point across
 	  reboot. The architecture needs to support this, x86 for
@@ -140,6 +141,13 @@ config HAS_WAKELOCK
 config HAS_EARLYSUSPEND
 	bool
 
+config SYS_SYNC_BLOCKING_DEBUG
+	bool "Enable a debug timer during sys_sync"
+	default n
+	---help---
+	  Enable sys_sync blocking debug. Sys_rq will be showed in kernel
+	  log once the sys_sync time over 3 seconds.
+
 config WAKELOCK
 	bool "Wake lock"
 	depends on PM && RTC_CLASS
@@ -174,6 +182,13 @@ config EARLYSUSPEND
 	---help---
 	  Call early suspend handlers when the user requested sleep state
 	  changes.
+
+config NO_SUSPEND
+	bool "No suspend"
+	depends on EARLYSUSPEND
+	default n
+	---help---
+	  Prevent device suspend after early suspend
 
 choice
 	prompt "User-space screen access"

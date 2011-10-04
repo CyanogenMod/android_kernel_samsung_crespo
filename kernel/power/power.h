@@ -245,6 +245,7 @@ static inline void suspend_thaw_processes(void)
 /* kernel/power/wakelock.c */
 extern struct workqueue_struct *suspend_work_queue;
 extern struct wake_lock main_wake_lock;
+extern struct wake_lock no_suspend_wake_lock;
 extern suspend_state_t requested_suspend_state;
 #endif
 
@@ -263,4 +264,8 @@ ssize_t  wake_unlock_store(struct kobject *kobj, struct kobj_attribute *attr,
 /* kernel/power/earlysuspend.c */
 void request_suspend_state(suspend_state_t state);
 suspend_state_t get_suspend_state(void);
+#ifdef CONFIG_HTC_ONMODE_CHARGING
+void request_onchg_state(int on);
+int get_onchg_state(void);
+#endif
 #endif
