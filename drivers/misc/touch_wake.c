@@ -136,7 +136,7 @@ static void touchwake_late_resume(struct early_suspend * h)
 
 static struct early_suspend touchwake_suspend_data = 
     {
-	.level = EARLY_SUSPEND_LEVEL_BLANK_SCREEN + 1,
+	.level = EARLY_SUSPEND_LEVEL_BLANK_SCREEN,
 	.suspend = touchwake_early_suspend,
 	.resume = touchwake_late_resume,
     };
