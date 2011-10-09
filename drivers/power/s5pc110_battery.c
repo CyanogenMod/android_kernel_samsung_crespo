@@ -47,10 +47,6 @@
 #include "s5pc110_battery.h"
 #include <linux/mfd/max8998.h>
 
-#ifdef CONFIG_BLX
-#include <linux/blx.h>
-#endif
-
 #define POLLING_INTERVAL	1000
 #define ADC_TOTAL_COUNT		10
 #define ADC_DATA_ARR_SIZE	6
@@ -413,14 +409,6 @@ static void s3c_bat_discharge_reason(struct chg_data *chg)
 
 	if (chg->set_batt_full)
 		chg->bat_info.dis_reason |= DISCONNECT_BAT_FULL;
-
-#ifdef CONFIG_BLX
-	if (chg->bat_info.batt_soc >= get_charginglimit())
-	    {
-    		chg->bat_info.dis_reason |= DISCONNECT_BAT_FULL;
-            chg->bat_info.batt_is_full = true;
-	    }
-#endif
 
 	if (chg->bat_info.batt_health != POWER_SUPPLY_HEALTH_GOOD)
 		chg->bat_info.dis_reason |= chg->bat_info.batt_health ==
