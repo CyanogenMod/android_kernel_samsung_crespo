@@ -131,6 +131,8 @@ static void gp2a_light_enable(struct gp2a_data *gp2a)
 {
 	gp2a_dbgmsg("starting poll timer, delay %lldns\n",
 		    ktime_to_ns(gp2a->light_poll_delay));
+	/* push -1 to input subsystem to enable real value to go through next */
+	input_report_abs(gp2a->light_input_dev, ABS_MISC, -1);
 	hrtimer_start(&gp2a->timer, gp2a->light_poll_delay, HRTIMER_MODE_REL);
 }
 
