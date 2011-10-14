@@ -435,4 +435,12 @@ config KEYPAD_CYPRESS_TOUCH
 	  To compile this driver as a module, choose M here: the
 	  module will be called cypress-touchkey.
 
+config KEYPAD_CYPRESS_TOUCH_USE_BLN
+	bool "Cypress touch keypad: use backlight notification"
+	depends on KEYPAD_CYPRESS_TOUCH
+	default y
+	help
+	  Say Y here to enable the backlight notification
+	  for android led-notification (modified liblight needed)
+
 endif
