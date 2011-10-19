@@ -465,22 +465,4 @@ config PN544
 	help
 	  NXP PN544 Near Field Communication controller support.
 
-config BLD
-       bool "BLD support for backlight dimmer"
-       default y
-       help
-         Say Y here to enable the backlight dimmer
-
-config SCREEN_DIMMER
-       bool "Support for screen dimmer"
-       default y
-       help
-         Say Y here to enable the screen dimmer
-
-config TOUCH_WAKE
-       bool "Support for touch wake"
-       default y
-       help
-         Say Y here to enable touch wake
-
 endif # MISC_DEVICES
