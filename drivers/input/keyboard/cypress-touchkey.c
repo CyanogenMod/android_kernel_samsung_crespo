@@ -43,16 +43,22 @@
 #define OLD_BACKLIGHT_ON	0x1
 #define OLD_BACKLIGHT_OFF	0x2
 
-#define BACKLIGHT_TIMEOUT  10000
-
 #define DEVICE_NAME "cypress-touchkey"
+#define LED_VERSION 2
 
 int bl_on = 0;
+int iBlink = 0;
+unsigned int iTimeOn = 100;
+unsigned int iTimeOff = 1000;
+unsigned int iNotificationTimeOut = 0;
+unsigned int Backlight_Timeout = 10000;
 static DECLARE_MUTEX(enable_sem);
 static DECLARE_MUTEX(i2c_sem);
 
 struct cypress_touchkey_devdata *bl_devdata;
 static struct timer_list bl_timer;
+static struct timer_list bl_binkOn_timer;
+static struct timer_list bl_blinkOff_timer;
 static void bl_off(struct work_struct *bl_off_work);
 static DECLARE_WORK(bl_off_work, bl_off);
 
@@ -225,7 +231,8 @@ static irqreturn_t touchkey_interrupt_thread(int irq, void *touchkey_devdata)
 	}
 
 	input_sync(devdata->input_dev);
-    mod_timer(&bl_timer, jiffies + msecs_to_jiffies(BACKLIGHT_TIMEOUT));
+    if ( Backlight_Timeout > 0 )
+        mod_timer(&bl_timer, jiffies + msecs_to_jiffies(Backlight_Timeout));
 err:
 	return IRQ_HANDLED;
 }
@@ -332,7 +339,8 @@ static void cypress_touchkey_early_resume(struct early_suspend *h)
 
     up(&enable_sem);
 
-    mod_timer(&bl_timer, jiffies + msecs_to_jiffies(BACKLIGHT_TIMEOUT));
+    if ( Backlight_Timeout > 0 )
+        mod_timer(&bl_timer, jiffies + msecs_to_jiffies(Backlight_Timeout));
 }
 #endif
 
@@ -353,10 +361,33 @@ static ssize_t led_status_write(struct device *dev, struct device_attribute *att
 	return size;
 }
 
+static ssize_t led_timeout_read(struct device *dev, struct device_attribute *attr, char *buf) {
+	return sprintf(buf,"%u\n", Backlight_Timeout);
+}
+
+static ssize_t led_timeout_write(struct device *dev, struct device_attribute *attr, const char *buf, size_t size)
+{
+	unsigned int data;
+
+	if (sscanf(buf, "%u\n", &data)) {
+        Backlight_Timeout = data;
+	}
+	return size;
+}
+
+static ssize_t led_version_read(struct device * dev, struct device_attribute * attr, char * buf)
+{
+    return sprintf(buf, "%u\n", LED_VERSION);
+}
+
 static DEVICE_ATTR(led, S_IRUGO | S_IWUGO , led_status_read, led_status_write);
+static DEVICE_ATTR(timeout, S_IRUGO | S_IWUGO , led_timeout_read, led_timeout_write);
+static DEVICE_ATTR(version, S_IRUGO , led_version_read, NULL);
 
 static struct attribute *bl_led_attributes[] = {
 		&dev_attr_led.attr,
+        &dev_attr_timeout.attr,
+        &dev_attr_version.attr,
 		NULL
 };
 
