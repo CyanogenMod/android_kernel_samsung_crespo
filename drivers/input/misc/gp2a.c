@@ -66,6 +66,9 @@
 #define PROXIMITY	1
 #define ALL		2
 
+/* start time delay for light sensor in nano seconds */
+#define LIGHT_SENSOR_START_TIME_DELAY 50000000
+
 static u8 reg_defaults[5] = {
 	0x00, /* PROX: read only register */
 	0x08, /* GAIN: large LED drive level */
@@ -133,7 +136,8 @@ static void gp2a_light_enable(struct gp2a_data *gp2a)
 		    ktime_to_ns(gp2a->light_poll_delay));
 	/* push -1 to input subsystem to enable real value to go through next */
 	input_report_abs(gp2a->light_input_dev, ABS_MISC, -1);
-	hrtimer_start(&gp2a->timer, gp2a->light_poll_delay, HRTIMER_MODE_REL);
+	hrtimer_start(&gp2a->timer, ktime_set(0, LIGHT_SENSOR_START_TIME_DELAY),
+					HRTIMER_MODE_REL);
 }
 
 static void gp2a_light_disable(struct gp2a_data *gp2a)
