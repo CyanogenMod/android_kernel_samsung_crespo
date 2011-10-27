@@ -52,8 +52,6 @@
 
 #define gp2a_dbgmsg(str, args...) pr_debug("%s: " str, __func__, ##args)
 
-#define ADC_BUFFER_NUM	6
-
 /* ADDSEL is LOW */
 #define REGS_PROX		0x0 /* Read  Only */
 #define REGS_GAIN		0x1 /* Write Only */
@@ -92,9 +90,6 @@ struct gp2a_data {
 	struct work_struct work_light;
 	struct hrtimer timer;
 	ktime_t light_poll_delay;
-	int adc_value_buf[ADC_BUFFER_NUM];
-	int adc_index_count;
-	bool adc_buf_initialized;
 	bool on;
 	u8 power_state;
 	struct mutex power_lock;
@@ -134,8 +129,11 @@ static void gp2a_light_enable(struct gp2a_data *gp2a)
 {
 	gp2a_dbgmsg("starting poll timer, delay %lldns\n",
 		    ktime_to_ns(gp2a->light_poll_delay));
-	/* push -1 to input subsystem to enable real value to go through next */
-	input_report_abs(gp2a->light_input_dev, ABS_MISC, -1);
+	/*
+	 * Set far out of range ABS_MISC value, -1024, to enable real value to
+	 * go through next.
+	 */
+	input_abs_set_val(gp2a->light_input_dev, ABS_MISC, -1024);
 	hrtimer_start(&gp2a->timer, ktime_set(0, LIGHT_SENSOR_START_TIME_DELAY),
 					HRTIMER_MODE_REL);
 }
@@ -145,10 +143,6 @@ static void gp2a_light_disable(struct gp2a_data *gp2a)
 	gp2a_dbgmsg("cancelling poll timer\n");
 	hrtimer_cancel(&gp2a->timer);
 	cancel_work_sync(&gp2a->work_light);
-	/* mark the adc buff as not initialized
-	 * so that it will be filled again on next light sensor start
-	 */
-	gp2a->adc_buf_initialized = false;
 }
 
 static ssize_t poll_delay_show(struct device *dev,
@@ -307,65 +301,18 @@ static struct attribute_group proximity_attribute_group = {
 	.attrs = proximity_sysfs_attrs,
 };
 
-static int lightsensor_get_adcvalue(struct gp2a_data *gp2a)
-{
-	int i = 0;
-	int j = 0;
-	unsigned int adc_total = 0;
-	int adc_avr_value;
-	unsigned int adc_index = 0;
-	unsigned int adc_max = 0;
-	unsigned int adc_min = 0;
-	int value = 0;
-
-	/* get ADC value */
-	value = gp2a->pdata->light_adc_value();
-	if (value < 0) {
-		pr_err("adc returned error %d\n", value);
-		return value;
-	}
-	gp2a_dbgmsg("adc returned light value %d\n", value);
-
-	adc_index = (gp2a->adc_index_count++) % ADC_BUFFER_NUM;
-
-	/* ADC buffer initialize (light sensor off ---> light sensor on) */
-	if (!gp2a->adc_buf_initialized) {
-		gp2a->adc_buf_initialized = true;
-		for (j = 0; j < ADC_BUFFER_NUM; j++)
-			gp2a->adc_value_buf[j] = value;
-	} else
-		gp2a->adc_value_buf[adc_index] = value;
-
-	adc_max = gp2a->adc_value_buf[0];
-	adc_min = gp2a->adc_value_buf[0];
-
-	for (i = 0; i < ADC_BUFFER_NUM; i++) {
-		adc_total += gp2a->adc_value_buf[i];
-
-		if (adc_max < gp2a->adc_value_buf[i])
-			adc_max = gp2a->adc_value_buf[i];
-
-		if (adc_min > gp2a->adc_value_buf[i])
-			adc_min = gp2a->adc_value_buf[i];
-	}
-	adc_avr_value = (adc_total-(adc_max+adc_min))/(ADC_BUFFER_NUM-2);
-
-	if (gp2a->adc_index_count == ADC_BUFFER_NUM)
-		gp2a->adc_index_count = 0;
-
-	gp2a_dbgmsg("average adc light value %d\n", adc_avr_value);
-	return adc_avr_value;
-}
-
 static void gp2a_work_func_light(struct work_struct *work)
 {
 	struct gp2a_data *gp2a = container_of(work, struct gp2a_data,
 					      work_light);
-	int adc = lightsensor_get_adcvalue(gp2a);
-	if (adc >= 0) {
-		input_report_abs(gp2a->light_input_dev, ABS_MISC, adc);
-		input_sync(gp2a->light_input_dev);
+	int adc = gp2a->pdata->light_adc_value();
+	if (adc < 0) {
+		pr_err("adc returned error %d\n", adc);
+		return;
 	}
+	gp2a_dbgmsg("adc returned light value %d\n", adc);
+	input_report_abs(gp2a->light_input_dev, ABS_MISC, adc);
+	input_sync(gp2a->light_input_dev);
 }
 
 /* This function is for light sensor.  It operates every a few seconds.
@@ -549,7 +496,7 @@ static int gp2a_i2c_probe(struct i2c_client *client,
 	input_set_drvdata(input_dev, gp2a);
 	input_dev->name = "lightsensor-level";
 	input_set_capability(input_dev, EV_ABS, ABS_MISC);
-	input_set_abs_params(input_dev, ABS_MISC, 0, 1, 0, 0);
+	input_set_abs_params(input_dev, ABS_MISC, 0, 1023, 8, 0);
 
 	gp2a_dbgmsg("registering lightsensor-level input device\n");
 	ret = input_register_device(input_dev);
