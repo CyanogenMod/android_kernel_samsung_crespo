@@ -35,16 +35,12 @@ static unsigned int iTimeBlink = 200;
 static unsigned int iTimesOn = 1;
 static unsigned int iTimesTotal = 10;
 static unsigned int iBlinkOnOffCounts = 0;
-static iBlinkMilisecondsTimeout = 1500;
+static unsigned int iBlinkMilisecondsTimeout = 1500;
 static DECLARE_MUTEX(enable_sem);
 static DECLARE_MUTEX(i2c_sem);
 static uint32_t blink_count;
 
-static struct timer_list bl_timer;
-static void bl_off(struct work_struct *bl_off_work);
 static bool system_is_sleeping = false;
-static bool bNotificated = false;
-static DECLARE_WORK(bl_off_work, bl_off);
 
 static void blink_timer_callback(unsigned long data);
 static struct timer_list blink_timer = TIMER_INITIALIZER(blink_timer_callback, 0, 0);
@@ -143,7 +139,7 @@ static ssize_t led_status_write(struct device *dev, struct device_attribute *att
 	if (sscanf(buf, "%u\n", &data)) {
         if (system_is_sleeping) {
             if (data == 0 && bl_on == 0)
-                return;
+                return 0;
             if (data == 1 && bl_on == 0) {
                 printk(KERN_DEBUG "%s: notification led enabled\n", __FUNCTION__);
                 if (bBlink && data == 1 && bl_on != 1) {
@@ -231,18 +227,18 @@ static ssize_t led_version_read(struct device * dev, struct device_attribute * a
 }
 
 static DEVICE_ATTR(led, S_IRUGO | S_IWUGO , led_status_read, led_status_write);
-static DEVICE_ATTR(timeout, S_IRUGO | S_IWUGO , led_timeout_read, led_timeout_write);
+static DEVICE_ATTR(bl_timeout, S_IRUGO | S_IWUGO , led_timeout_read, led_timeout_write);
 static DEVICE_ATTR(blinktimeout, S_IRUGO | S_IWUGO , led_blinktimeout_read, led_blinktimeout_write);
 static DEVICE_ATTR(blink, S_IRUGO | S_IWUGO , led_blink_read, led_blink_write);
 static DEVICE_ATTR(version, S_IRUGO , led_version_read, NULL);
 
 static struct attribute *bl_led_attributes[] = {
-		&dev_attr_led.attr,
-        &dev_attr_timeout.attr,
+	&dev_attr_led.attr,
+        &dev_attr_bl_timeout.attr,
         &dev_attr_blinktimeout.attr,
         &dev_attr_blink.attr,
         &dev_attr_version.attr,
-		NULL
+	NULL
 };
 
 static struct attribute_group bl_led_group = {
