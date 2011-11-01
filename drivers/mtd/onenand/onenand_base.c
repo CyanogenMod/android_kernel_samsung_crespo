@@ -3925,11 +3925,13 @@ static void onenand_resume(struct mtd_info *mtd)
 {
 	struct onenand_chip *this = mtd->priv;
 
-	if (this->state == FL_PM_SUSPENDED)
+	if (this->state == FL_PM_SUSPENDED) {
+		onenand_invalidate_bufferram(mtd, 0, -1);
 		onenand_release_device(mtd);
-	else
+	} else {
 		printk(KERN_ERR "%s: resume() called for the chip which is not "
 				"in suspended state\n", __func__);
+	}
 }
 
 /**
