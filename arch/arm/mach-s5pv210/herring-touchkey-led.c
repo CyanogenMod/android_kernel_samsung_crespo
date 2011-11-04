@@ -199,6 +199,10 @@ static ssize_t led_blinktimeout_write(struct device *dev, struct device_attribut
 
 	if (sscanf(buf, "%u\n", &data)) {
         iBlinkMilisecondsTimeout = data * 300;
+        if(data >= 1)
+            bBlink = true;
+        else
+            bBlink = false;
 	}
 	mod_timer(&blink_timer, jiffies + msecs_to_jiffies(iTimeBlink));
 	return size;
