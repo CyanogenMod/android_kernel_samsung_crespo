@@ -1,7 +1,7 @@
 #
 # Automatically generated make config: don't edit
 # Linux kernel version: 2.6.35.14
-# Sun Nov  6 11:32:55 2011
+# Sun Nov  6 12:05:41 2011
 #
 CONFIG_ARM=y
 CONFIG_HAVE_PWM=y
@@ -1816,8 +1816,7 @@ CONFIG_ANDROID_LOW_MEMORY_KILLER=y
 # RAR Register Driver
 #
 # CONFIG_IIO is not set
-CONFIG_ZRAM=y
-# CONFIG_ZRAM_DEBUG is not set
+# CONFIG_ZRAM is not set
 # CONFIG_BATMAN_ADV is not set
 # CONFIG_FB_SM7XX is not set
 
@@ -2227,8 +2226,6 @@ CONFIG_CRC32=y
 CONFIG_LIBCRC32C=y
 CONFIG_ZLIB_INFLATE=y
 CONFIG_ZLIB_DEFLATE=y
-CONFIG_LZO_COMPRESS=y
-CONFIG_LZO_DECOMPRESS=y
 CONFIG_XZ_DEC=y
 CONFIG_XZ_DEC_X86=y
 CONFIG_XZ_DEC_POWERPC=y
