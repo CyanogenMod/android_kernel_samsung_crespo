@@ -447,10 +447,6 @@ static ssize_t led_timeout_write(struct device *dev, struct device_attribute *at
 
 	if (sscanf(buf, "%u\n", &data)) {
             iBlinkOnOffCounts = data * 1000;
-            if(data >= 1)
-                bl_on = 1;
-            else
-                bl_on = 0;
 	}
 	return size;
 }
