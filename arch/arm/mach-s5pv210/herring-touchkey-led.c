@@ -34,7 +34,6 @@ static int iCountsBlink = 0;
 static unsigned int iTimeBlink = 200;
 static unsigned int iTimesOn = 1;
 static unsigned int iTimesTotal = 10;
-static unsigned int iBlinkOnOffCounts = 0;
 static unsigned int iBlinkMilisecondsTimeout = 1500;
 static DECLARE_MUTEX(enable_sem);
 static DECLARE_MUTEX(i2c_sem);
@@ -169,23 +168,6 @@ static ssize_t led_status_write(struct device *dev, struct device_attribute *att
 	return size;
 }
 
-static ssize_t led_timeout_read(struct device *dev, struct device_attribute *attr, char *buf) {
-unsigned int iSeconds;
-
-    iSeconds = iBlinkOnOffCounts / 1000;
-	return sprintf(buf,"%u\n", iSeconds);
-}
-
-static ssize_t led_timeout_write(struct device *dev, struct device_attribute *attr, const char *buf, size_t size)
-{
-	unsigned int data;
-
-	if (sscanf(buf, "%u\n", &data)) {
-        iBlinkOnOffCounts = data * 1000;
-	}
-	return size;
-}
-
 static ssize_t led_blinktimeout_read(struct device *dev, struct device_attribute *attr, char *buf) {
 unsigned int iMinutes;
 
@@ -231,14 +213,12 @@ static ssize_t led_version_read(struct device * dev, struct device_attribute * a
 }
 
 static DEVICE_ATTR(led, S_IRUGO | S_IWUGO , led_status_read, led_status_write);
-static DEVICE_ATTR(bl_timeout, S_IRUGO | S_IWUGO , led_timeout_read, led_timeout_write);
 static DEVICE_ATTR(blinktimeout, S_IRUGO | S_IWUGO , led_blinktimeout_read, led_blinktimeout_write);
 static DEVICE_ATTR(blink, S_IRUGO | S_IWUGO , led_blink_read, led_blink_write);
 static DEVICE_ATTR(version, S_IRUGO , led_version_read, NULL);
 
 static struct attribute *bl_led_attributes[] = {
 	&dev_attr_led.attr,
-        &dev_attr_bl_timeout.attr,
         &dev_attr_blinktimeout.attr,
         &dev_attr_blink.attr,
         &dev_attr_version.attr,
