@@ -74,7 +74,7 @@ enum hcill_states_e {
 
 struct hcill_cmd {
 	u8 cmd;
-} __packed;
+} __attribute__((packed));
 
 struct ll_struct {
 	unsigned long rx_state;
@@ -517,7 +517,7 @@ static struct hci_uart_proto llp = {
 	.flush		= ll_flush,
 };
 
-int __init ll_init(void)
+int ll_init(void)
 {
 	int err = hci_uart_register_proto(&llp);
 
@@ -529,7 +529,7 @@ int __init ll_init(void)
 	return err;
 }
 
-int __exit ll_deinit(void)
+int ll_deinit(void)
 {
 	return hci_uart_unregister_proto(&llp);
 }
