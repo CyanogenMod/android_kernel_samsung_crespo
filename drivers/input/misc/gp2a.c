@@ -135,7 +135,8 @@ static void gp2a_light_enable(struct gp2a_data *gp2a)
 	 * Set far out of range ABS_MISC value, -1024, to enable real value to
 	 * go through next.
 	 */
-	input_abs_set_val(gp2a->light_input_dev, ABS_MISC, -1024);
+	input_abs_set_val(gp2a->light_input_dev,
+			  ABS_MISC, -gp2a->pdata->light_adc_max);
 	hrtimer_start(&gp2a->timer, ktime_set(0, LIGHT_SENSOR_START_TIME_DELAY),
 					HRTIMER_MODE_REL);
 }
@@ -505,7 +506,8 @@ static int gp2a_i2c_probe(struct i2c_client *client,
 	input_set_drvdata(input_dev, gp2a);
 	input_dev->name = "lightsensor-level";
 	input_set_capability(input_dev, EV_ABS, ABS_MISC);
-	input_set_abs_params(input_dev, ABS_MISC, 0, 1023, 8, 0);
+	input_set_abs_params(input_dev, ABS_MISC, 0, pdata->light_adc_max,
+			     pdata->light_adc_fuzz, 0);
 
 	gp2a_dbgmsg("registering lightsensor-level input device\n");
 	ret = input_register_device(input_dev);
