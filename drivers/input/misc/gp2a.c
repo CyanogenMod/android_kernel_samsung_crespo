@@ -52,7 +52,6 @@
 
 #define gp2a_dbgmsg(str, args...) pr_debug("%s: " str, __func__, ##args)
 
-
 #define ADC_BUFFER_NUM	6
 
 /* ADDSEL is LOW */
@@ -74,8 +73,6 @@ static u8 reg_defaults[5] = {
 	0x04, /* CYCLE: */
 	0x01, /* OPMOD: normal operating mode */
 };
-
-struct gp2a_data;
 
 enum {
 	LIGHT_ENABLED = BIT(0),
@@ -142,6 +139,10 @@ static void gp2a_light_disable(struct gp2a_data *gp2a)
 	gp2a_dbgmsg("cancelling poll timer\n");
 	hrtimer_cancel(&gp2a->timer);
 	cancel_work_sync(&gp2a->work_light);
+	/* mark the adc buff as not initialized
+	 * so that it will be filled again on next light sensor start
+	 */
+	gp2a->adc_buf_initialized = false;
 }
 
 static ssize_t poll_delay_show(struct device *dev,
@@ -313,10 +314,11 @@ static int lightsensor_get_adcvalue(struct gp2a_data *gp2a)
 
 	/* get ADC */
 	value = gp2a->pdata->light_adc_value();
+	gp2a_dbgmsg("adc returned light value %d\n", value);
 
 	adc_index = (gp2a->adc_index_count++) % ADC_BUFFER_NUM;
 
-	/*ADC buffer initialize (light sensor off ---> light sensor on) */
+	/* ADC buffer initialize (light sensor off ---> light sensor on) */
 	if (!gp2a->adc_buf_initialized) {
 		gp2a->adc_buf_initialized = true;
 		for (j = 0; j < ADC_BUFFER_NUM; j++)
@@ -341,6 +343,7 @@ static int lightsensor_get_adcvalue(struct gp2a_data *gp2a)
 	if (gp2a->adc_index_count == ADC_BUFFER_NUM-1)
 		gp2a->adc_index_count = 0;
 
+	gp2a_dbgmsg("average adc light value %d\n", adc_avr_value);
 	return adc_avr_value;
 }
 
@@ -381,7 +384,6 @@ irqreturn_t gp2a_irq_handler(int irq, void *data)
 	input_report_abs(ip->proximity_input_dev, ABS_DISTANCE, val);
 	input_sync(ip->proximity_input_dev);
 	wake_lock_timeout(&ip->prx_wake_lock, 3*HZ);
-
 	return IRQ_HANDLED;
 }
 
@@ -467,9 +469,9 @@ static int gp2a_i2c_probe(struct i2c_client *client,
 	gp2a->i2c_client = client;
 	i2c_set_clientdata(client, gp2a);
 
-	/* wake lock init */
+
 	wake_lock_init(&gp2a->prx_wake_lock, WAKE_LOCK_SUSPEND,
-		       "prx_wake_lock");
+		"prx_wake_lock");
 	mutex_init(&gp2a->power_lock);
 
 	ret = gp2a_setup_irq(gp2a);
@@ -510,7 +512,8 @@ static int gp2a_i2c_probe(struct i2c_client *client,
 	gp2a->timer.function = gp2a_timer_func;
 
 	/* the timer just fires off a work queue request.  we need a thread
-	   to read the i2c (can be slow and blocking). */
+	 * to read the i2c (can be slow and blocking)
+	 */
 	gp2a->wq = create_singlethread_workqueue("gp2a_wq");
 	if (!gp2a->wq) {
 		ret = -ENOMEM;
@@ -561,7 +564,7 @@ err_sysfs_create_group_proximity:
 	input_unregister_device(gp2a->proximity_input_dev);
 err_input_register_device_proximity:
 err_input_allocate_device_proximity:
-	free_irq(gp2a->irq, 0);
+	free_irq(gp2a->irq, gp2a);
 	gpio_free(gp2a->pdata->p_out);
 err_setup_irq:
 	mutex_destroy(&gp2a->power_lock);
@@ -574,10 +577,10 @@ done:
 static int gp2a_suspend(struct device *dev)
 {
 	/* We disable power only if proximity is disabled.  If proximity
-	   is enabled, we leave power on because proximity is allowed
-	   to wake up device.  We remove power without changing
-	   gp2a->power_state because we use that state in resume.
-	*/
+	 * is enabled, we leave power on because proximity is allowed
+	 * to wake up device.  We remove power without changing
+	 * gp2a->power_state because we use that state in resume
+	 */
 	struct i2c_client *client = to_i2c_client(dev);
 	struct gp2a_data *gp2a = i2c_get_clientdata(client);
 	if (gp2a->power_state & LIGHT_ENABLED)
@@ -604,11 +607,12 @@ static int gp2a_i2c_remove(struct i2c_client *client)
 	struct gp2a_data *gp2a = i2c_get_clientdata(client);
 	sysfs_remove_group(&gp2a->light_input_dev->dev.kobj,
 			   &light_attribute_group);
-	input_unregister_device(gp2a->light_input_dev);
 	sysfs_remove_group(&gp2a->proximity_input_dev->dev.kobj,
 			   &proximity_attribute_group);
+	free_irq(gp2a->irq, gp2a);
+	destroy_workqueue(gp2a->wq);
+	input_unregister_device(gp2a->light_input_dev);
 	input_unregister_device(gp2a->proximity_input_dev);
-	free_irq(gp2a->irq, NULL);
 	gpio_free(gp2a->pdata->p_out);
 	if (gp2a->power_state) {
 		gp2a->power_state = 0;
@@ -616,7 +620,6 @@ static int gp2a_i2c_remove(struct i2c_client *client)
 			gp2a_light_disable(gp2a);
 		gp2a->pdata->power(false);
 	}
-	destroy_workqueue(gp2a->wq);
 	mutex_destroy(&gp2a->power_lock);
 	wake_lock_destroy(&gp2a->prx_wake_lock);
 	kfree(gp2a);
