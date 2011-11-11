@@ -815,98 +815,6 @@ static IMG_BOOL ProcessFlipV1(IMG_HANDLE hCmdCookie,
 	return IMG_TRUE;
 }
 
-/* FIXME: Shouldn't be using internal interfaces like this */ 
-#include "servicesint.h"
-#include "services.h"
-#include "mm.h"
-
-/************* MUST STAY IN SYNC WITH USER *************/
-
-typedef struct s5pc110_hwc_rect
-{
-	s32 left;
-	s32 top;
-	s32 right;
-	s32 bottom;
-}
-s5pc110_hwc_rect_t;
-
-typedef struct s5pc110_hwc_layer
-{
-	s5pc110_hwc_rect_t sourceCrop;
-	s5pc110_hwc_rect_t displayFrame;
-	u32 transform;
-	u32 skip;
-}
-s5pc110_hwc_layer_t;
-
-/*******************************************************/
-
-/* Triggered by PVRSRVSwapToDCBuffer2 */ 
-static IMG_BOOL ProcessFlipV2(IMG_HANDLE hCmdCookie,
-							  S3C_LCD_DEVINFO *psDevInfo,
-							  IMG_UINT32 ui32SwapInterval,
-							  IMG_VOID **ppvMemInfos,
-							  IMG_UINT32 ui32NumMemInfos,
-							  s5pc110_hwc_layer_t *psHwcData)
-{
-	PVRSRV_KERNEL_MEM_INFO **ppsMemInfos =
-		(PVRSRV_KERNEL_MEM_INFO **)ppvMemInfos;
-	S3C_FRAME_BUFFER *psFb = NULL;
-	LinuxMemArea *psDestArea;
-	IMG_UINT32 i;
-
-	BUG_ON(psHwcData[0].skip != 1);
-	psDestArea = ppsMemInfos[0]->sMemBlk.hOSMemHandle;
-
-	/* Reverse-lookup of referenced back buffer */
-
-	/* Check the system buffer */
-	psFb = &psDevInfo->sSysBuffer;
-	if(psFb->bufferPAddr.uiAddr != LinuxMemAreaToCpuPAddr(psDestArea, 0).uiAddr)
-	{
-		/* Check the back buffers */
-		for(i = 0; i < psDevInfo->ui32NumFrameBuffers; i++)
-		{
-			psFb = &psDevInfo->asBackBuffers[i];
-			if(psFb->bufferPAddr.uiAddr == LinuxMemAreaToCpuPAddr(psDestArea, 0).uiAddr)
-				break;
-		}
-
-		if(i == psDevInfo->ui32NumFrameBuffers)
-		{
-			printk("FB reverse-lookup failed for 0x%.8x\n",
-				   LinuxMemAreaToCpuPAddr(psDestArea, 0).uiAddr);
-			gsPVRJTable.pfnPVRSRVCmdComplete(hCmdCookie, IMG_FALSE);
-			return IMG_FALSE;
-		}
-	}
-
-	/* Now perform FIMC blits */
-	for(i = 1; i < ui32NumMemInfos; i++)
-	{
-		LinuxMemArea *psSourceArea = ppsMemInfos[i]->sMemBlk.hOSMemHandle;
-
-		BUG_ON(psHwcData[i].skip == 1);
-
-		/* SLSI need to implement this! */
-		printk("FIMC blit: 0x%.8x -> 0x%.8x {%d,%d,%d,%d}->{%d,%d,%d,%d}, tr %d\n",
-			   LinuxMemAreaToCpuPAddr(psSourceArea, 0).uiAddr,
-			   LinuxMemAreaToCpuPAddr(psDestArea, 0).uiAddr,
-			   psHwcData[i].sourceCrop.left,
-			   psHwcData[i].sourceCrop.top,
-			   psHwcData[i].sourceCrop.right,
-			   psHwcData[i].sourceCrop.bottom,
-			   psHwcData[i].displayFrame.left,
-			   psHwcData[i].displayFrame.top,
-			   psHwcData[i].displayFrame.right,
-			   psHwcData[i].displayFrame.bottom,
-			   psHwcData[i].transform);
-	}
-
-	return ProcessFlipV1(hCmdCookie, psDevInfo, psFb, ui32SwapInterval);
-}
-
 static IMG_BOOL ProcessFlip(IMG_HANDLE	hCmdCookie,
 							IMG_UINT32	ui32DataSize,
 							IMG_VOID	*pvData)
@@ -936,30 +844,10 @@ static IMG_BOOL ProcessFlip(IMG_HANDLE	hCmdCookie,
 		return IMG_TRUE;
 	}
 
-	if(psFlipCmd->hExtBuffer)
-	{
-		return ProcessFlipV1(hCmdCookie,
-							 psDevInfo,
-							 psFlipCmd->hExtBuffer,
-							 psFlipCmd->ui32SwapInterval);
-	}
-	else
-	{
-		DISPLAYCLASS_FLIP_COMMAND2 *psFlipCmd2;
-		psFlipCmd2 = (DISPLAYCLASS_FLIP_COMMAND2 *)pvData;
-
-		WARN_ON(psFlipCmd2->ui32PrivDataLength !=
-				sizeof(s5pc110_hwc_layer_t) * psFlipCmd2->ui32NumMemInfos);
-
-		BUG_ON(psFlipCmd2->ui32NumMemInfos == 0);
-
-		return ProcessFlipV2(hCmdCookie,
-							 psDevInfo,
-							 psFlipCmd2->ui32SwapInterval,
-							 psFlipCmd2->ppvMemInfos,
-							 psFlipCmd2->ui32NumMemInfos,
-							 psFlipCmd2->pvPrivData);
-	}
+	return ProcessFlipV1(hCmdCookie,
+						 psDevInfo,
+						 psFlipCmd->hExtBuffer,
+						 psFlipCmd->ui32SwapInterval);
 }
 
 static S3C_BOOL InitDev(struct fb_info **s3c_fb_Info)

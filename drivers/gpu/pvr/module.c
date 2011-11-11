@@ -128,6 +128,7 @@ MODULE_PARM_DESC(gPVRDebugLevel, "Sets the level of debug output (default 0x7)")
 #include <linux/omap_ion.h>
 extern struct ion_device *omap_ion_device;
 struct ion_client *gpsIONClient;
+EXPORT_SYMBOL(gpsIONClient);
 #endif 
 
  

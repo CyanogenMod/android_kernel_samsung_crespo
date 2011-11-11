@@ -1700,7 +1700,7 @@ PVRSRV_ERROR PVRSRVSwapToDCBuffer2KM(IMG_HANDLE	hDeviceKM,
 	psFlipCmd->pvPrivData = pvPrivData;
 	psFlipCmd->ui32PrivDataLength = ui32PrivDataLength;
 
-	psFlipCmd->ppvMemInfos = ppvMemInfos;
+	psFlipCmd->ppsMemInfos = (PDC_MEM_INFO *)ppvMemInfos;
 	psFlipCmd->ui32NumMemInfos = ui32NumMemSyncInfos;
 
 	SysAcquireData(&psSysData);
@@ -1988,6 +1988,29 @@ IMG_VOID IMG_CALLCONV PVRSRVSetDCState(IMG_UINT32 ui32State)
 										ui32State);
 }
 
+static PVRSRV_ERROR
+PVRSRVDCMemInfoGetCpuVAddr(PVRSRV_KERNEL_MEM_INFO *psKernelMemInfo,
+						   IMG_CPU_VIRTADDR *pVAddr)
+{
+	*pVAddr = psKernelMemInfo->pvLinAddrKM;
+	return PVRSRV_OK;
+}
+
+static PVRSRV_ERROR
+PVRSRVDCMemInfoGetCpuPAddr(PVRSRV_KERNEL_MEM_INFO *psKernelMemInfo,
+						   IMG_SIZE_T uByteOffset, IMG_CPU_PHYADDR *pPAddr)
+{
+	*pPAddr = OSMemHandleToCpuPAddr(psKernelMemInfo->sMemBlk.hOSMemHandle, uByteOffset);
+	return PVRSRV_OK;
+}
+
+static PVRSRV_ERROR
+PVRSRVDCMemInfoGetByteSize(PVRSRV_KERNEL_MEM_INFO *psKernelMemInfo,
+						   IMG_SIZE_T *uByteSize)
+{
+	*uByteSize = psKernelMemInfo->uAllocSize;
+	return PVRSRV_OK;
+}
 
 IMG_EXPORT
 IMG_BOOL PVRGetDisplayClassJTable(PVRSRV_DC_DISP2SRV_KMJTABLE *psJTable)
@@ -2008,7 +2031,9 @@ IMG_BOOL PVRGetDisplayClassJTable(PVRSRV_DC_DISP2SRV_KMJTABLE *psJTable)
 #if defined(SUPPORT_CUSTOM_SWAP_OPERATIONS)
 	psJTable->pfnPVRSRVFreeCmdCompletePacket = &PVRSRVFreeCommandCompletePacketKM;
 #endif
-
+	psJTable->pfnPVRSRVDCMemInfoGetCpuVAddr = &PVRSRVDCMemInfoGetCpuVAddr;
+	psJTable->pfnPVRSRVDCMemInfoGetCpuPAddr = &PVRSRVDCMemInfoGetCpuPAddr;
+	psJTable->pfnPVRSRVDCMemInfoGetByteSize = &PVRSRVDCMemInfoGetByteSize;
 	return IMG_TRUE;
 }
 

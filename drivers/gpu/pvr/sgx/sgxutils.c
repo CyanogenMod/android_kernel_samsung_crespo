@@ -664,6 +664,7 @@ PVRSRV_ERROR SGXCleanupRequest(PVRSRV_DEVICE_NODE *psDeviceNode,
 		if (eError != PVRSRV_OK)
 		{
 				PVR_DPF((PVR_DBG_ERROR,"SGXCleanupRequest: Failed to submit clean-up command"));
+				SGXDumpDebugInfo(psDevInfo, IMG_FALSE);
 				PVR_DBG_BREAK;
 				return eError;
 		}
@@ -679,6 +680,7 @@ PVRSRV_ERROR SGXCleanupRequest(PVRSRV_DEVICE_NODE *psDeviceNode,
 		{
 			PVR_DPF((PVR_DBG_ERROR,"SGXCleanupRequest: Wait for uKernel to clean up (%u) failed", ui32CleanupType));
 			eError = PVRSRV_ERROR_TIMEOUT;
+			SGXDumpDebugInfo(psDevInfo, IMG_FALSE);
 			PVR_DBG_BREAK;
 		}
 		#endif
