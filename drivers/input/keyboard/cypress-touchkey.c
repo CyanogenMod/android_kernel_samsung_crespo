@@ -402,26 +402,23 @@ static ssize_t led_status_write(struct device *dev, struct device_attribute *att
 {
 	unsigned int data;
 
-    printk(KERN_DEBUG "%s: notification LED ENTER\n", __FUNCTION__);
 	if (sscanf(buf, "%u\n", &data)) {
 	    if (data == 0 && bl_on == 0)
             return 0;
 		if (data >= 1) {
             all_keys_up(bl_devdata);
-            // printk(KERN_DEBUG "%s: notification led enabled\n", __FUNCTION__);
             if (bBlink && data == 1 && bl_on != 1) {
-                // printk(KERN_DEBUG "%s: notification led TIMER enabled\n", __FUNCTION__);
                 wake_lock(&sBlinkWakeLock);
                 blink_timer.expires = jiffies + msecs_to_jiffies(iTimeBlink);
                 blink_count = iBlinkMilisecondsTimeout;
                 add_timer(&blink_timer);
                 bBlinkTimer = true;
             }
-            bl_on = 1;
+            if (data == 1)
+                bl_on = 1;
             notify_led_on();
 		}
 		else {
-            // printk(KERN_DEBUG "%s: notification led dissabled\n", __FUNCTION__);
 			bl_on = 0;
 			notify_led_off();
 			if ( bBlinkTimer ) {
