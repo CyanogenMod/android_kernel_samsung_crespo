@@ -623,7 +623,6 @@ struct s5k4ecgx_state {
 	struct v4l2_streamparm strm;
 	struct s5k4ecgx_gps_info gps_info;
 	struct mutex ctrl_lock;
-	struct completion af_complete;
 	enum s5k4ecgx_runmode runmode;
 	enum s5k4ecgx_oprmode oprmode;
 	enum af_operation_status af_status;
@@ -1313,7 +1312,6 @@ enable_af_low_light_mode:
 	s5k4ecgx_set_from_table(sd, "single af start",
 				&state->regs->single_af_start, 1, 0);
 	state->af_status = AF_INITIAL;
-	INIT_COMPLETION(state->af_complete);
 	dev_dbg(&client->dev, "%s: af_status set to start\n", __func__);
 
 	return 0;
@@ -1341,7 +1339,6 @@ static int s5k4ecgx_finish_auto_focus(struct v4l2_subdev *sd)
 
 	dev_dbg(&client->dev, "%s: single AF finished\n", __func__);
 	state->af_status = AF_NONE;
-	complete(&state->af_complete);
 	return 0;
 }
 
@@ -1407,15 +1404,6 @@ static int s5k4ecgx_stop_auto_focus(struct v4l2_subdev *sd)
 
 	s5k4ecgx_set_from_table(sd, "single af off 2",
 				&state->regs->single_af_off_2, 1, 0);
-
-	/* wait until the other thread has completed
-	 * aborting the auto focus and restored state
-	 */
-	dev_dbg(&client->dev, "%s: wait AF cancel done start\n", __func__);
-	mutex_unlock(&state->ctrl_lock);
-	wait_for_completion(&state->af_complete);
-	mutex_lock(&state->ctrl_lock);
-	dev_dbg(&client->dev, "%s: wait AF cancel done finished\n", __func__);
 
 	return 0;
 }
@@ -2765,7 +2753,6 @@ static int s5k4ecgx_probe(struct i2c_client *client,
 		return -ENOMEM;
 
 	mutex_init(&state->ctrl_lock);
-	init_completion(&state->af_complete);
 
 	state->runmode = S5K4ECGX_RUNMODE_NOTREADY;
 	sd = &state->sd;
