@@ -232,6 +232,7 @@ static int max8998_rtc_alarm_irq_enable(struct device *dev,
 		return max8998_rtc_stop_alarm(info);
 }
 
+#ifdef CONFIG_RTC_DRV_MAX8998
 static irqreturn_t max8998_rtc_alarm_irq(int irq, void *data)
 {
 	struct max8998_rtc_info *info = data;
@@ -240,6 +241,7 @@ static irqreturn_t max8998_rtc_alarm_irq(int irq, void *data)
 
 	return IRQ_HANDLED;
 }
+#endif
 
 static struct device *max8998_rtc_dev;
 int max8998_rtc_read_time_hack(struct rtc_time *tm)
@@ -296,6 +298,11 @@ static int __devinit max8998_rtc_probe(struct platform_device *pdev)
 
 	platform_set_drvdata(pdev, info);
 
+	/*
+	 * Hack to disable the max8998 rtc interface when used only by the
+	 * s3c rtc driver.
+	 */
+#ifdef CONFIG_RTC_DRV_MAX8998
 	info->rtc_dev = rtc_device_register("max8998-rtc", &pdev->dev,
 			&max8998_rtc_ops, THIS_MODULE);
 
@@ -311,6 +318,7 @@ static int __devinit max8998_rtc_probe(struct platform_device *pdev)
 	if (ret < 0)
 		dev_err(&pdev->dev, "Failed to request alarm IRQ: %d: %d\n",
 			info->irq, ret);
+#endif
 
 	dev_info(&pdev->dev, "RTC CHIP NAME: %s\n", pdev->id_entry->name);
 	if (pdata->rtc_delay) {
@@ -323,7 +331,9 @@ static int __devinit max8998_rtc_probe(struct platform_device *pdev)
 
 	return 0;
 
+#ifdef CONFIG_RTC_DRV_MAX8998
 out_rtc:
+#endif
 	platform_set_drvdata(pdev, NULL);
 	kfree(info);
 	return ret;
@@ -335,8 +345,10 @@ static int __devexit max8998_rtc_remove(struct platform_device *pdev)
 
 	if (info) {
 		max8998_rtc_dev = NULL;
+#ifdef CONFIG_RTC_DRV_MAX8998
 		free_irq(info->irq, info);
 		rtc_device_unregister(info->rtc_dev);
+#endif
 		kfree(info);
 	}
 
