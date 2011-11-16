@@ -240,6 +240,7 @@ struct s3cfb_global {
 	enum s3cfb_output_t	output;
 	enum s3cfb_rgb_mode_t	rgb_mode;
 	struct s3cfb_lcd	*lcd;
+	u32			pixclock_hz;
 
 #ifdef CONFIG_HAS_WAKELOCK
 	struct early_suspend	early_suspend;

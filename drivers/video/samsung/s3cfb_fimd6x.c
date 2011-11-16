@@ -177,7 +177,7 @@ int s3cfb_set_clock(struct s3cfb_global *ctrl)
 		printk(KERN_INFO "FIMD src hclk = %d\n", src_clk);
 	}
 
-	vclk = ctrl->fb[pdata->default_win]->var.pixclock;
+	vclk = ctrl->pixclock_hz;
 
 	if (vclk > maxclk) {
 		dev_info(ctrl->dev, "vclk(%d) should be smaller than %d\n",

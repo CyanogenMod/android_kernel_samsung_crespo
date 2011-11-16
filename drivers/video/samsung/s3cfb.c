@@ -763,10 +763,11 @@ static void s3cfb_init_fbinfo(struct s3cfb_global *ctrl, int id)
 	var->upper_margin = timing->v_fp;
 	var->lower_margin = timing->v_bp;
 
-	var->pixclock = lcd->freq * (var->left_margin + var->right_margin +
+	ctrl->pixclock_hz = lcd->freq * (var->left_margin + var->right_margin +
 				var->hsync_len + var->xres) *
 				(var->upper_margin + var->lower_margin +
 				var->vsync_len + var->yres);
+	var->pixclock = KHZ2PICOS(ctrl->pixclock_hz / 1000);
 
 	dev_dbg(ctrl->dev, "pixclock: %d\n", var->pixclock);
 
