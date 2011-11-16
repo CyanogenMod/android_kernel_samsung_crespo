@@ -647,10 +647,13 @@
 	#else
 	#if SGX_CORE_REV == 1014
 	#else
+	#if SGX_CORE_REV == 10141
+	#else
 	#if SGX_CORE_REV == SGX_CORE_REV_HEAD
 		
 	#else
 		#error "sgxerrata.h: SGX545 Core Revision unspecified"
+	#endif
 	#endif
 	#endif
 	#endif

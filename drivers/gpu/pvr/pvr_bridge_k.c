@@ -35,6 +35,7 @@
 #include "private_data.h"
 #include "linkage.h"
 #include "pvr_bridge_km.h"
+#include "pvr_uaccess.h"
 
 #if defined(SUPPORT_DRI_DRM)
 #include <drm/drmP.h>
@@ -296,7 +297,11 @@ PVRSRV_BridgeDispatchKM(struct file *pFile, unsigned int unref__ ioctlCmd, unsig
 				goto unlock_and_return;
 			}
 
-			psMapDevMemIN->hKernelMemInfo = psPrivateData->hKernelMemInfo;
+			if (pvr_put_user(psPrivateData->hKernelMemInfo, &psMapDevMemIN->hKernelMemInfo) != 0)
+			{
+				err = -EFAULT;
+				goto unlock_and_return;
+			}
 			break;
 		}
 
@@ -394,9 +399,14 @@ PVRSRV_BridgeDispatchKM(struct file *pFile, unsigned int unref__ ioctlCmd, unsig
 
 			psPrivateData->hKernelMemInfo = psExportDeviceMemOUT->hMemInfo;
 #if defined(SUPPORT_MEMINFO_IDS)
-			psKernelMemInfo->ui64Stamp =
-				psExportDeviceMemOUT->ui64Stamp =
-				psPrivateData->ui64Stamp = ++ui64Stamp;
+			psPrivateData->ui64Stamp = ++ui64Stamp;
+
+			psKernelMemInfo->ui64Stamp = psPrivateData->ui64Stamp;
+			if (pvr_put_user(psPrivateData->ui64Stamp, &psExportDeviceMemOUT->ui64Stamp) != 0)
+			{
+				err = -EFAULT;
+				goto unlock_and_return;
+			}
 #endif
 			break;
 		}
@@ -408,7 +418,11 @@ PVRSRV_BridgeDispatchKM(struct file *pFile, unsigned int unref__ ioctlCmd, unsig
 			PVRSRV_BRIDGE_OUT_MAP_DEV_MEMORY *psMapDeviceMemoryOUT =
 				(PVRSRV_BRIDGE_OUT_MAP_DEV_MEMORY *)psBridgePackageKM->pvParamOut;
 			PVRSRV_FILE_PRIVATE_DATA *psPrivateData = PRIVATE_DATA(pFile);
-			psMapDeviceMemoryOUT->sDstClientMemInfo.ui64Stamp =	psPrivateData->ui64Stamp;
+			if (pvr_put_user(psPrivateData->ui64Stamp, &psMapDeviceMemoryOUT->sDstClientMemInfo.ui64Stamp) != 0)
+			{
+				err = -EFAULT;
+				goto unlock_and_return;
+			}
 			break;
 		}
 
@@ -416,7 +430,11 @@ PVRSRV_BridgeDispatchKM(struct file *pFile, unsigned int unref__ ioctlCmd, unsig
 		{
 			PVRSRV_BRIDGE_OUT_MAP_DEVICECLASS_MEMORY *psDeviceClassMemoryOUT =
 				(PVRSRV_BRIDGE_OUT_MAP_DEVICECLASS_MEMORY *)psBridgePackageKM->pvParamOut;
-			psDeviceClassMemoryOUT->sClientMemInfo.ui64Stamp = ++ui64Stamp;
+			if (pvr_put_user(++ui64Stamp, &psDeviceClassMemoryOUT->sClientMemInfo.ui64Stamp) != 0)
+			{
+				err = -EFAULT;
+				goto unlock_and_return;
+			}
 			break;
 		}
 #endif 

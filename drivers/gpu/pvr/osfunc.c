@@ -371,6 +371,18 @@ OSMemHandleToCpuPAddr(IMG_VOID *hOSMemHandle, IMG_UINT32 ui32ByteOffset)
 }
 
 
+IMG_BOOL OSMemHandleIsPhysContig(IMG_VOID *hOSMemHandle)
+{
+	LinuxMemArea *psLinuxMemArea = (LinuxMemArea *)hOSMemHandle;
+
+	PVR_ASSERT(psLinuxMemArea);
+
+	if(psLinuxMemArea->eAreaType == LINUX_MEM_AREA_EXTERNAL_KV)
+		return psLinuxMemArea->uData.sExternalKV.bPhysContig;
+
+	return IMG_FALSE;
+}
+
 
 IMG_VOID OSMemCopy(IMG_VOID *pvDst, IMG_VOID *pvSrc, IMG_UINT32 ui32Size)
 {

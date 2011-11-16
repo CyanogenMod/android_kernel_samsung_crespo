@@ -197,8 +197,10 @@ MMU_PDumpPageTables	(MMU_HEAP *pMMUHeap,
 static IMG_VOID PageTest(IMG_VOID* pMem, IMG_DEV_PHYADDR sDevPAddr);
 #endif
 
+#define PT_DUMP 1
+
 #define PT_DEBUG 0
-#if PT_DEBUG
+#if (PT_DEBUG || PT_DUMP) && defined(PVRSRV_NEED_PVR_DPF)
 static IMG_VOID DumpPT(MMU_PT_INFO *psPTInfoList)
 {
 	IMG_UINT32 *p = (IMG_UINT32*)psPTInfoList->PTPageCpuVAddr;
@@ -207,13 +209,20 @@ static IMG_VOID DumpPT(MMU_PT_INFO *psPTInfoList)
 	
 	for(i = 0; i < 1024; i += 8)
 	{
-		PVR_DPF((PVR_DBG_WARNING,
+		PVR_DPF((PVR_DBG_ERROR,
 				 "%08X %08X %08X %08X %08X %08X %08X %08X\n",
 				 p[i + 0], p[i + 1], p[i + 2], p[i + 3],
 				 p[i + 4], p[i + 5], p[i + 6], p[i + 7]));
 	}
 }
+#else 
+static INLINE IMG_VOID DumpPT(MMU_PT_INFO *psPTInfoList)
+{
+	PVR_UNREFERENCED_PARAMETER(psPTInfoList);
+}
+#endif 
 
+#if PT_DEBUG
 static IMG_VOID CheckPT(MMU_PT_INFO *psPTInfoList)
 {
 	IMG_UINT32 *p = (IMG_UINT32*) psPTInfoList->PTPageCpuVAddr;
@@ -226,18 +235,13 @@ static IMG_VOID CheckPT(MMU_PT_INFO *psPTInfoList)
 
 	if(psPTInfoList->ui32ValidPTECount != ui32Count)
 	{
-		PVR_DPF((PVR_DBG_WARNING, "ui32ValidPTECount: %u ui32Count: %u\n",
+		PVR_DPF((PVR_DBG_ERROR, "ui32ValidPTECount: %u ui32Count: %u\n",
 				 psPTInfoList->ui32ValidPTECount, ui32Count));
 		DumpPT(psPTInfoList);
 		BUG();
 	}
 }
 #else 
-static INLINE IMG_VOID DumpPT(MMU_PT_INFO *psPTInfoList)
-{
-	PVR_UNREFERENCED_PARAMETER(psPTInfoList);
-}
-
 static INLINE IMG_VOID CheckPT(MMU_PT_INFO *psPTInfoList)
 {
 	PVR_UNREFERENCED_PARAMETER(psPTInfoList);
@@ -2754,6 +2758,9 @@ MMU_MapPage (MMU_HEAP *pMMUHeap,
 									ui32Index ));
 			PVR_DPF((PVR_DBG_ERROR, "MMU_MapPage: Page table entry value: 0x%08X", uTmp));
 			PVR_DPF((PVR_DBG_ERROR, "MMU_MapPage: Physical page to map: 0x%08X", DevPAddr.uiAddr));
+#if PT_DUMP
+			DumpPT(ppsPTInfoList[0]);
+#endif
 		}
 #if !defined(FIX_HW_BRN_31620)
 		PVR_ASSERT((uTmp & SGX_MMU_PTE_VALID) == 0);

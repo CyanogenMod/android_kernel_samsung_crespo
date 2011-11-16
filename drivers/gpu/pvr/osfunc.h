@@ -401,6 +401,19 @@ static INLINE IMG_CPU_PHYADDR OSMemHandleToCpuPAddr(IMG_HANDLE hOSMemHandle, IMG
 	return sCpuPAddr;
 }
 #endif
+
+#if defined(__linux__)
+IMG_BOOL OSMemHandleIsPhysContig(IMG_VOID *hOSMemHandle);
+#else
+#ifdef INLINE_IS_PRAGMA
+#pragma inline(OSMemHandleIsPhysContig)
+#endif
+static INLINE IMG_BOOL OSMemHandleIsPhysContig(IMG_HANDLE hOSMemHandle)
+{
+	return IMG_FALSE;
+}
+#endif
+
 PVRSRV_ERROR OSInitEnvData(IMG_PVOID *ppvEnvSpecificData);
 PVRSRV_ERROR OSDeInitEnvData(IMG_PVOID pvEnvSpecificData);
 IMG_CHAR* OSStringCopy(IMG_CHAR *pszDest, const IMG_CHAR *pszSrc);
