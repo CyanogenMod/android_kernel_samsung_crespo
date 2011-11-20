@@ -234,6 +234,7 @@ static int s3cfb_unmap_video_memory(struct fb_info *fb)
 		}
 		fix->smem_start = 0;
 		fix->smem_len = 0;
+		fb->screen_base = 0;
 		dev_info(fbdev->dev,
 			"[fb%d] video memory released\n", win->id);
 	}
@@ -256,6 +257,7 @@ static int s3cfb_unmap_default_video_memory(struct fb_info *fb)
 #endif
 		fix->smem_start = 0;
 		fix->smem_len = 0;
+		fb->screen_base = 0;
 		dev_info(fbdev->dev,
 			"[fb%d] video memory released\n", win->id);
 	}
