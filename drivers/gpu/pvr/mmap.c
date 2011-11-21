@@ -1065,6 +1065,7 @@ PVRMMapRemoveRegisteredArea(LinuxMemArea *psLinuxMemArea)
 	if (psOffsetStruct->ui32Mapped != 0)
 	{
 	     PVR_DPF((PVR_DBG_ERROR, "%s: psOffsetStruct 0x%p for memory area 0x0x%p is still mapped; psOffsetStruct->ui32Mapped %u",  __FUNCTION__, psOffsetStruct, psLinuxMemArea, psOffsetStruct->ui32Mapped));
+		dump_stack();
 		eError = PVRSRV_ERROR_STILL_MAPPED;
 		goto exit_unlock;
 	}

@@ -410,6 +410,7 @@ IMG_BOOL OSMemHandleIsPhysContig(IMG_VOID *hOSMemHandle);
 #endif
 static INLINE IMG_BOOL OSMemHandleIsPhysContig(IMG_HANDLE hOSMemHandle)
 {
+	PVR_UNREFERENCED_PARAMETER(hOSMemHandle);
 	return IMG_FALSE;
 }
 #endif
