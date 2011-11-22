@@ -1753,6 +1753,11 @@ static int s5k4ecgx_s_parm(struct v4l2_subdev *sd,
 				new_parms->brightness, "brightness",
 				state->regs->ev, ARRAY_SIZE(state->regs->ev));
 	err |= s5k4ecgx_set_flash_mode(sd, new_parms->flash_mode);
+	/* Must delay 150ms before setting macro mode due to a camera
+	 * sensor requirement */
+	if ((new_parms->focus_mode == FOCUS_MODE_MACRO) &&
+			(parms->focus_mode != FOCUS_MODE_MACRO))
+		msleep(150);
 	err |= s5k4ecgx_set_focus_mode(sd, new_parms->focus_mode);
 	err |= s5k4ecgx_set_parameter(sd, &parms->iso, new_parms->iso,
 				"iso", state->regs->iso,
