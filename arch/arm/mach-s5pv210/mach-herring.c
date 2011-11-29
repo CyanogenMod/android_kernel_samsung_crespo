@@ -1891,6 +1891,8 @@ int gpio_wimax_power(int enable)
 	return WIMAX_POWER_SUCCESS;
 
 wimax_power_off:
+	/*Wait for modem to flush EEPROM data*/
+	msleep(500);
 	wimax_deinit_gpios();
 
 	pr_debug("Wimax power OFF");
