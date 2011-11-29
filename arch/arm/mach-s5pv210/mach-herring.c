@@ -1796,6 +1796,7 @@ void wimax_init_gpios(void)
 
 	/* PDA Active */
 	s3c_gpio_cfgpin(GPIO_WIMAX_CON1, S3C_GPIO_OUTPUT);
+	s3c_gpio_set_drvstrength(GPIO_WIMAX_CON1, S3C_GPIO_DRVSTR_2X);
 	signal_ap_active(1);
 
 }
