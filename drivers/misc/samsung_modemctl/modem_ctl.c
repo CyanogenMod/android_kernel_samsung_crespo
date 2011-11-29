@@ -730,11 +730,6 @@ static int modem_start(struct modemctl *mc, int ramdump)
 		return -EIO;
 	}
 
-	if (mmio_sem(mc) != 1) {
-		pr_err("[MODEM] we do not own the semaphore\n");
-		return -EIO;
-	}
-
 	writel(0, mc->mmio + OFF_SEM);
 	if (ramdump) {
 		mc->status = MODEM_BOOTING_RAMDUMP;
