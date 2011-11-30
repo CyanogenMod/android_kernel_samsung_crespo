@@ -44,6 +44,7 @@
 #include "pvr_debug.h"
 #include "metrics.h"
 #include "osfunc.h"
+#include "refcount.h"
 
 #endif 
 

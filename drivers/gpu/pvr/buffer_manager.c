@@ -1408,7 +1408,7 @@ BM_Wrap (	IMG_HANDLE hDevMemHeap,
 					"BM_Wrap (Matched previous Wrap! uSize=0x%x, uOffset=0x%x, SysAddr=%08X)",
 					ui32Size, ui32Offset, sHashAddress.uiAddr));
 
-			pBuf->ui32RefCount++;
+			PVRSRVBMBufIncRef(pBuf);
 			*phBuf = (BM_HANDLE)pBuf;
 			if(pui32Flags)
 				*pui32Flags = uFlags;
@@ -1477,7 +1477,7 @@ BM_Export (BM_HANDLE hBuf)
 {
 	BM_BUF *pBuf = (BM_BUF *)hBuf;
 
-	pBuf->ui32ExportCount++;
+	PVRSRVBMBufIncExport(pBuf);
 }
 
 IMG_VOID
@@ -1486,7 +1486,7 @@ BM_FreeExport(BM_HANDLE hBuf,
 {
 	BM_BUF *pBuf = (BM_BUF *)hBuf;
 
-	pBuf->ui32ExportCount--;
+	PVRSRVBMBufDecExport(pBuf);
 	FreeBuf (pBuf, ui32Flags, IMG_FALSE);
 }
 
@@ -1509,8 +1509,7 @@ BM_Free (BM_HANDLE hBuf,
 
 	SysAcquireData(&psSysData);
 
-	pBuf->ui32RefCount--;
-
+	PVRSRVBMBufDecRef(pBuf);
 	if(pBuf->ui32RefCount == 0)
 	{
 		if(pBuf->pMapping->eCpuMemoryOrigin == hm_wrapped || pBuf->pMapping->eCpuMemoryOrigin == hm_wrapped_virtaddr)
@@ -1881,7 +1880,7 @@ XProcWorkaroundAllocShareable(RA_ARENA *psArena,
 		*ppvCpuVAddr = gXProcWorkaroundShareData[gXProcWorkaroundShareIndex].pvCpuVAddr;
 		*phOSMemHandle = gXProcWorkaroundShareData[gXProcWorkaroundShareIndex].hOSMemHandle;
 
-		gXProcWorkaroundShareData[gXProcWorkaroundShareIndex].ui32RefCount ++;
+		gXProcWorkaroundShareData[gXProcWorkaroundShareIndex].ui32RefCount++;
 
 		return PVRSRV_OK;
 	}
@@ -1954,7 +1953,7 @@ XProcWorkaroundAllocShareable(RA_ARENA *psArena,
 		*ppvCpuVAddr = gXProcWorkaroundShareData[gXProcWorkaroundShareIndex].pvCpuVAddr;
 		*phOSMemHandle = gXProcWorkaroundShareData[gXProcWorkaroundShareIndex].hOSMemHandle;
 
-		gXProcWorkaroundShareData[gXProcWorkaroundShareIndex].ui32RefCount ++;
+		gXProcWorkaroundShareData[gXProcWorkaroundShareIndex].ui32RefCount++;
 
 		return PVRSRV_OK;
 	}
@@ -2006,7 +2005,7 @@ static IMG_VOID XProcWorkaroundFreeShareable(IMG_HANDLE hOSMemHandle)
 		return;
 	}
 
-	gXProcWorkaroundShareData[ui32SI].ui32RefCount --;
+	gXProcWorkaroundShareData[ui32SI].ui32RefCount--;
 
 	PVR_DPF((PVR_DBG_VERBOSE, "Reduced refcount of SI[%d] from %d to %d",
 			 ui32SI, gXProcWorkaroundShareData[ui32SI].ui32RefCount+1, gXProcWorkaroundShareData[ui32SI].ui32RefCount));
