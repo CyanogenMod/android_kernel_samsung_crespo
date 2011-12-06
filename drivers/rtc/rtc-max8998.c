@@ -90,7 +90,7 @@ static void max8998_data_to_tm(u8 *data, struct rtc_time *tm)
 
 	tm->tm_wday = data[RTC_WEEKDAY] & 0x07;
 	tm->tm_mday = bcd2bin(data[RTC_DATE]);
-	tm->tm_mon = bcd2bin(data[RTC_MONTH]);
+	tm->tm_mon = bcd2bin(data[RTC_MONTH]) - 1;
 	tm->tm_year = bcd2bin(data[RTC_YEAR1]) + bcd2bin(data[RTC_YEAR2]) * 100;
 	tm->tm_year -= 1900;
 }
@@ -102,7 +102,7 @@ static void max8998_tm_to_data(struct rtc_time *tm, u8 *data)
 	data[RTC_HOUR] = bin2bcd(tm->tm_hour);
 	data[RTC_WEEKDAY] = tm->tm_wday;
 	data[RTC_DATE] = bin2bcd(tm->tm_mday);
-	data[RTC_MONTH] = bin2bcd(tm->tm_mon);
+	data[RTC_MONTH] = bin2bcd(tm->tm_mon + 1);
 	data[RTC_YEAR1] = bin2bcd(tm->tm_year % 100);
 	data[RTC_YEAR2] = bin2bcd((tm->tm_year + 1900) / 100);
 }
