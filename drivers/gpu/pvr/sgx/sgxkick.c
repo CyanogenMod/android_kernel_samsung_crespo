@@ -573,6 +573,37 @@ PVRSRV_ERROR SGXDoKickKM(IMG_HANDLE hDevHandle, SGX_CCB_KICK *psCCBKick)
 				0,
 				MAKEUNIQUETAG(psCCBMemInfo));
 		}
+
+		if (psCCBKick->hTASyncInfo != IMG_NULL)
+		{
+			psSyncInfo = (PVRSRV_KERNEL_SYNC_INFO *)psCCBKick->hTASyncInfo;
+
+			PDUMPCOMMENT("Modify TA/TQ ROpPendingVal\r\n");
+
+			PDUMPMEM(&psSyncInfo->psSyncData->ui32LastReadOpDumpVal,
+					psCCBMemInfo,
+					psCCBKick->ui32CCBDumpWOff + offsetof(SGXMKIF_CMDTA_SHARED, ui32TATQSyncReadOpsPendingVal),
+					sizeof(IMG_UINT32),
+					0,
+					MAKEUNIQUETAG(psCCBMemInfo));
+			psSyncInfo->psSyncData->ui32LastReadOpDumpVal++;
+		}
+
+		if (psCCBKick->h3DSyncInfo != IMG_NULL)
+		{
+			psSyncInfo = (PVRSRV_KERNEL_SYNC_INFO *)psCCBKick->h3DSyncInfo;
+
+			PDUMPCOMMENT("Modify 3D/TQ ROpPendingVal\r\n");
+
+			PDUMPMEM(&psSyncInfo->psSyncData->ui32LastReadOpDumpVal,
+					psCCBMemInfo,
+					psCCBKick->ui32CCBDumpWOff + offsetof(SGXMKIF_CMDTA_SHARED, ui323DTQSyncReadOpsPendingVal),
+					sizeof(IMG_UINT32),
+					0,
+					MAKEUNIQUETAG(psCCBMemInfo));
+			psSyncInfo->psSyncData->ui32LastReadOpDumpVal++;
+		}
+
 #endif
 
 		for (i = 0; i < psCCBKick->ui32NumTAStatusVals; i++)

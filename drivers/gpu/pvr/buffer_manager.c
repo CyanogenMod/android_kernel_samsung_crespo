@@ -1756,7 +1756,12 @@ DevMemoryFree (BM_MAPPING *pMapping)
 
 #define XPROC_WORKAROUND_BAD_SHAREINDEX 0773407734
 
+#define XPROC_WORKAROUND_UNKNOWN	0
+#define XPROC_WORKAROUND_ALLOC		1
+#define XPROC_WORKAROUND_MAP		2
+
 static IMG_UINT32 gXProcWorkaroundShareIndex = XPROC_WORKAROUND_BAD_SHAREINDEX;
+static IMG_UINT32 gXProcWorkaroundState = XPROC_WORKAROUND_UNKNOWN;
 
  
 static struct {
@@ -1782,6 +1787,7 @@ PVRSRV_ERROR BM_XProcWorkaroundSetShareIndex(IMG_UINT32 ui32Index)
 	}
 
 	gXProcWorkaroundShareIndex = ui32Index;
+	gXProcWorkaroundState = XPROC_WORKAROUND_MAP;
 
 	return PVRSRV_OK;
 }
@@ -1803,6 +1809,7 @@ PVRSRV_ERROR BM_XProcWorkaroundUnsetShareIndex(IMG_UINT32 ui32Index)
 	}
 
 	gXProcWorkaroundShareIndex = XPROC_WORKAROUND_BAD_SHAREINDEX;
+	gXProcWorkaroundState = XPROC_WORKAROUND_UNKNOWN;
 
 	return PVRSRV_OK;
 }
@@ -1822,6 +1829,7 @@ PVRSRV_ERROR BM_XProcWorkaroundFindNewBufferAndSetShareIndex(IMG_UINT32 *pui32In
 		if (gXProcWorkaroundShareData[*pui32Index].ui32RefCount == 0)
 		{
 			gXProcWorkaroundShareIndex = *pui32Index;
+			gXProcWorkaroundState = XPROC_WORKAROUND_ALLOC;
 			return PVRSRV_OK;
 		}
 	}
@@ -1886,6 +1894,14 @@ XProcWorkaroundAllocShareable(RA_ARENA *psArena,
 	}
 	else
 	{
+		if (gXProcWorkaroundState != XPROC_WORKAROUND_ALLOC)
+		{
+			PVR_DPF((PVR_DBG_ERROR,
+					 "XPROC workaround in bad state! About to allocate memory from non-alloc state! (%d)",
+					 gXProcWorkaroundState));
+		}
+		PVR_ASSERT(gXProcWorkaroundState == XPROC_WORKAROUND_ALLOC);
+
 		if (psArena != IMG_NULL)
 		{
 			IMG_CPU_PHYADDR sCpuPAddr;

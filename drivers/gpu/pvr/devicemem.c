@@ -597,6 +597,10 @@ PVRSRV_ERROR IMG_CALLCONV PVRSRVFreeSyncInfoKM(PVRSRV_KERNEL_SYNC_INFO	*psKernel
 	}
 
 	eError = FreeDeviceMem(psKernelSyncInfo->psSyncDataMemInfoKM);
+
+	
+	psKernelSyncInfo->psSyncDataMemInfoKM = IMG_NULL;
+	psKernelSyncInfo->psSyncData = IMG_NULL;
 	(IMG_VOID)OSFreeMem(PVRSRV_PAGEABLE_SELECT, sizeof(PVRSRV_KERNEL_SYNC_INFO), psKernelSyncInfo, IMG_NULL);
 	
 
@@ -1683,9 +1687,6 @@ PVRSRV_ERROR IMG_CALLCONV PVRSRVMapDeviceClassMemoryKM(PVRSRV_PER_PROCESS_DATA	*
 	}
 
 	OSMemSet(psMemInfo, 0, sizeof(*psMemInfo));
-#if defined(NO_HARDWARE)
-	psMemInfo->ui32Flags = PVRSRV_HAP_CACHED;
-#endif
 
 	psMemBlock = &(psMemInfo->sMemBlk);
 
