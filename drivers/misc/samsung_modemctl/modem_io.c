@@ -352,6 +352,7 @@ static void handle_raw_rx(struct modemctl *mc)
 			skb->protocol = __constant_htons(ETH_P_IPV6);
 		else
 			skb->protocol = __constant_htons(ETH_P_IP);
+		skb_reset_mac_header(skb);
 
 		dev->stats.rx_packets++;
 		dev->stats.rx_bytes += skb->len;
