@@ -1,0 +1,26 @@
+config VIDEO_SAMSUNG
+	bool "Samsung Multimedia Devices"
+	depends on VIDEO_CAPTURE_DRIVERS && VIDEO_V4L2
+	select VIDEO_FIXED_MINOR_RANGES
+	default n
+	---help---
+	  This is a representative video4linux configuration for Samsung multimedia devices.
+
+config VIDEO_SAMSUNG_V4L2
+	bool "V4L2 API for digital camera to be contributed by samsung"
+	depends on VIDEO_DEV && VIDEO_SAMSUNG
+	default n
+	---help---
+	 This feature is for new V4L2 APIs all about digital camera
+
+if CPU_S5PV210
+source "drivers/media/video/samsung/fimc/Kconfig"
+source "drivers/media/video/samsung/mfc50/Kconfig"
+source "drivers/media/video/samsung/jpeg_v2/Kconfig"
+#source "drivers/media/video/samsung/tv20/Kconfig"
+#source "drivers/media/video/samsung/tsi/Kconfig"
+if CPU_S5PV210_EVT1
+#source "drivers/media/video/samsung/rotator/Kconfig"
+#source "drivers/media/video/samsung/g2d/Kconfig"
+endif
+endif
