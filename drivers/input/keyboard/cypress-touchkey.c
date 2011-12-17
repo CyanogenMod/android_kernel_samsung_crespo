@@ -219,7 +219,10 @@ static void cypress_touchkey_early_suspend(struct early_suspend *h)
 	 * Disallow powering off the touchkey controller
 	 * while a led notification is ongoing
 	 */
-	if(!bln_is_ongoing())
+	if(!bln_is_ongoing()) {
+		devdata->pdata->touchkey_onoff(TOUCHKEY_OFF);
+		devdata->pdata->touchkey_sleep_onoff(TOUCHKEY_OFF);
+	}
 #endif
 	devdata->pdata->touchkey_onoff(TOUCHKEY_OFF);
 
