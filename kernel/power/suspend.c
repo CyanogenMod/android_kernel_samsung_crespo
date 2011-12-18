@@ -315,3 +315,11 @@ int pm_suspend(suspend_state_t state)
 	return -EINVAL;
 }
 EXPORT_SYMBOL(pm_suspend);
+
+#ifdef CONFIG_CPU_DIDLE
+bool suspend_ongoing(void)
+{
+    return mutex_is_locked(&pm_mutex);
+}
+EXPORT_SYMBOL(suspend_ongoing);
+#endif
