@@ -42,6 +42,7 @@
 #include <linux/slab.h>
 #include <linux/init.h>
 #include <linux/fs.h>
+#include <linux/security.h>
 #include <linux/proc_fs.h>
 #include <linux/pagemap.h>
 #include <linux/mtd/mtd.h>
@@ -201,6 +202,50 @@ struct inode *yaffs_get_inode(struct super_block *sb, int mode, int dev,
 	return inode;
 }
 
+#ifdef CONFIG_YAFFS_XATTR
+static int yaffs_init_security(struct inode *dir, struct dentry *dentry,
+			       struct inode *inode)
+{
+	int err;
+	size_t size;
+	void *value;
+	char *suffix;
+	char name[XATTR_NAME_MAX];
+	struct yaffs_dev *dev;
+	struct yaffs_obj *obj = yaffs_inode_to_obj(inode);
+	int result;
+
+	err = security_inode_init_security(inode, dir, &dentry->d_name,
+					   &suffix, &value, &size);
+	if (err) {
+		if (err == -EOPNOTSUPP)
+			return 0;
+		return err;
+	}
+	snprintf(name, sizeof name, "%s%s", XATTR_SECURITY_PREFIX, suffix);
+
+	/* inlined yaffs_setxattr: no instantiated dentry yet */
+	dev = obj->my_dev;
+	yaffs_gross_lock(dev);
+	result = yaffs_set_xattrib(obj, name, value, size, 0);
+	if (result == YAFFS_OK)
+		err = 0;
+	else if (result < 0)
+		err = result;
+	yaffs_gross_unlock(dev);
+
+	kfree(value);
+	kfree(suffix);
+	return err;
+}
+#else
+static int yaffs_init_security(struct inode *dir, struct dentry *dentry,
+			       struct inode *inode)
+{
+	return 0;
+}
+#endif
+
 static int yaffs_mknod(struct inode *dir, struct dentry *dentry, int mode,
 		       dev_t rdev)
 {
@@ -266,6 +311,7 @@ static int yaffs_mknod(struct inode *dir, struct dentry *dentry, int mode,
 
 	if (obj) {
 		inode = yaffs_get_inode(dir->i_sb, mode, rdev, obj);
+		yaffs_init_security(dir, dentry, inode);
 		d_instantiate(dentry, inode);
 		update_dir_time(dir);
 		yaffs_trace(YAFFS_TRACE_OS,
@@ -353,6 +399,7 @@ static int yaffs_symlink(struct inode *dir, struct dentry *dentry,
 		struct inode *inode;
 
 		inode = yaffs_get_inode(dir->i_sb, obj->yst_mode, 0, obj);
+		yaffs_init_security(dir, dentry, inode);
 		d_instantiate(dentry, inode);
 		update_dir_time(dir);
 		yaffs_trace(YAFFS_TRACE_OS, "symlink created OK");
