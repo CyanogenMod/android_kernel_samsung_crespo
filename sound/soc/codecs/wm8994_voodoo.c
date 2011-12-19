@@ -108,7 +108,7 @@ bool stereo_expansion = false;
 short unsigned int stereo_expansion_gain = 16;
 
 // keep here a pointer to the codec structure
-struct snd_soc_codec *codec;
+static struct snd_soc_codec *codec;
 
 #define DECLARE_BOOL_SHOW(name) 					       \
 static ssize_t name##_show(struct device *dev,				       \
@@ -158,7 +158,8 @@ static ssize_t headphone_eq_b##band##_gain_store(struct device *dev,	       \
 }
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 35)
-#define DECLARE_WM8994(codec) struct wm8994_priv *wm8994 = codec->drvdata;
+#define DECLARE_WM8994(codec) struct wm8994_priv *wm8994 = \
+		snd_soc_codec_get_drvdata(codec);
 #else
 #define DECLARE_WM8994(codec) struct wm8994_priv *wm8994 = codec->private_data;
 #endif
@@ -1286,7 +1287,7 @@ static ssize_t show_wm8994_register_dump(struct device *dev,
 	int r;
 
 	for (r = 0; r <= 0x6; r++)
-		sprintf(buf, "0x%X 0x%X\n", r, wm8994_read(codec, r));
+		sprintf(buf, "%s0x%X 0x%X\n", buf, r, wm8994_read(codec, r));
 
 	sprintf(buf, "%s0x%X 0x%X\n", buf, 0x15, wm8994_read(codec, 0x15));
 
