@@ -121,7 +121,7 @@ struct modemctl {
 	struct wake_lock ip_tx_wakelock;
 	struct wake_lock ip_rx_wakelock;
 
-	struct net_device *ndev;
+	struct net_device **ndev;
 
 	int open_count;
 	int status;
@@ -137,6 +137,7 @@ struct modemctl {
 	unsigned gpio_cp_reset;
 	unsigned gpio_phone_on;
 	bool is_cdma_modem;
+	int num_pdp_contexts;
 	bool is_modem_delta_update;
 	unsigned dpram_prev_phone_active;
 	unsigned dpram_prev_status;

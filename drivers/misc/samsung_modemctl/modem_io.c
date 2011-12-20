@@ -40,7 +40,8 @@
 #include "modem_ctl_p.h"
 
 #define RAW_CH_VNET0 10
-
+#define CHANNEL_TO_NETDEV_ID(id) (id - RAW_CH_VNET0)
+#define NETDEV_TO_CHANNEL_ID(id) (id + RAW_CH_VNET0)
 
 /* general purpose fifo access routines */
 
@@ -309,6 +310,7 @@ struct raw_hdr {
 struct vnet {
 	struct modemctl *mc;
 	struct sk_buff_head txq;
+	int rmnet_ch_id;
 };
 
 static void handle_raw_rx(struct modemctl *mc)
@@ -319,17 +321,19 @@ static void handle_raw_rx(struct modemctl *mc)
 
 	/* process inbound packets */
 	while (fifo_read(&mc->raw_rx, &raw, sizeof(raw)) == sizeof(raw)) {
-		struct net_device *dev = mc->ndev;
+		struct net_device *dev;
 		unsigned sz = raw.len - (sizeof(raw) - 1);
 
-		if (unlikely(raw.channel != RAW_CH_VNET0)) {
+		if (unlikely(!(raw.channel >= RAW_CH_VNET0 && raw.channel <
+				NETDEV_TO_CHANNEL_ID(mc->num_pdp_contexts)))) {
+
 			MODEM_COUNT(mc, rx_unknown);
 			pr_err("[VNET] unknown channel %d\n", raw.channel);
 			if (fifo_skip(&mc->raw_rx, sz + 1) != (sz + 1))
 				goto purge_raw_fifo;
 			continue;
 		}
-
+		dev = mc->ndev[CHANNEL_TO_NETDEV_ID(raw.channel)];
 		skb = dev_alloc_skb(sz + NET_IP_ALIGN);
 		if (skb == NULL) {
 			MODEM_COUNT(mc, rx_dropped);
@@ -379,6 +383,9 @@ int handle_raw_tx(struct modemctl *mc, struct sk_buff *skb)
 	struct raw_hdr raw;
 	unsigned char ftr = 0x7e;
 	unsigned sz;
+	int netdev_id;
+	struct vnet *vn = netdev_priv(skb->dev);
+
 
 	sz = skb->len + sizeof(raw) + 1;
 
@@ -389,15 +396,16 @@ int handle_raw_tx(struct modemctl *mc, struct sk_buff *skb)
 
 	raw.start = 0x7f;
 	raw.len = 6 + skb->len;
-	raw.channel = RAW_CH_VNET0;
+	raw.channel = vn->rmnet_ch_id;
 	raw.control = 0;
 
 	fifo_write(&mc->raw_tx, &raw, sizeof(raw));
 	fifo_write(&mc->raw_tx, skb->data, skb->len);
 	fifo_write(&mc->raw_tx, &ftr, 1);
 
-	mc->ndev->stats.tx_packets++;
-	mc->ndev->stats.tx_bytes += skb->len;
+	netdev_id = CHANNEL_TO_NETDEV_ID(vn->rmnet_ch_id);
+	mc->ndev[netdev_id]->stats.tx_packets++;
+	mc->ndev[netdev_id]->stats.tx_bytes += skb->len;
 
 	mc->mmio_signal_bits |= MBD_SEND_RAW;
 
@@ -408,17 +416,24 @@ int handle_raw_tx(struct modemctl *mc, struct sk_buff *skb)
 void modem_handle_io(struct modemctl *mc)
 {
 	struct sk_buff *skb;
-	struct vnet *vn = netdev_priv(mc->ndev);
+	struct vnet *vn;
+	int i;
+	int  cnt = 0;
 
 	handle_raw_rx(mc);
 
-	while ((skb = skb_dequeue(&vn->txq)))
-		if (handle_raw_tx(mc, skb)) {
-			skb_queue_head(&vn->txq, skb);
-			break;
-		}
-	if (skb == NULL)
-		wake_unlock(&vn->mc->ip_tx_wakelock);
+	for (i = 0; i < mc->num_pdp_contexts; i++) {
+		vn = netdev_priv(mc->ndev[i]);
+		while ((skb = skb_dequeue(&vn->txq)))
+			if (handle_raw_tx(mc, skb)) {
+				skb_queue_head(&vn->txq, skb);
+				break;
+			}
+		if (skb == NULL)
+			cnt++;
+	}
+	if (cnt == mc->num_pdp_contexts)
+		wake_unlock(&mc->ip_tx_wakelock);
 }
 
 static int vnet_open(struct net_device *ndev)
@@ -639,9 +654,10 @@ static int modem_pipe_register(struct m_pipe *pipe, const char *devname)
 
 int modem_io_init(struct modemctl *mc, void __iomem *mmio)
 {
-	struct net_device *ndev;
 	struct vnet *vn;
 	int r;
+	int i;
+	int ch_id;
 
 	INIT_M_FIFO(mc->fmt_tx, FMT, TX, mmio);
 	INIT_M_FIFO(mc->fmt_rx, FMT, RX, mmio);
@@ -650,16 +666,30 @@ int modem_io_init(struct modemctl *mc, void __iomem *mmio)
 	INIT_M_FIFO(mc->rfs_tx, RFS, TX, mmio);
 	INIT_M_FIFO(mc->rfs_rx, RFS, RX, mmio);
 
-	ndev = alloc_netdev(0, "rmnet%d", vnet_setup);
-	if (ndev) {
-		vn = netdev_priv(ndev);
-		vn->mc = mc;
-		skb_queue_head_init(&vn->txq);
-		r = register_netdev(ndev);
-		if (r)
-			free_netdev(ndev);
-		else
-			mc->ndev = ndev;
+	mc->ndev = kmalloc(sizeof(struct net_device *) * mc->num_pdp_contexts,
+			 GFP_KERNEL);
+	if (!mc->ndev) {
+		pr_err("memory allocation failed for netdev\n");
+		return -ENOMEM;
+	}
+	for (i = 0, ch_id = RAW_CH_VNET0; i < mc->num_pdp_contexts;
+			i++, ch_id++) {
+		mc->ndev[i] = alloc_netdev(0, "rmnet%d", vnet_setup);
+		if (mc->ndev[i]) {
+			vn = netdev_priv(mc->ndev[i]);
+			vn->mc = mc;
+			vn->rmnet_ch_id = ch_id;
+			skb_queue_head_init(&vn->txq);
+			r = register_netdev(mc->ndev[i]);
+			if (r) {
+				free_netdev(mc->ndev[i]);
+				pr_err("failed to register rmnet%d\n", i);
+				goto free;
+			}
+		} else {
+			pr_err("failed to alloc rmnet%d\n", i);
+			goto free;
+		}
 	}
 
 	mc->cmd_pipe.tx = &mc->fmt_tx;
@@ -683,4 +713,12 @@ int modem_io_init(struct modemctl *mc, void __iomem *mmio)
 		pr_err("failed to register modem_rfs pipe\n");
 
 	return 0;
+
+free:
+	/* Unregister and free any alloced netdevs */
+	while (--i >= 0) {
+		unregister_netdev(mc->ndev[i]);
+		free_netdev(mc->ndev[i]);
+	}
+	return -ENOMEM;
 }
