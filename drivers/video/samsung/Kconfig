@@ -159,6 +159,13 @@ config FB_S3C_MDNIE
 	---help---
 	  This enables support for Samsung MDNIE feature
 
+config TL2796_CONVERT_COLORS_RES
+    bool "TL2796 6500K Colors"
+    depends on FB_S3C_TL2796
+    default y
+    ---help---
+      This scales from 8500K colors to 6500K colors
+
 config FB_S3C_CMC623
 	bool "Samsung CMC623"
 	depends on FB_S3C && (ARCH_S5PV210)
