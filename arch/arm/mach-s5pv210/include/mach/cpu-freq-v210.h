@@ -26,12 +26,6 @@ struct s5pv210_cpufreq_data {
 	unsigned int			size;
 };
 
-/* Make sure we have the scaling_available_freqs sysfs file */
-static struct freq_attr *s5pv210_cpufreq_attr[] = {
-    &cpufreq_freq_attr_scaling_available_freqs,
-    NULL,
-};
-
 extern void s5pv210_cpufreq_set_platdata(struct s5pv210_cpufreq_data *pdata);
 
 #endif /* __ASM_ARCH_CPU_FREQ_H */

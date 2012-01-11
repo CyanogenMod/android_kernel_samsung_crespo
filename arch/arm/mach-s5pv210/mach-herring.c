@@ -295,7 +295,7 @@ static struct s3cfb_lcd s6e63m0 = {
 	.p_width = 52,
 	.p_height = 86,
 	.bpp = 24,
-	.freq = 60,
+	.freq = 72,
 
 	.timing = {
 		.h_fp = 16,
@@ -321,14 +321,14 @@ static struct s3cfb_lcd nt35580 = {
 	.p_width = 52,
 	.p_height = 86,
 	.bpp = 24,
-	.freq = 60,
+	.freq = 72,
 	.timing = {
-		.h_fp = 10,
-		.h_bp = 20,
-		.h_sw = 10,
-		.v_fp = 6,
+		.h_fp = 16,
+		.h_bp = 16,
+		.h_sw = 2,
+		.v_fp = 28,
 		.v_fpe = 1,
-		.v_bp = 8,
+		.v_bp = 1,
 		.v_bpe = 1,
 		.v_sw = 2,
 	},
@@ -346,7 +346,7 @@ static struct s3cfb_lcd r61408 = {
 	.p_width = 52,
 	.p_height = 86,
 	.bpp = 24,
-	.freq = 60,
+	.freq = 72,
 	.timing = {
 		.h_fp = 100,
 		.h_bp = 2,
@@ -432,6 +432,14 @@ static struct s5p_media_device herring_media_devs[] = {
 #ifdef CONFIG_CPU_FREQ
 static struct s5pv210_cpufreq_voltage smdkc110_cpufreq_volt[] = {
 	{
+		.freq	= 1400000,
+		.varm	= 1450000,
+		.vint	= 1250000,
+	}, {
+		.freq	= 1200000,
+		.varm	= 1350000,
+		.vint	= 1150000,
+	}, {
 		.freq	= 1000000,
 		.varm	= 1275000,
 		.vint	= 1100000,
@@ -705,12 +713,12 @@ static struct regulator_init_data herring_buck1_data = {
 	.constraints	= {
 		.name		= "VDD_ARM",
 		.min_uV		= 750000,
-		.max_uV		= 1500000,
+		.max_uV		= 1600000,
 		.apply_uV	= 1,
 		.valid_ops_mask	= REGULATOR_CHANGE_VOLTAGE |
 				  REGULATOR_CHANGE_STATUS,
 		.state_mem	= {
-			.uV	= 1472000,
+			.uV	= 1600000,
 			.mode	= REGULATOR_MODE_NORMAL,
 			.disabled = 1,
 		},
@@ -2015,12 +2023,14 @@ static void touch_keypad_gpio_sleep(int onoff)
 		 * reconfigure gpio to activate touchkey controller vdd in sleep mode
 		 */
 		s3c_gpio_slp_cfgpin(_3_GPIO_TOUCH_EN, S3C_GPIO_SLP_OUT1);
+		//s3c_gpio_slp_setpull_updown(_3_GPIO_TOUCH_EN, S3C_GPIO_PULL_NONE);
 	} else {
 		/*
 		 * reconfigure gpio to deactivate touchkey vdd in sleep mode,
 		 * this is the default
 		 */
 		s3c_gpio_slp_cfgpin(_3_GPIO_TOUCH_EN, S3C_GPIO_SLP_OUT0);
+		//s3c_gpio_slp_setpull_updown(_3_GPIO_TOUCH_EN, S3C_GPIO_PULL_NONE);
 	}
 
 }
