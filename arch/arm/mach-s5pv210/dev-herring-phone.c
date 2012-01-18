@@ -31,6 +31,7 @@ static struct modemctl_data mdmctl_data = {
 	.gpio_cp_reset = GPIO_CP_RST,
 	.gpio_phone_on = GPIO_PHONE_ON,
 	.is_cdma_modem = 0,
+	.num_pdp_contexts = 3,
 };
 
 static struct resource mdmctl_res[] = {
@@ -67,8 +68,10 @@ static struct platform_device modemctl = {
 static int __init herring_init_phone_interface(void)
 {
 	/* CDMA device */
-	if (herring_is_cdma_wimax_dev())
+	if (herring_is_cdma_wimax_dev()) {
 		mdmctl_data.is_cdma_modem = 1;
+		mdmctl_data.num_pdp_contexts = 1;
+	}
 
 	platform_device_register(&modemctl);
 	return 0;
