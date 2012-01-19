@@ -100,6 +100,26 @@ static INLINE void PVRSRVKernelMemInfoDecRef(PVRSRV_KERNEL_MEM_INFO *psKernelMem
 	psKernelMemInfo->ui32RefCount--;
 }
 
+static INLINE void PVRSRVBMBufIncRef(BM_BUF *pBuf)
+{
+	pBuf->ui32RefCount++;
+}
+
+static INLINE void PVRSRVBMBufDecRef(BM_BUF *pBuf)
+{
+	pBuf->ui32RefCount--;
+}
+
+static INLINE void PVRSRVBMBufIncExport(BM_BUF *pBuf)
+{
+	pBuf->ui32ExportCount++;
+}
+
+static INLINE void PVRSRVBMBufDecExport(BM_BUF *pBuf)
+{
+	pBuf->ui32ExportCount--;
+}
+
 #if defined(__linux__)
 
 /* mmap refcounting is Linux specific */
@@ -123,26 +143,6 @@ static INLINE void PVRSRVOffsetStructIncMapped(PKV_OFFSET_STRUCT psOffsetStruct)
 static INLINE void PVRSRVOffsetStructDecMapped(PKV_OFFSET_STRUCT psOffsetStruct)
 {
 	psOffsetStruct->ui32Mapped--;
-}
-
-static INLINE void PVRSRVBMBufIncRef(BM_BUF *pBuf)
-{
-	pBuf->ui32RefCount++;
-}
-
-static INLINE void PVRSRVBMBufDecRef(BM_BUF *pBuf)
-{
-	pBuf->ui32RefCount--;
-}
-
-static INLINE void PVRSRVBMBufIncExport(BM_BUF *pBuf)
-{
-	pBuf->ui32ExportCount++;
-}
-
-static INLINE void PVRSRVBMBufDecExport(BM_BUF *pBuf)
-{
-	pBuf->ui32ExportCount--;
 }
 
 #endif /* defined(__linux__) */

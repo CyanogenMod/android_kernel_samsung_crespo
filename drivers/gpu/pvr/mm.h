@@ -131,7 +131,7 @@ struct _LinuxMemArea {
         {
             
             IMG_CPU_PHYADDR *pCPUPhysAddrs;
-            struct ion_handle *psIONHandle;
+            struct ion_handle *psIONHandle[2];
         }sIONTilerAlloc;
         struct _sSubAlloc
         {

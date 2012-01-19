@@ -3568,40 +3568,6 @@ PVRSRVMapMemInfoMemBW(IMG_UINT32 ui32BridgeID,
 
 
 
-static IMG_INT
-MMU_GetPDDevPAddrBW(IMG_UINT32 ui32BridgeID,
-					PVRSRV_BRIDGE_IN_GETMMU_PD_DEVPADDR *psGetMmuPDDevPAddrIN,
-					PVRSRV_BRIDGE_OUT_GETMMU_PD_DEVPADDR *psGetMmuPDDevPAddrOUT,
-					PVRSRV_PER_PROCESS_DATA *psPerProc)
-{
-	IMG_HANDLE hDevMemContextInt;
-
-	PVRSRV_BRIDGE_ASSERT_CMD(ui32BridgeID, PVRSRV_BRIDGE_GETMMU_PD_DEVPADDR);
-
-	psGetMmuPDDevPAddrOUT->eError =
-		PVRSRVLookupHandle(psPerProc->psHandleBase, &hDevMemContextInt,
-						   psGetMmuPDDevPAddrIN->hDevMemContext,
-						   PVRSRV_HANDLE_TYPE_DEV_MEM_CONTEXT);
-	if(psGetMmuPDDevPAddrOUT->eError != PVRSRV_OK)
-	{
-		return 0;
-	}
-
-	psGetMmuPDDevPAddrOUT->sPDDevPAddr =
-		BM_GetDeviceNode(hDevMemContextInt)->pfnMMUGetPDDevPAddr(BM_GetMMUContextFromMemContext(hDevMemContextInt));
-	if(psGetMmuPDDevPAddrOUT->sPDDevPAddr.uiAddr)
-	{
-		psGetMmuPDDevPAddrOUT->eError = PVRSRV_OK;
-	}
-	else
-	{
-		psGetMmuPDDevPAddrOUT->eError = PVRSRV_ERROR_INVALID_PHYS_ADDR;
-	}
-	return 0;
-}
-
-
-
 IMG_INT
 DummyBW(IMG_UINT32 ui32BridgeID,
 		IMG_VOID *psBridgeIn,
@@ -4728,9 +4694,6 @@ CommonBridgeInit(IMG_VOID)
 	SetDispatchTableEntry(PVRSRV_BRIDGE_ALLOC_SHARED_SYS_MEM, PVRSRVAllocSharedSysMemoryBW);
 	SetDispatchTableEntry(PVRSRV_BRIDGE_FREE_SHARED_SYS_MEM, PVRSRVFreeSharedSysMemoryBW);
 	SetDispatchTableEntry(PVRSRV_BRIDGE_MAP_MEMINFO_MEM, PVRSRVMapMemInfoMemBW);
-
-    
-	SetDispatchTableEntry(PVRSRV_BRIDGE_GETMMU_PD_DEVPADDR, MMU_GetPDDevPAddrBW);
 
 	
 	SetDispatchTableEntry(PVRSRV_BRIDGE_INITSRV_CONNECT,	&PVRSRVInitSrvConnectBW);

@@ -337,6 +337,7 @@ extern IMG_UINT32 g_ui32EveryLineCounter;
 	#define PDUMPMALLOCPAGETABLE	PDumpMallocPageTable
 	#define PDUMPSETMMUCONTEXT		PDumpSetMMUContext
 	#define PDUMPCLEARMMUCONTEXT	PDumpClearMMUContext
+    #define PDUMPPDDEVPADDR         PDumpPDDevPAddrKM
 	#define PDUMPFREEPAGES			PDumpFreePages
 	#define PDUMPFREEPAGETABLE		PDumpFreePageTable
 	#define PDUMPPDREG				PDumpPDReg
@@ -373,6 +374,7 @@ extern IMG_UINT32 g_ui32EveryLineCounter;
 			#define PDUMPMALLOCPAGETABLE(args...)
 			#define PDUMPSETMMUCONTEXT(args...)
 			#define PDUMPCLEARMMUCONTEXT(args...)
+            #define PDUMPPDDEVPADDR(args...)
 			#define PDUMPFREEPAGES(args...)
 			#define PDUMPFREEPAGETABLE(args...)
 			#define PDUMPPDREG(args...)
