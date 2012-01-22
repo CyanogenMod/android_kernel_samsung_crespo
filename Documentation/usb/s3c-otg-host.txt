@@ -1,0 +1,83 @@
+This file is a collection of notes on using the USB OTG port of the Samsung Galaxy Tab in HOST mode.
+
+1/17/12 - Zsolt Sz. Sztupak, mail@sztupy.hu, http://android.sztupy.hu
+
+Kevin's patch to the kernel was great, but it had some problems, namely:
+* it was based on an old Froyo (or Eclair?) branch of the kernel, which still had a lot of old code, and methods
+  that were deprecated in later kernel versions
+* the actual client/host changing code was put inside the 30pin connector file, which only exists in the Galaxy
+  Tab based Kernels
+
+The changes I've made are the following:
+* port some of the deprecated code to kernel version 3.x
+* change the otg detector/switcher code from the 30 pin connector module to the s3c otg gadget (client mode) module
+
+There is still a lof code not ported from the old kernel branch as it uses a lot of ugly old samsung kernel code,
+which are non existent in later kernel versions. These include interrupt, LDO and clock switchings, which might
+be the case of some of the hangups.
+
+8/24/11 - Kevin Hester, kevin@ridemission.com
+
+I'm writing this document to capture both the software and hardware changes needed for this device in one place.  
+If you are a brave Android kernel hacker, please try these changes out and send pull requests to github with any
+fixes you add.  I have been unable to find a 'master' github site where hobbyists are maintaining a master Samsung
+kernel and Android OS, if you have such a site feel free to include my fixes (though credit would be appreciated).
+These fixes are provided 'as-is' and you could bust your device or do any number of bad things.
+
+I'm going to post these notes on the xda forums, but for the latest code and documentation please see my github site.
+
+History: The Samsung open source kernel files (from opensource.samsung.com) contained a USB host mode driver for the
+S5PC110 chipset.  These drivers were located in drivers/usb/host/s3c-otg.  The driver contained a number of bugs which
+I've fixed and it now seems to work reasonably well for USB serial ports, flash drives etc.
+
+Hardware: To use USB host mode on your samsung tablet _external 5V DC seems to be required_.  I have not found
+turning any of the samsung LDOs on to make the unit provide USB power (if you find different, please let me know).
+
+To wire up a USB host mode cable you'll need the following pinout (found on a web forum):
+1	Gnd	P
+2	Gnd	P
+3	USB_DP_CON	I/O
+4	USB_DM_CON	I/O
+5	IF_CON_SENSE	I
+6	V_ACCESSORY_5.0V	P
+7	V_BUS_1	P
+8	V_BUS_1	P
+9	VOUT_CHARGER	P (gives out 4v when checked with a multimeter)
+10	VOUT_CHARGER	P (gives out 4v when checked with a multimeter)
+11	---	--
+12	---	--
+13	ACCESSORY_ID / USB_ID	I
+14	ACCESSORY_INT	I
+15	Gnd	P
+16	Gnd	P
+17	MHL_DP	I/O
+18	MHL_DM	I/O
+19	MHL_ID	I
+20	IF_RXD	I
+21	IF_TXD	O
+22	---	--
+23	AP_TV_OUT	O
+24	REMOTE_SENSE	I
+25	---	--
+26	---	--
+27	EAR_L_CRADLE	O
+28	EAR_R_CRADLE	O
+29	3.5_INT_TEST	I
+30	Gnd	P
+
+Your cable will need to connect the following five pins:
+1       Gnd
+3       USB_DP
+4       USB_DM
+8       5V+ (at least 1A if you want to support high speed charging of the tablet)
+13      Host mode (attach to ground to run tablet as a host, or leave disconnected to run tablet as a USB target)
+
+A summary of my driver changes:
+* Fix a nubmer of cases where TDs would be used after delete_td and the associated storage was freed (caused kernel
+heap corruption)
+* Allow a bit more time for some mystery Samsung LDO to power up before switching to host mode (caused failure in device detect)
+* Wait for channel disabled interrupt when cancelling transactions (prevents a race condition with the ISR)
+* Properly switch into USB host mode when a host mode cable is detected (see 30pin_con.c)
+* Mark transfers as done when cancel_to_transfer_td is called (prevents rescheduling transactions we have freed)
+* do not force is_need_to_insert_scheduler true in cancel_transfer, this caused list corruption in the ed list
+

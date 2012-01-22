@@ -376,7 +376,7 @@ config USB_S3C_HSUDC
 
 config USB_GADGET_S3C_OTGD
 	boolean "S3C HS USB OTG Device"
-	depends on (ARCH_S5PV210) && !(USB_S3C_OTG_HOST)
+	depends on (ARCH_S5PV210)
 	help
 	  Samsung's S3C64XX processors include high speed USB OTG2.0
 	  controller. It has 15 configurable endpoints, as well as
@@ -653,7 +653,7 @@ comment "NOTE: S3C OTG device role enables the controller driver below"
 
 config USB_S3C_OTGD
 	tristate "S3C high speed(2.0, dual-speed) USB OTG device"
-	depends on USB_GADGET && USB_GADGET_S3C_OTGD && !(USB_S3C_OTG_HOST)
+	depends on USB_GADGET && USB_GADGET_S3C_OTGD
 	default y
 	default USB_GADGET
 	select USB_GADGET_SELECTED
