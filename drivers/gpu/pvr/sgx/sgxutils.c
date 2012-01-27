@@ -1562,6 +1562,15 @@ IMG_UINT32 SGXConvertTimeStamp(PVRSRV_SGXDEV_INFO	*psDevInfo,
 }
 
 
+IMG_VOID SGXWaitClocks(PVRSRV_SGXDEV_INFO	*psDevInfo,
+					   IMG_UINT32			ui32SGXClocks)
+{
+	
+
+	OSWaitus(1 + (ui32SGXClocks * 1000000 / psDevInfo->ui32CoreClockSpeed));
+}
+
+
 
 IMG_EXPORT
 PVRSRV_ERROR PVRSRVGetSGXRevDataKM(PVRSRV_DEVICE_NODE* psDeviceNode, IMG_UINT32 *pui32SGXCoreRev,

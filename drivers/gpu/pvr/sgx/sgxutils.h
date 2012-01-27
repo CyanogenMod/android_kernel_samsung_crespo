@@ -123,6 +123,9 @@ IMG_UINT32 SGXConvertTimeStamp(PVRSRV_SGXDEV_INFO	*psDevInfo,
 							   IMG_UINT32			ui32TimeWraps,
 							   IMG_UINT32			ui32Time);
 
+IMG_VOID SGXWaitClocks(PVRSRV_SGXDEV_INFO	*psDevInfo,
+					   IMG_UINT32			ui32SGXClocks);
+
 PVRSRV_ERROR SGXCleanupRequest(PVRSRV_DEVICE_NODE	*psDeviceNode,
 							IMG_DEV_VIRTADDR	*psHWDataDevVAddr,
 							IMG_UINT32			ui32CleanupType,

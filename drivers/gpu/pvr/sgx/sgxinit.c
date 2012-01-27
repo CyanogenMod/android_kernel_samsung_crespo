@@ -52,7 +52,6 @@
 #include "lists.h"
 #include "srvkm.h"
 #include "ttrace.h"
-
 #define VAR(x) #x
 
  
@@ -1003,6 +1002,19 @@ static PVRSRV_ERROR DevDeInitSGX (IMG_VOID *pvDeviceNode)
 }
 
 
+#if defined(RESTRICTED_REGISTERS) && defined(SGX_FEATURE_MP)
+
+static IMG_VOID SGXDumpMasterDebugReg (PVRSRV_SGXDEV_INFO	*psDevInfo,
+								 IMG_CHAR			*pszName,
+								 IMG_UINT32			ui32RegAddr)
+{
+	IMG_UINT32	ui32RegVal;
+	ui32RegVal = OSReadHWReg(psDevInfo->pvRegsBaseKM, ui32RegAddr);
+	PVR_LOG(("(HYD) %s%08X", pszName, ui32RegVal));
+}
+
+#endif 
+
 static IMG_VOID SGXDumpDebugReg (PVRSRV_SGXDEV_INFO	*psDevInfo,
 								 IMG_UINT32			ui32CoreNum,
 								 IMG_CHAR			*pszName,
@@ -1027,7 +1039,27 @@ IMG_VOID SGXDumpDebugInfo (PVRSRV_SGXDEV_INFO	*psDevInfo,
 
 		SGXDumpDebugReg(psDevInfo, 0, "EUR_CR_CORE_ID:          ", EUR_CR_CORE_ID);
 		SGXDumpDebugReg(psDevInfo, 0, "EUR_CR_CORE_REVISION:    ", EUR_CR_CORE_REVISION);
+#if defined(RESTRICTED_REGISTERS) && defined(SGX_FEATURE_MP)
+		SGXDumpMasterDebugReg(psDevInfo, "EUR_CR_MASTER_BIF_INT_STAT:   ", EUR_CR_MASTER_BIF_INT_STAT);
+		SGXDumpMasterDebugReg(psDevInfo, "EUR_CR_MASTER_BIF_FAULT:      ",EUR_CR_MASTER_BIF_FAULT);
+		SGXDumpMasterDebugReg(psDevInfo, "EUR_CR_MASTER_CLKGATESTATUS2: ",EUR_CR_MASTER_CLKGATESTATUS2 );
+		SGXDumpMasterDebugReg(psDevInfo, "EUR_CR_MASTER_VDM_PIM_STATUS: ",EUR_CR_MASTER_VDM_PIM_STATUS);
+		SGXDumpMasterDebugReg(psDevInfo, "EUR_CR_MASTER_BIF_BANK_SET:   ",EUR_CR_MASTER_BIF_BANK_SET);
 
+		SGXDumpMasterDebugReg(psDevInfo, "EUR_CR_MASTER_EVENT_STATUS:   ",EUR_CR_MASTER_EVENT_STATUS);
+		SGXDumpMasterDebugReg(psDevInfo, "EUR_CR_MASTER_EVENT_STATUS2:  ",EUR_CR_MASTER_EVENT_STATUS2);
+		SGXDumpMasterDebugReg(psDevInfo, "EUR_CR_MASTER_MP_PRIMITIVE:   ",EUR_CR_MASTER_MP_PRIMITIVE);
+		SGXDumpMasterDebugReg(psDevInfo, "EUR_CR_MASTER_DPM_DPLIST_STATUS: ",EUR_CR_MASTER_DPM_DPLIST_STATUS);
+		SGXDumpMasterDebugReg(psDevInfo, "EUR_CR_MASTER_DPM_PROACTIVE_PIM_SPEC: ",EUR_CR_MASTER_DPM_PROACTIVE_PIM_SPEC);
+		SGXDumpMasterDebugReg(psDevInfo, "EUR_CR_MASTER_PAGE_MANAGEOP:  ",EUR_CR_MASTER_DPM_PAGE_MANAGEOP);
+		SGXDumpMasterDebugReg(psDevInfo, "EUR_CR_MASTER_VDM_CONTEXT_STORE_SNAPSHOT: ",EUR_CR_MASTER_VDM_CONTEXT_STORE_SNAPSHOT);
+		SGXDumpMasterDebugReg(psDevInfo, "EUR_CR_MASTER_VDM_CONTEXT_LOAD_STATUS: ",EUR_CR_MASTER_VDM_CONTEXT_LOAD_STATUS);
+		SGXDumpMasterDebugReg(psDevInfo, "EUR_CR_MASTER_VDM_CONTEXT_STORE_STREAM: ",EUR_CR_MASTER_VDM_CONTEXT_STORE_STREAM);
+		SGXDumpMasterDebugReg(psDevInfo, "EUR_CR_MASTER_VDM_CONTEXT_STORE_STATUS: ",EUR_CR_MASTER_VDM_CONTEXT_STORE_STATUS);
+		SGXDumpMasterDebugReg(psDevInfo, "EUR_CR_MASTER_VDM_CONTEXT_STORE_STATE0: ",EUR_CR_MASTER_VDM_CONTEXT_STORE_STATE0);
+		SGXDumpMasterDebugReg(psDevInfo, "EUR_CR_MASTER_VDM_CONTEXT_STORE_STATE1: ",EUR_CR_MASTER_VDM_CONTEXT_STORE_STATE1);
+		SGXDumpMasterDebugReg(psDevInfo, "EUR_CR_MASTER_VDM_WAIT_FOR_KICK: ",EUR_CR_MASTER_VDM_WAIT_FOR_KICK);
+#endif
 		for (ui32CoreNum = 0; ui32CoreNum < SGX_FEATURE_MP_CORE_COUNT_3D; ui32CoreNum++)
 		{
 			
@@ -1294,14 +1326,14 @@ IMG_VOID SGXOSTimer(IMG_VOID *pvData)
 					ui32BIFCtrl = OSReadHWReg(psDevInfo->pvRegsBaseKM, EUR_CR_BIF_CTRL);
 					OSWriteHWReg(psDevInfo->pvRegsBaseKM, EUR_CR_BIF_CTRL, ui32BIFCtrl | EUR_CR_BIF_CTRL_PAUSE_MASK);
 					
-					OSWaitus(200 * 1000000 / psDevInfo->ui32CoreClockSpeed);
+					SGXWaitClocks(psDevInfo, 200);
 		#endif
 					
 					bBRN31093Inval = IMG_TRUE;
 					
 					OSWriteHWReg(psDevInfo->pvRegsBaseKM, EUR_CR_BIF_CTRL_INVAL, EUR_CR_BIF_CTRL_INVAL_PTE_MASK);
 					
-					OSWaitus(200 * 1000000 / psDevInfo->ui32CoreClockSpeed);
+					SGXWaitClocks(psDevInfo, 200);
 						
 		#if defined(FIX_HW_BRN_29997)	
 						
