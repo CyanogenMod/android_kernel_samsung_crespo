@@ -41,7 +41,7 @@
 #include <mach/media.h>
 #include <s3cfb.h>
 
-#ifdef CONFIG_USB_S3C_OTG_HOST
+#if defined CONFIG_USB_S3C_OTG_HOST
 /* USB Device (OTG hcd)*/
 static struct resource s3c_usb_otghcd_resource[] = {
        [0] = {
@@ -70,6 +70,37 @@ struct platform_device s3c_device_usb_otghcd = {
 };
 
 EXPORT_SYMBOL(s3c_device_usb_otghcd);
+#endif
+
+#if defined CONFIG_USB_DWC_OTG
+/* USB Device (OTG hcd)*/
+static struct resource s3c_usb_dwcotg_resource[] = {
+	[0] = {
+		.start = S3C_PA_OTG,
+		.end   = S3C_PA_OTG + S3C_SZ_OTG - 1,
+		.flags = IORESOURCE_MEM,
+	},
+	[1] = {
+		.start = IRQ_OTG,
+		.end   = IRQ_OTG,
+		.flags = IORESOURCE_IRQ,
+	}
+};
+
+static u64 s3c_device_usb_dwcotg_dmamask = 0xffffffffUL;
+
+struct platform_device s3c_device_usb_dwcotg = {
+	.name		= "dwc_otg",
+	.id		= -1,
+	.num_resources	= ARRAY_SIZE(s3c_usb_dwcotg_resource),
+	.resource	= s3c_usb_dwcotg_resource,
+        .dev              = {
+                .dma_mask = &s3c_device_usb_dwcotg_dmamask,
+                .coherent_dma_mask = 0xffffffffUL
+        }
+};
+
+EXPORT_SYMBOL(s3c_device_usb_dwcotg);
 #endif
 
 /* RTC */

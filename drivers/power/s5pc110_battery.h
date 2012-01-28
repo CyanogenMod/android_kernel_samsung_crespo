@@ -64,6 +64,10 @@ enum {
 	BATT_RESET_SOC,
 };
 
+enum {
+	DISABLE_CHARGER,
+};
+
 #define TOTAL_CHARGING_TIME	(6*60*60)	/* 6 hours */
 #define TOTAL_RECHARGING_TIME	  (90*60)	/* 1.5 hours */
 

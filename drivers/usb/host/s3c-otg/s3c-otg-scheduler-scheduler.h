@@ -89,6 +89,8 @@ u32 get_periodic_ready_q_entity_num(void);
 
 int insert_ed_to_scheduler(struct sec_otghost *otghost, ed_t *insert_ed);
 
+void reset_scheduler_numbers(void);
+
 #ifdef __cplusplus
 }
 #endif

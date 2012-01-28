@@ -71,7 +71,7 @@ __inline__ void otg_handle_interrupt(struct usb_hcd *hcd)
 	if (gintsts.b.conidstschng) {
 		otg_dbg(OTG_DBG_ISR, "Connect ID Status Change Interrupt\n");
 		clearIntr.b.conidstschng = 1;
-		oci_init_mode();
+		oci_init_mode(otghost);
 	}
 
 	if (gintsts.b.hcintr) {

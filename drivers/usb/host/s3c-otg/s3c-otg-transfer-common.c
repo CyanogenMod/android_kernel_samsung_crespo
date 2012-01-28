@@ -408,6 +408,11 @@ int init_ed(ed_t *init_ed,
 	init_ed->ed_status.is_ping_enable		=false;
 	init_ed->ed_status.in_transferring_td		=0;
 
+// sztupy: split transaction support
+	init_ed->ed_status.is_complete_split = false;
+	init_ed->ed_status.split_pos = ED_STATUS_SPLIT_POS_ALL;
+	init_ed->ed_status.split_offset = 0;
+
 	//push the ed_t to ED_list.
 	otg_list_push_prev(&init_ed->ed_list_entry,&ed_list_head);
 

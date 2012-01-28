@@ -52,8 +52,8 @@ extern void otg_host_phy_init(void);
 //OCI interace
 int	oci_init(struct sec_otghost *otghost);
 
-int	oci_start(void);
-int	oci_stop(void);
+int	oci_start(struct sec_otghost *otghost);
+int	oci_stop(struct sec_otghost *otghost);
 
 u8	oci_start_transfer(struct sec_otghost *otghost, stransfer_t *st_t);
 int	oci_stop_transfer(struct sec_otghost *otghost, u8 ch_num);
@@ -64,11 +64,11 @@ u16	oci_get_frame_interval(void);
 void	oci_set_frame_interval(u16 intervl);
 
 ///OCI Internal Functions
-int	oci_sys_init(void);
-int	oci_core_init(void);
-int	oci_init_mode(void);
-int	oci_host_init(void);
-int	oci_dev_init(void);
+int	oci_sys_init(struct sec_otghost *otghost);
+int	oci_core_init(struct sec_otghost *otghost);
+int	oci_init_mode(struct sec_otghost *otghost);
+int	oci_host_init(struct sec_otghost *otghost);
+int	oci_dev_init(struct sec_otghost *otghost);
 
 int	oci_channel_alloc(u8 *ch_num);
 int	oci_channel_dealloc(u8 ch_num);

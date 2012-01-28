@@ -148,6 +148,14 @@ typedef struct ed_status
 	bool			is_in_transferring;
 	u32			in_transferring_td;
 	bool			is_alloc_resource_for_ed;
+	bool			is_complete_split;
+// sztupy: split transaction support
+#define ED_STATUS_SPLIT_POS_ALL 3
+#define ED_STATUS_SPLIT_POS_BEGIN 2
+#define ED_STATUS_SPLIT_POS_MID 1
+#define ED_STATUS_SPLIT_POS_END 0
+	u8			split_pos;
+	u32			split_offset;
 }ed_status_t;//, *ed_status_t *,**ed_status_t **;
 
 
@@ -655,6 +663,24 @@ typedef union _hcchar_t
 		unsigned chen		: 1;
 	} b;
 } hcchar_t;
+
+// sztupy: adding struct to handle HCSPLT register
+typedef union _hcsplt_t {
+ 	// raw register data
+	u32 d32;
+
+	// register bits
+	struct
+	{
+		unsigned prtaddr	: 7;
+		unsigned hubaddr	: 7;
+		unsigned xactpos	: 2;
+		unsigned compsplt	: 1;
+		unsigned reserved	: 14;
+		unsigned spltena	: 1;
+	} b;
+ 
+} hcsplt_t;
 
 typedef union _hctsiz_t
 {

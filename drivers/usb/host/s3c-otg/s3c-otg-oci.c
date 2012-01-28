@@ -48,7 +48,7 @@ int oci_init(struct sec_otghost *otghost)
 	otg_mem_set((void*)ch_enable, true, sizeof(bool)*16);
 	otghost->ch_halt = false;
 
-	if(oci_sys_init() == USB_ERR_SUCCESS) {
+	if(oci_sys_init(otghost) == USB_ERR_SUCCESS) {
 		if(oci_core_reset() == USB_ERR_SUCCESS) {
 			oci_set_global_interrupt(false);
 			return USB_ERR_SUCCESS;
@@ -63,7 +63,7 @@ int oci_init(struct sec_otghost *otghost)
 }
 
 /**
- * int oci_core_init(void)
+ * int oci_core_init(struct sec_otghost *otghost)
  *
  * @brief process core initialize as s5pc110 otg spec
  *
@@ -74,7 +74,7 @@ int oci_init(struct sec_otghost *otghost)
  * @remark
  *
  */
-int oci_core_init(void)
+int oci_core_init(struct sec_otghost *otghost)
 {
 	gahbcfg_t ahbcfg 	= {.d32 = 0};
 	gusbcfg_t usbcfg 	= {.d32 = 0};
@@ -211,7 +211,7 @@ int oci_core_init(void)
 }
 
 /**
- * int oci_host_init(void)
+ * int oci_host_init(struct sec_otghost *otghost)
  *
  * @brief Process host initialize as s5pc110 spec
  *
@@ -222,7 +222,7 @@ int oci_core_init(void)
  * @remark
  *
  */
-int oci_host_init(void)
+int oci_host_init(struct sec_otghost *otghost)
 {
 	gintmsk_t gintmsk = {.d32 = 0};
 	hcfg_t hcfg = {.d32 = 0};
@@ -237,6 +237,11 @@ int oci_host_init(void)
 	gintmsk.b.portintr = 1;
 	update_reg_32(GINTMSK,gintmsk.d32);
 
+	if (!otghost->is_hs) {
+		hcfg.b.fslssupp = 1; // force USB 1.x mode
+	} else {
+		hcfg.b.fslssupp = 0;
+	}
 	hcfg.b.fslspclksel = HCFG_30_60_MHZ;
 	update_reg_32(HCFG, hcfg.d32);
 
@@ -257,7 +262,7 @@ int oci_host_init(void)
 }
 
 /**
- * int oci_start(void)
+ * int oci_start(struct sec_otghost *otghost)
  *
  * @brief start to operate oci module by calling oci_core_init function
  *
@@ -268,13 +273,13 @@ int oci_host_init(void)
  * @remark
  *
  */
-int oci_start(void)
+int oci_start(struct sec_otghost *otghost)
 {
 	otg_dbg(OTG_DBG_OCI, "oci_start \n");
 
-	if(oci_core_init() == USB_ERR_SUCCESS) {
+	if(oci_core_init(otghost) == USB_ERR_SUCCESS) {
 		mdelay(50);
-		if(oci_init_mode() == USB_ERR_SUCCESS) {
+		if(oci_init_mode(otghost) == USB_ERR_SUCCESS) {
 			oci_set_global_interrupt(true);
 			return USB_ERR_SUCCESS;
 		}
@@ -290,7 +295,7 @@ int oci_start(void)
 }
 
 /**
- * int oci_stop(void)
+ * int oci_stop(struct sec_otghost *otghost)
  *
  * @brief stop to opearte otg core
  *
@@ -301,7 +306,7 @@ int oci_start(void)
  * @remark
  *
  */
-int oci_stop()
+int oci_stop(struct sec_otghost *otghost)
 {
 	gintmsk_t gintmsk = {.d32 = 0};
 
@@ -453,6 +458,7 @@ int oci_channel_init( u8 ch_num, stransfer_t *st_t)
 	gintmsk_t	gintmsk = {.d32 = 0};
 	hcchar_t		hcchar = {.d32 = 0};
 	hctsiz_t		hctsiz = {.d32 = 0};
+	hcsplt_t	hcsplt = {.d32 = 0};
 
 	otg_dbg(OTG_DBG_OCI, "oci_channel_init \n");
 
@@ -542,6 +548,17 @@ int oci_channel_init( u8 ch_num, stransfer_t *st_t)
 
 	/* Wrote HCCHAR Register */
 	write_reg_32(HCCHAR(ch_num),hcchar.d32);
+
+	/* sztupy: Enable split transaction support if driver is in HS mode */
+	if (st_t->ed_desc_p->is_do_split) {
+		printk("splittrans");
+		hcsplt.b.spltena = 1;
+		hcsplt.b.hubaddr = st_t->ed_desc_p->hub_addr;
+		hcsplt.b.prtaddr = st_t->ed_desc_p->hub_port;
+		hcsplt.b.xactpos = st_t->ed_status_p->split_pos;
+		hcsplt.b.compsplt = st_t->ed_status_p->is_complete_split;
+	}
+	write_reg_32(HCSPLT(ch_num),hcsplt.d32);
 
 	return USB_ERR_SUCCESS;
 }
@@ -633,7 +650,7 @@ int oci_channel_dealloc(u8 ch_num)
 	return USB_ERR_FAIL;
 }
 
-int oci_sys_init(void)
+int oci_sys_init(struct sec_otghost *otghost)
 {
 	otg_host_phy_init();
 
@@ -657,7 +674,7 @@ void oci_set_global_interrupt(bool set)
 	}
 }
 
-int oci_init_mode(void)
+int oci_init_mode(struct sec_otghost *otghost)
 {
 	gintsts_t	gintsts;
 
@@ -671,7 +688,7 @@ int oci_init_mode(void)
 	if(gintsts.b.curmode == OTG_HOST_MODE) {
 		otg_dbg(OTG_DBG_OCI, "HOST Mode\n");
 
-		if(oci_host_init() == USB_ERR_SUCCESS) {
+		if(oci_host_init(otghost) == USB_ERR_SUCCESS) {
 			return USB_ERR_SUCCESS;
 		}
 		else {
@@ -681,7 +698,7 @@ int oci_init_mode(void)
 	}
 	else { /* Device Mode */
 		otg_dbg(OTG_DBG_OCI, "DEVICE Mode\n");
-		if(oci_dev_init() == USB_ERR_SUCCESS) {
+		if(oci_dev_init(otghost) == USB_ERR_SUCCESS) {
 			return USB_ERR_SUCCESS;
 		}
 		else {
@@ -790,7 +807,7 @@ int oci_core_reset(void)
 	return USB_ERR_SUCCESS;
 }
 
-int oci_dev_init(void)
+int oci_dev_init(struct sec_otghost *otghost)
 {
 	otg_dbg(OTG_DBG_OCI, "oci_dev_init - do nothing.\n");
 	/* return USB_ERR_FAIL; */
