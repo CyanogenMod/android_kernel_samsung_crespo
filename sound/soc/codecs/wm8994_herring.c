@@ -21,6 +21,9 @@
 #include <mach/regs-clock.h>
 #include "wm8994_samsung.h"
 #include "../../../arch/arm/mach-s5pv210/herring.h"
+#ifdef CONFIG_SND_VOODOO
+#include "wm8994_voodoo.h"
+#endif
 
 /*
  * Debug Feature
@@ -2167,6 +2170,10 @@ void wm8994_set_playback_speaker(struct snd_soc_codec *codec)
 	val |= WM8994_AIF1DAC1L_TO_DAC1L;
 	wm8994_write(codec, WM8994_DAC1_LEFT_MIXER_ROUTING, val);
 
+#ifdef CONFIG_SND_VOODOO
+	voodoo_hook_playback_speaker();
+#endif
+
 	/* Enbale bias,vmid and Left speaker */
 	val = wm8994_read(codec, WM8994_POWER_MANAGEMENT_1);
 	val &= ~(WM8994_BIAS_ENA_MASK | WM8994_VMID_SEL_MASK |
@@ -2591,6 +2598,10 @@ void wm8994_set_voicecall_common_setting(struct snd_soc_codec *codec)
 		wm8994_set_cdma_voicecall_common_setting(codec);
 	else
 		wm8994_set_gsm_voicecall_common_setting(codec);
+
+#ifdef CONFIG_SND_VOODOO_RECORD_PRESETS
+	voodoo_hook_record_main_mic();
+#endif
 }
 
 static void wm8994_set_cdma_voicecall_receiver(struct snd_soc_codec *codec)
