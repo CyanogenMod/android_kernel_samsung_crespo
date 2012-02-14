@@ -44,6 +44,7 @@ modules.builtin
 /System.map
 /Module.markers
 /Module.symvers
+/build
 
 #
 # git files that we don't want to ignore even it they are dot-files
