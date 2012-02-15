@@ -79,6 +79,7 @@ static int fimc_outdev_stop_camif(void *param)
 	fimc_hwset_disable_autoload(ctrl);
 	fimc_hwset_stop_scaler(ctrl);
 	fimc_hwset_disable_capture(ctrl);
+	fimc_hwset_sw_reset(ctrl);
 
 	fimc_clk_en(ctrl, false);
 	return 0;

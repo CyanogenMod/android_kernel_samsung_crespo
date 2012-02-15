@@ -294,6 +294,22 @@ int fimc_hwset_reset(struct fimc_control *ctrl)
 	return 0;
 }
 
+int fimc_hwset_sw_reset(struct fimc_control *ctrl)
+{
+	u32 cfg = 0;
+
+	/* s/w reset */
+	cfg = readl(ctrl->regs + S3C_CIGCTRL);
+	cfg |= (S3C_CIGCTRL_SWRST);
+	writel(cfg, ctrl->regs + S3C_CIGCTRL);
+
+	cfg = readl(ctrl->regs + S3C_CIGCTRL);
+	cfg &= ~S3C_CIGCTRL_SWRST;
+	writel(cfg, ctrl->regs + S3C_CIGCTRL);
+
+	return 0;
+}
+
 int fimc_hwset_clksrc(struct fimc_control *ctrl, int src_clk)
 {
 	u32 cfg = readl(ctrl->regs + S3C_MISC_FIMC);
