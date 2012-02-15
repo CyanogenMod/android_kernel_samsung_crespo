@@ -1,6 +1,9 @@
 #!/bin/bash
 
 BOARD=crespo
+DEVICEDIR=/sdcard/AROM
+KNAME=kernel.cyano.RELEASE
+DEVICE_CM_DIR=$ANDROID_BUILD_TOP/device/samsung/${BOARD}
 
 setup ()
 {
@@ -13,7 +16,7 @@ setup ()
     KERNEL_DIR="$(dirname "$(readlink -f "$0")")"
     BUILD_DIR="$KERNEL_DIR/build"
     # add modules which should be copied after build below
-    MODULES=("")
+    MODULES=("drivers/net/wireless/bcm4329/bcm4329.ko")
 
     if [ x = "x$NO_CCACHE" ] && ccache -V &>/dev/null ; then
         CCACHE=ccache
@@ -28,6 +31,54 @@ setup ()
     CROSS_PREFIX="$ANDROID_BUILD_TOP/prebuilt/linux-x86/toolchain/arm-eabi-4.4.3/bin/arm-eabi-"
 }
 
+CheckVersion ()
+{
+    if [ ! -f .Mayor ]
+    then
+        echo 1 > .Mayor
+    fi
+    if [ ! -f .Minor ]
+    then
+        echo 0 > .Minor
+    fi
+    sVersion=$(cat build/${BOARD}/include/config/kernel.release)
+    echo $sVersion
+    sVersionMerge=${sVersion:(-8)}
+    echo sVersionMerge
+    iMayor=$(cat .Mayor)
+    iMinor=$(cat .Minor)
+}
+
+CreateKernelZip ()
+{
+    cd bin
+    rm *.zip
+    KZIPNAME=$KNAME.v$iMayor.$iMinor.$sVersionMerge.zip
+    zip $KZIPNAME * -r
+    adb push $KZIPNAME $DEVICEDIR/$KZIPNAME
+    cd ..
+    echo $KZIPNAME
+}
+
+UpgradeMinor ()
+{
+    iMinor=$(($iMinor+1))
+    echo $iMinor > .Minor
+}
+
+CompileError ()
+{
+    echo !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    echo ! COMPILACION FAILED
+    echo !
+    echo !
+    echo ! ----------------------   COMPILACION ERROR CODE: $RET
+    echo !
+    echo !
+    echo !
+    echo !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+}
+
 build ()
 {
     local target=$1
@@ -38,12 +89,28 @@ build ()
     mkdir -p "$target_dir"
     [ x = "x$NO_DEFCONFIG" ] && mka -C "$KERNEL_DIR" O="$target_dir" ARCH=arm ${BOARD}_defconfig HOSTCC="$CCACHE gcc"
     if [ x = "x$NO_BUILD" ] ; then
-        mka -C "$KERNEL_DIR" O="$target_dir" ARCH=arm HOSTCC="$CCACHE gcc" CROSS_COMPILE="$CCACHE $CROSS_PREFIX" modules
-        mka -C "$KERNEL_DIR" O="$target_dir" ARCH=arm HOSTCC="$CCACHE gcc" CROSS_COMPILE="$CCACHE $CROSS_PREFIX" zImage
-        cp "$target_dir"/arch/arm/boot/zImage $ANDROID_BUILD_TOP/device/samsung/${BOARD}/kernel
-        for module in "${MODULES[@]}" ; do
-            cp "$target_dir/$module" $ANDROID_BUILD_TOP/device/samsung/${BOARD}
-        done
+        C_OPTIONS="ARCH=arm HOSTCC=\""$CCACHE" gcc\" CROSS_COMPILE=\""$CCACHE $CROSS_PREFIX
+        mka -C "$KERNEL_DIR" O="$target_dir" ARCH=arm HOSTCC="$CCACHE gcc" CROSS_COMPILE="$CCACHE $CROSS_PREFIX"  modules
+        RET=$?
+        if [[ $RET == 0 ]] ; then
+            mka -C "$KERNEL_DIR" O="$target_dir" ARCH=arm HOSTCC="$CCACHE gcc" CROSS_COMPILE="$CCACHE $CROSS_PREFIX" zImage
+            RET=$?
+            if [[ $RET == 0 ]] ; then
+                cp "$target_dir"/arch/arm/boot/zImage $DEVICE_CM_DIR/kernel
+                cp "$target_dir"/arch/arm/boot/zImage bin/kernel/zImage
+                for module in "${MODULES[@]}" ; do
+                    cp "$target_dir/$module" $DEVICE_CM_DIR
+                    cp "$target_dir/$module" bin/system/modules
+                done
+                CheckVersion
+                CreateKernelZip
+                UpgradeMinor
+            else
+                CompileError
+            fi
+        else
+            CompileError
+        fi
     fi
 }
 
