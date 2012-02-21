@@ -1620,7 +1620,6 @@ PVRSRV_ERROR PVRSRVSwapToDCBuffer2KM(IMG_HANDLE	hDeviceKM,
 	psCallbackData->pvPrivData = pvPrivData;
 	psCallbackData->ui32PrivDataLength = ui32PrivDataLength;
 
-	
 	if(OSAllocMem(PVRSRV_OS_PAGEABLE_HEAP,
 				  sizeof(IMG_VOID *) * ui32NumMemSyncInfos,
 				  (IMG_VOID **)&ppvMemInfos, IMG_NULL,
@@ -1662,7 +1661,6 @@ PVRSRV_ERROR PVRSRVSwapToDCBuffer2KM(IMG_HANDLE	hDeviceKM,
 
 		ui32NumCompiledSyncInfos = ui32NumMemSyncInfos + ui32NumUniqueSyncInfos;
 
-		
 		if(OSAllocMem(PVRSRV_OS_PAGEABLE_HEAP,
 					  sizeof(PVRSRV_KERNEL_SYNC_INFO *) * ui32NumCompiledSyncInfos,
 					  (IMG_VOID **)&ppsCompiledSyncInfos, IMG_NULL,
@@ -1736,6 +1734,9 @@ PVRSRV_ERROR PVRSRVSwapToDCBuffer2KM(IMG_HANDLE	hDeviceKM,
 
 	psFlipCmd->ppsMemInfos = (PDC_MEM_INFO *)ppvMemInfos;
 	psFlipCmd->ui32NumMemInfos = ui32NumMemSyncInfos;
+
+	
+	psFlipCmd->hUnused = IMG_NULL;
 
 	SysAcquireData(&psSysData);
 
