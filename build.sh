@@ -5,6 +5,19 @@ DEVICEDIR=/sdcard/AROM
 KNAME=kernel.cyano.RELEASE
 DEVICE_CM_DIR=$ANDROID_BUILD_TOP/device/samsung/${BOARD}
 
+WaitForDevice()
+{
+    adb start-server
+    if [ $(adb get-state) != device -a $(adb shell busybox test -e /sbin/recovery 2> /dev/null; echo $?) != 0 ] ; then
+        echo "No device is online. Waiting for one..."
+        echo "Please connect USB and/or enable USB debugging"
+        until [ $(adb get-state) = device -o $(adb shell busybox test -e /sbin/recovery 2> /dev/null; echo $?) = 0 ];do
+            sleep 1
+        done
+        echo "Device Found.."
+    fi
+}
+
 setup ()
 {
     if [ x = "x$ANDROID_BUILD_TOP" ] ; then
@@ -55,7 +68,30 @@ CreateKernelZip ()
     rm *.zip
     KZIPNAME=$KNAME.v$iMayor.$iMinor.$sVersionMerge.zip
     zip $KZIPNAME * -r
-    adb push $KZIPNAME $DEVICEDIR/$KZIPNAME
+    WaitForDevice
+    echo Going into fastboot
+    if adb reboot-bootloader ; then
+        sleep 4
+        echo Pushing kernel file
+        if fastboot flash zimage kernel/zImage ; then
+            sleep 1
+            fastboot reboot
+            WaitForDevice
+            sleep 2
+            adb root
+            sleep 4
+            adb remount
+            sleep 2
+            echo Sending modules
+            for filename in system/modules/* ; do
+                echo Sending $filename to /system/modules
+                if adb push $filename /system/modules ; then
+                    echo "Rebooting again"
+                    adb reboot
+                fi
+            done
+        fi
+    fi
     cd ..
     echo $KZIPNAME
 }
@@ -89,7 +125,6 @@ build ()
     mkdir -p "$target_dir"
     [ x = "x$NO_DEFCONFIG" ] && mka -C "$KERNEL_DIR" O="$target_dir" ARCH=arm ${BOARD}_defconfig HOSTCC="$CCACHE gcc"
     if [ x = "x$NO_BUILD" ] ; then
-        C_OPTIONS="ARCH=arm HOSTCC=\""$CCACHE" gcc\" CROSS_COMPILE=\""$CCACHE $CROSS_PREFIX
         mka -C "$KERNEL_DIR" O="$target_dir" ARCH=arm HOSTCC="$CCACHE gcc" CROSS_COMPILE="$CCACHE $CROSS_PREFIX"  modules
         RET=$?
         if [[ $RET == 0 ]] ; then
