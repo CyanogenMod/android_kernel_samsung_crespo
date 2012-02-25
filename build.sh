@@ -68,28 +68,30 @@ CreateKernelZip ()
     rm *.zip
     KZIPNAME=$KNAME.v$iMayor.$iMinor.$sVersionMerge.zip
     zip $KZIPNAME * -r
-    WaitForDevice
-    echo Going into fastboot
-    if adb reboot-bootloader ; then
-        sleep 4
-        echo Pushing kernel file
-        if fastboot flash zimage kernel/zImage ; then
-            sleep 1
-            fastboot reboot
-            WaitForDevice
-            sleep 2
-            adb root
+    if [ "$responseSend" == "y" ] ; then
+        WaitForDevice
+        echo Going into fastboot
+        if adb reboot-bootloader ; then
             sleep 4
-            adb remount
-            sleep 2
-            echo Sending modules
-            for filename in system/modules/* ; do
-                echo Sending $filename to /system/modules
-                if adb push $filename /system/modules ; then
-                    echo "Rebooting again"
-                    adb reboot
-                fi
-            done
+            echo Pushing kernel file
+            if fastboot flash zimage kernel/zImage ; then
+                sleep 1
+                fastboot reboot
+                WaitForDevice
+                sleep 2
+                adb root
+                sleep 4
+                adb remount
+                sleep 2
+                echo Sending modules
+                for filename in system/modules/* ; do
+                    echo Sending $filename to /system/modules
+                    if adb push $filename /system/modules ; then
+                        echo "Rebooting again"
+                        adb reboot
+                    fi
+                done
+            fi
         fi
     fi
     cd ..
@@ -150,6 +152,15 @@ build ()
 }
 
 setup
+
+echo Type y + \"intro\" to send kernel to your mobile:
+read -t 10 responseSend;
+if [ "$responseSend" == "y" ] ; then
+    echo Sending to device after build .. $responseSend
+else
+    echo Only compile .. $responseSend
+fi
+
 
 if [ "$1" = clean ] ; then
     rm -fr "$BUILD_DIR"/*
