@@ -328,8 +328,10 @@ static void cond_unmask_irq(struct irq_desc *desc)
 	 *   spurious interrupt or a primary handler handling it
 	 *   completely).
 	 */
-	if (!irqd_irq_disabled(&desc->irq_data) &&
-	    irqd_irq_masked(&desc->irq_data) && !desc->threads_oneshot)
+	// FIXME
+	// if (!irqd_irq_disabled(&desc->irq_data) &&
+	//    irqd_irq_masked(&desc->irq_data) && !desc->threads_oneshot)
+	if (!irqd_irq_disabled(&desc->irq_data) && !(desc->istate & IRQS_ONESHOT))
 		unmask_irq(desc);
 }
 
