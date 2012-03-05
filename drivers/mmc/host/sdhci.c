@@ -2329,6 +2329,10 @@ int sdhci_suspend_host(struct sdhci_host *host, pm_message_t state)
 	}
 
 	ret = mmc_suspend_host(host->mmc);
+	if (ret) {
+		sdhci_enable_card_detection(host);
+		return ret;
+	}
 
 	sdhci_mask_irqs(host, SDHCI_INT_ALL_MASK);
 
