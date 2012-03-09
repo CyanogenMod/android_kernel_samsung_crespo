@@ -79,6 +79,10 @@
 #include <asm/uaccess.h>
 #endif
 
+#if defined(PVR_LDM_MODULE) || defined(PVR_DRI_DRM_PLATFORM_DEV)
+#include <asm/atomic.h>
+#endif
+
 #include "img_defs.h"
 #include "services.h"
 #include "kerneldisplay.h"
@@ -347,9 +351,17 @@ void PVRSRVDriverShutdown(struct drm_device *pDevice)
 PVR_MOD_STATIC void PVRSRVDriverShutdown(LDM_DEV *pDevice)
 #endif
 {
+	static atomic_t sDriverIsShutdown = ATOMIC_INIT(1);
+
 	PVR_TRACE(("PVRSRVDriverShutdown(pDevice=%p)", pDevice));
 
-	(void) PVRSRVSetPowerStateKM(PVRSRV_SYS_POWER_STATE_D3);
+	if (atomic_dec_and_test(&sDriverIsShutdown))
+	{
+		
+		LinuxLockMutex(&gPVRSRVLock);
+
+		(void) PVRSRVSetPowerStateKM(PVRSRV_SYS_POWER_STATE_D3);
+	}
 }
 
 #endif 
