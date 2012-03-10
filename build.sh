@@ -156,7 +156,7 @@ build ()
                 MODULES=( $(find $target_dir/* -type f -name *.ko) )
                 for module in "${MODULES[@]}" ; do
                     echo $module
-                    # cp "$module" $DEVICE_CM_DIR
+                    cp "$module" $DEVICE_CM_DIR
                     cp "$module" bin/system/modules
                 done
                 SenModulesToCMDevice
