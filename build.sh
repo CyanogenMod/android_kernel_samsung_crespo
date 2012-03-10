@@ -28,8 +28,6 @@ setup ()
 
     KERNEL_DIR="$(dirname "$(readlink -f "$0")")"
     BUILD_DIR="$KERNEL_DIR/build"
-    # add modules which should be copied after build below
-    MODULES=("drivers/net/wireless/bcm4329/bcm4329.ko")
 
     if [ x = "x$NO_CCACHE" ] && ccache -V &>/dev/null ; then
         CCACHE=ccache
@@ -88,9 +86,9 @@ CreateKernelZip ()
                     echo Sending $filename to /system/modules
                     if adb push $filename /system/modules ; then
                         echo "Rebooting again"
-                        adb reboot
                     fi
                 done
+                adb reboot
             fi
         fi
     fi
@@ -117,6 +115,26 @@ CompileError ()
     echo !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 }
 
+SenModulesToCMDevice()
+{
+    CURDIR=`pwd`;
+    cd bin/system/modules
+    rm $DEVICE_CM_DIR/KernelModules.mk
+    echo "# Kernel Modules TO BE COPIED" > $DEVICE_CM_DIR/KernelModules.mk
+    echo 'PRODUCT_COPY_FILES += \' >> $DEVICE_CM_DIR/KernelModules.mk
+    MODULEF=( $(find * -type f) )
+    # get length of an array
+    tLen=${#MODULEF[@]}
+    # use for loop read all modules but not the last
+    for (( i=0; i<${tLen}-1; i++ ));
+    do
+         echo '    device/samsung/'${BOARD}'/'${MODULEF[$i]}':system/modules/'${MODULEF[$i]}' \' >>$DEVICE_CM_DIR/KernelModules.mk
+      echo ${MODULEF[$i]}
+    done
+    echo '    device/samsung/'${BOARD}'/'${MODULEF[$i]}':system/modules/'${MODULEF[$i]} >>$DEVICE_CM_DIR/KernelModules.mk
+    cd $CURDIR
+}
+
 build ()
 {
     local target=$1
@@ -135,10 +153,13 @@ build ()
             if [[ $RET == 0 ]] ; then
                 cp "$target_dir"/arch/arm/boot/zImage $DEVICE_CM_DIR/kernel
                 cp "$target_dir"/arch/arm/boot/zImage bin/kernel/zImage
+                MODULES=( $(find $target_dir/* -type f -name *.ko) )
                 for module in "${MODULES[@]}" ; do
-                    cp "$target_dir/$module" $DEVICE_CM_DIR
-                    cp "$target_dir/$module" bin/system/modules
+                    echo $module
+                    # cp "$module" $DEVICE_CM_DIR
+                    cp "$module" bin/system/modules
                 done
+                SenModulesToCMDevice
                 CheckVersion
                 CreateKernelZip
                 UpgradeMinor
@@ -167,10 +188,7 @@ if [ "$1" = clean ] ; then
     exit 0
 fi
 
-targets=("$@")
-if [ 0 = "${#targets[@]}" ] ; then
-    targets=(crespo)
-fi
+targets=(crespo)
 
 START=$(date +%s)
 
