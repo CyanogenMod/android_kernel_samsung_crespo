@@ -471,7 +471,7 @@ static int dhd_sleep_pm_callback(struct notifier_block *nfb, unsigned long actio
 {
 	int ret = NOTIFY_DONE;
 
-#if (LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 39))
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 39))
 	switch (action) {
 		case PM_HIBERNATION_PREPARE:
 		case PM_SUSPEND_PREPARE:
@@ -2271,7 +2271,7 @@ dhd_cleanup_virt_ifaces(dhd_info_t *dhd)
 static int
 dhd_stop(struct net_device *net)
 {
-	int ifidx;
+	int ifidx = 0;
 	dhd_info_t *dhd = *(dhd_info_t **)netdev_priv(net);
 	DHD_OS_WAKE_LOCK(&dhd->pub);
 	DHD_TRACE(("%s: Enter %p\n", __FUNCTION__, net));
@@ -2305,14 +2305,15 @@ dhd_stop(struct net_device *net)
 	/* Stop the protocol module */
 	dhd_prot_stop(&dhd->pub);
 
+	OLD_MOD_DEC_USE_COUNT;
+exit:
 #if defined(WL_CFG80211)
 	if (ifidx == 0 && !dhd_download_fw_on_driverload)
 		wl_android_wifi_off(net);
 #endif
 	dhd->pub.rxcnt_timeout = 0;
 	dhd->pub.txcnt_timeout = 0;
-	OLD_MOD_DEC_USE_COUNT;
-exit:
+
 	DHD_OS_WAKE_UNLOCK(&dhd->pub);
 	return 0;
 }
@@ -2967,6 +2968,7 @@ dhd_preinit_ioctls(dhd_pub_t *dhd)
 			DHD_ERROR(("%s: can't set MAC address , error=%d\n", __FUNCTION__, ret));
 			return BCME_NOTUP;
 		}
+		memcpy(dhd->mac.octet, ea_addr.octet, ETHER_ADDR_LEN);
 	} else {
 #endif /* GET_CUSTOM_MAC_ENABLE */
 		/* Get the default device MAC address directly from firmware */
