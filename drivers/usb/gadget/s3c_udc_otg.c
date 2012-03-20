@@ -38,9 +38,9 @@
 #error " Unknown S3C OTG operation mode, Select a correct operation mode"
 #endif
 
-#undef DEBUG_S3C_UDC_SETUP
+#define DEBUG_S3C_UDC_SETUP
 #undef DEBUG_S3C_UDC_EP0
-#undef DEBUG_S3C_UDC_ISR
+#define DEBUG_S3C_UDC_ISR
 #undef DEBUG_S3C_UDC_OUT_EP
 #undef DEBUG_S3C_UDC_IN_EP
 #undef DEBUG_S3C_UDC
@@ -64,7 +64,7 @@ static char *state_names[] = {
 #endif
 
 #ifdef DEBUG_S3C_UDC_SETUP
-#define DEBUG_SETUP(fmt, args...) printk(fmt, ##args)
+#define DEBUG_SETUP(fmt, args...) pr_debug(fmt, ##args)
 #else
 #define DEBUG_SETUP(fmt, args...) do {} while (0)
 #endif
@@ -82,7 +82,7 @@ static char *state_names[] = {
 #endif
 
 #ifdef DEBUG_S3C_UDC_ISR
-#define DEBUG_ISR(fmt, args...) printk(fmt, ##args)
+#define DEBUG_ISR(fmt, args...) pr_debug(fmt, ##args)
 #else
 #define DEBUG_ISR(fmt, args...) do {} while (0)
 #endif
