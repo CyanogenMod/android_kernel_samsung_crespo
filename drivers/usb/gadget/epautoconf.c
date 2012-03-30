@@ -339,6 +339,10 @@ struct usb_ep *usb_ep_autoconfig (
 			ep = find_ep (gadget, "ep13-bulk");
 			if (ep && ep_matches (gadget, ep, desc))
 				return ep;
+		} else if (USB_ENDPOINT_XFER_ISOC == type) {
+			ep = find_ep(gadget, "ep15-iso");
+			if (ep && ep_matches(gadget, ep, desc))
+				return ep;
 		}
 	}
 
