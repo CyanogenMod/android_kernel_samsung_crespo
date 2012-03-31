@@ -364,10 +364,18 @@ static inline void fimc_irq_out(struct fimc_control *ctrl)
 	struct fimc_ctx *ctx;
 	u32 wakeup = 1;
 	int ctx_num = ctrl->out->idxs.active.ctx;
-	ctx = &ctrl->out->ctx[ctx_num];
 
 	/* Interrupt pendding clear */
 	fimc_hwset_clear_irq(ctrl);
+
+	/* check context num */
+	if (ctx_num < 0 || ctx_num >= FIMC_MAX_CTXS) {
+		fimc_err("fimc_irq_out: invalid ctx (ctx=%d)\n", ctx_num);
+		wake_up(&ctrl->wq);
+		return;
+	}
+
+	ctx = &ctrl->out->ctx[ctx_num];
 
 	switch (ctx->overlay.mode) {
 	case FIMC_OVLY_NONE_SINGLE_BUF:
@@ -381,6 +389,8 @@ static inline void fimc_irq_out(struct fimc_control *ctrl)
 		wakeup = fimc_irq_out_dma(ctrl, ctx);
 		break;
 	default:
+		fimc_err("[ctx=%d] fimc_irq_out: wrong overlay.mode (%d)\n",
+				ctx_num, ctx->overlay.mode);
 		break;
 	}
 
