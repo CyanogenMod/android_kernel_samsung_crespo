@@ -690,6 +690,12 @@ int fimc_enum_fmt_vid_capture(struct file *file, void *fh,
 
 	fimc_dbg("%s\n", __func__);
 
+	if (ctrl->out) {
+		fimc_err("%s: fimc is already used for output mode\n",
+			 __func__);
+		return -EINVAL;
+	}
+
 	if (!ctrl->cam || !ctrl->cam->sd) {
 		fimc_err("%s: No capture device.\n", __func__);
 		return -ENODEV;

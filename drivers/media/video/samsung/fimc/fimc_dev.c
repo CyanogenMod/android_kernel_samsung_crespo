@@ -1503,13 +1503,12 @@ int fimc_suspend(struct platform_device *pdev, pm_message_t state)
 
 	if (ctrl->out)
 		fimc_suspend_out(ctrl);
-
 	else if (ctrl->cap)
 		fimc_suspend_cap(ctrl);
 	else
 		ctrl->status = FIMC_OFF_SLEEP;
 
-	if (atomic_read(&ctrl->in_use))
+	if (atomic_read(&ctrl->in_use) && ctrl->status != FIMC_OFF_SLEEP)
 		fimc_clk_en(ctrl, false);
 
 	return 0;
@@ -1624,12 +1623,11 @@ int fimc_resume(struct platform_device *pdev)
 	ctrl = get_fimc_ctrl(id);
 	pdata = to_fimc_plat(ctrl->dev);
 
-	if (atomic_read(&ctrl->in_use))
+	if (atomic_read(&ctrl->in_use) && ctrl->status != FIMC_OFF_SLEEP)
 		fimc_clk_en(ctrl, true);
 
 	if (ctrl->out)
 		fimc_resume_out(ctrl);
-
 	else if (ctrl->cap)
 		fimc_resume_cap(ctrl);
 	else

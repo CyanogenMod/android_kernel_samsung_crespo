@@ -2158,6 +2158,12 @@ int fimc_g_fmt_vid_out(struct file *filp, void *fh, struct v4l2_format *f)
 
 	fimc_info1("%s: called\n", __func__);
 
+	if (ctrl->cap) {
+		fimc_err("%s: fimc is already used for capture mode\n",
+			 __func__);
+		return -EINVAL;
+	}
+
 	if (!out) {
 		out = kzalloc(sizeof(*out), GFP_KERNEL);
 		if (!out) {
