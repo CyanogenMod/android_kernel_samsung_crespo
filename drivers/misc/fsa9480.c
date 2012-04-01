@@ -30,6 +30,7 @@
 #include <linux/interrupt.h>
 #include <linux/platform_device.h>
 #include <linux/slab.h>
+#include <linux/delay.h>
 
 /* FSA9480 I2C registers */
 #define FSA9480_REG_DEVID		0x01
@@ -397,17 +398,39 @@ static irqreturn_t fsa9480_irq_thread(int irq, void *data)
 	struct fsa9480_usbsw *usbsw = data;
 	struct i2c_client *client = usbsw->client;
 	int intr;
+	int max_events = 100;
+	int events_seen = 0;
 
-	/* read and clear interrupt status bits */
-	intr = i2c_smbus_read_word_data(client, FSA9480_REG_INT1);
-	if (intr < 0) {
-		dev_err(&client->dev, "%s: err %d\n", __func__, intr);
-	} else if (intr == 0) {
-		/* interrupt was fired, but no status bits were set,
-		so device was reset. In this case, the registers were
-		reset to defaults so they need to be reinitialised. */
+	/*
+	 * the fsa could have queued up a few events if we haven't processed
+	 * them promptly
+	 */
+	while (max_events-- > 0) {
+		intr = i2c_smbus_read_word_data(client, FSA9480_REG_INT1);
+		if (intr < 0)
+			dev_err(&client->dev, "%s: err %d\n", __func__, intr);
+		else if (intr == 0)
+			break;
+		else if (intr > 0)
+			events_seen++;
+	}
+	if (!max_events)
+		dev_warn(&client->dev, "too many events. fsa hosed?\n");
+
+	if (!events_seen) {
+		/*
+		 * interrupt was fired, but no status bits were set,
+		 * so device was reset. In this case, the registers were
+		 * reset to defaults so they need to be reinitialised.
+		 */
 		fsa9480_reg_init(usbsw);
 	}
+
+	/*
+	 * fsa may take some time to update the dev_type reg after reading
+	 * the int reg.
+	 */
+	usleep_range(200, 300);
 
 	/* device detection */
 	fsa9480_detect_dev(usbsw);
@@ -422,7 +445,7 @@ static int fsa9480_irq_init(struct fsa9480_usbsw *usbsw)
 
 	if (client->irq) {
 		ret = request_threaded_irq(client->irq, NULL,
-			fsa9480_irq_thread, IRQF_TRIGGER_FALLING,
+			fsa9480_irq_thread, IRQF_TRIGGER_LOW | IRQF_ONESHOT,
 			"fsa9480 micro USB", usbsw);
 		if (ret) {
 			dev_err(&client->dev, "failed to reqeust IRQ\n");

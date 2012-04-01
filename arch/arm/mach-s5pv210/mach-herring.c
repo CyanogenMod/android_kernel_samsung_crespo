@@ -4790,8 +4790,8 @@ static unsigned int herring_cdma_wimax_sleep_gpio_table[][3] = {
 	{ S5PV210_GPC1(2), S3C_GPIO_SLP_INPUT,  S3C_GPIO_PULL_NONE},
 
 	/*WIMAX EEPROM I2C LINES*/
-	{ S5PV210_GPC1(3), S3C_GPIO_SLP_INPUT,  S3C_GPIO_PULL_DOWN},
-	{ S5PV210_GPC1(4), S3C_GPIO_SLP_INPUT,  S3C_GPIO_PULL_DOWN},
+	{ S5PV210_GPC1(3), S3C_GPIO_SLP_INPUT,  S3C_GPIO_PULL_NONE},
+	{ S5PV210_GPC1(4), S3C_GPIO_SLP_INPUT,  S3C_GPIO_PULL_NONE},
 
 	/*WIMAX DBGEN*/
 	{ S5PV210_GPD0(0), S3C_GPIO_SLP_PREV,   S3C_GPIO_PULL_NONE},
@@ -4800,7 +4800,7 @@ static unsigned int herring_cdma_wimax_sleep_gpio_table[][3] = {
 	{ S5PV210_GPD0(2), S3C_GPIO_SLP_INPUT,  S3C_GPIO_PULL_DOWN},
 
 	/*WIMAX RESET_N*/
-	{ S5PV210_GPD0(3), S3C_GPIO_SLP_PREV,   S3C_GPIO_PULL_NONE},
+	{ S5PV210_GPD0(3), S3C_GPIO_SLP_INPUT,   S3C_GPIO_PULL_UP},
 
 	{ S5PV210_GPD1(0), S3C_GPIO_SLP_INPUT,  S3C_GPIO_PULL_NONE},
 	{ S5PV210_GPD1(1), S3C_GPIO_SLP_INPUT,  S3C_GPIO_PULL_NONE},
@@ -4862,20 +4862,20 @@ static unsigned int herring_cdma_wimax_sleep_gpio_table[][3] = {
 
 
 	{ S5PV210_GPG0(0), S3C_GPIO_SLP_INPUT,  S3C_GPIO_PULL_DOWN},
-	{ S5PV210_GPG0(1), S3C_GPIO_SLP_INPUT,  S3C_GPIO_PULL_NONE},
+	{ S5PV210_GPG0(1), S3C_GPIO_SLP_INPUT,  S3C_GPIO_PULL_DOWN},
 	{ S5PV210_GPG0(2), S3C_GPIO_SLP_INPUT,  S3C_GPIO_PULL_DOWN},
-	{ S5PV210_GPG0(3), S3C_GPIO_SLP_INPUT,  S3C_GPIO_PULL_NONE},
-	{ S5PV210_GPG0(4), S3C_GPIO_SLP_INPUT,  S3C_GPIO_PULL_NONE},
-	{ S5PV210_GPG0(5), S3C_GPIO_SLP_INPUT,  S3C_GPIO_PULL_NONE},
-	{ S5PV210_GPG0(6), S3C_GPIO_SLP_INPUT,  S3C_GPIO_PULL_NONE},
+	{ S5PV210_GPG0(3), S3C_GPIO_SLP_INPUT,  S3C_GPIO_PULL_DOWN},
+	{ S5PV210_GPG0(4), S3C_GPIO_SLP_INPUT,  S3C_GPIO_PULL_DOWN},
+	{ S5PV210_GPG0(5), S3C_GPIO_SLP_INPUT,  S3C_GPIO_PULL_DOWN},
+	{ S5PV210_GPG0(6), S3C_GPIO_SLP_INPUT,  S3C_GPIO_PULL_DOWN},
 
 	{ S5PV210_GPG1(0), S3C_GPIO_SLP_INPUT,  S3C_GPIO_PULL_DOWN},
 	{ S5PV210_GPG1(1), S3C_GPIO_SLP_INPUT,  S3C_GPIO_PULL_DOWN},
 	{ S5PV210_GPG1(2), S3C_GPIO_SLP_INPUT,  S3C_GPIO_PULL_DOWN},
-	{ S5PV210_GPG1(3), S3C_GPIO_SLP_INPUT,  S3C_GPIO_PULL_NONE},
-	{ S5PV210_GPG1(4), S3C_GPIO_SLP_INPUT,  S3C_GPIO_PULL_NONE},
-	{ S5PV210_GPG1(5), S3C_GPIO_SLP_INPUT,  S3C_GPIO_PULL_NONE},
-	{ S5PV210_GPG1(6), S3C_GPIO_SLP_INPUT,  S3C_GPIO_PULL_NONE},
+	{ S5PV210_GPG1(3), S3C_GPIO_SLP_INPUT,  S3C_GPIO_PULL_DOWN},
+	{ S5PV210_GPG1(4), S3C_GPIO_SLP_INPUT,  S3C_GPIO_PULL_DOWN},
+	{ S5PV210_GPG1(5), S3C_GPIO_SLP_INPUT,  S3C_GPIO_PULL_DOWN},
+	{ S5PV210_GPG1(6), S3C_GPIO_SLP_INPUT,  S3C_GPIO_PULL_DOWN},
 
 	/*wimax SDIO pins*/
 	{ S5PV210_GPG2(0), S3C_GPIO_SLP_INPUT,  S3C_GPIO_PULL_NONE},
@@ -4931,11 +4931,11 @@ static unsigned int herring_cdma_wimax_sleep_gpio_table[][3] = {
 	{ S5PV210_GPJ2(1), S3C_GPIO_SLP_INPUT,  S3C_GPIO_PULL_DOWN},
 	{ S5PV210_GPJ2(2), S3C_GPIO_SLP_INPUT,  S3C_GPIO_PULL_DOWN},
 	{ S5PV210_GPJ2(3), S3C_GPIO_SLP_INPUT,  S3C_GPIO_PULL_DOWN},
-	{ S5PV210_GPJ2(4), S3C_GPIO_SLP_PREV, 	S3C_GPIO_PULL_DOWN},
+	{ S5PV210_GPJ2(4), S3C_GPIO_SLP_INPUT,	S3C_GPIO_PULL_DOWN},
 	{ S5PV210_GPJ2(5), S3C_GPIO_SLP_INPUT,  S3C_GPIO_PULL_DOWN},
 
 	{ S5PV210_GPJ2(6), S3C_GPIO_SLP_INPUT,  S3C_GPIO_PULL_DOWN},
-	{ S5PV210_GPJ2(7), S3C_GPIO_SLP_OUT1,   S3C_GPIO_PULL_NONE},
+	{ S5PV210_GPJ2(7), S3C_GPIO_SLP_OUT0,   S3C_GPIO_PULL_NONE},
 
 	{ S5PV210_GPJ3(0), S3C_GPIO_SLP_INPUT,  S3C_GPIO_PULL_DOWN},
 	{ S5PV210_GPJ3(1), S3C_GPIO_SLP_INPUT,  S3C_GPIO_PULL_DOWN},
@@ -5363,11 +5363,82 @@ int __init herring_init_wifi_mem(void)
 
 	return -ENOMEM;
 }
+
+/* Customized Locale table : OPTIONAL feature */
+#define WLC_CNTRY_BUF_SZ	4
+typedef struct cntry_locales_custom {
+	char iso_abbrev[WLC_CNTRY_BUF_SZ];
+	char custom_locale[WLC_CNTRY_BUF_SZ];
+	int  custom_locale_rev;
+} cntry_locales_custom_t;
+
+static cntry_locales_custom_t herring_wlan_translate_custom_table[] = {
+/* Table should be filled out based on custom platform regulatory requirement */
+	{"",   "XY", 4},  /* universal */
+	{"US", "US", 69}, /* input ISO "US" to : US regrev 69 */
+	{"CA", "US", 69}, /* input ISO "CA" to : US regrev 69 */
+	{"EU", "EU", 5},  /* European union countries */
+	{"AT", "EU", 5},
+	{"BE", "EU", 5},
+	{"BG", "EU", 5},
+	{"CY", "EU", 5},
+	{"CZ", "EU", 5},
+	{"DK", "EU", 5},
+	{"EE", "EU", 5},
+	{"FI", "EU", 5},
+	{"FR", "EU", 5},
+	{"DE", "EU", 5},
+	{"GR", "EU", 5},
+	{"HU", "EU", 5},
+	{"IE", "EU", 5},
+	{"IT", "EU", 5},
+	{"LV", "EU", 5},
+	{"LI", "EU", 5},
+	{"LT", "EU", 5},
+	{"LU", "EU", 5},
+	{"MT", "EU", 5},
+	{"NL", "EU", 5},
+	{"PL", "EU", 5},
+	{"PT", "EU", 5},
+	{"RO", "EU", 5},
+	{"SK", "EU", 5},
+	{"SI", "EU", 5},
+	{"ES", "EU", 5},
+	{"SE", "EU", 5},
+	{"GB", "EU", 5},  /* input ISO "GB" to : EU regrev 05 */
+	{"IL", "IL", 0},
+	{"CH", "CH", 0},
+	{"TR", "TR", 0},
+	{"NO", "NO", 0},
+	{"KR", "XY", 3},
+	{"AU", "XY", 3},
+	{"CN", "XY", 3},  /* input ISO "CN" to : XY regrev 03 */
+	{"TW", "XY", 3},
+	{"AR", "XY", 3},
+	{"MX", "XY", 3}
+};
+
+static void *herring_wlan_get_country_code(char *ccode)
+{
+	int size = ARRAY_SIZE(herring_wlan_translate_custom_table);
+	int i;
+
+	if (!ccode)
+		return NULL;
+
+	for (i = 0; i < size; i++)
+		if (strcmp(ccode, herring_wlan_translate_custom_table[i].iso_abbrev) == 0)
+			return &herring_wlan_translate_custom_table[i];
+	return &herring_wlan_translate_custom_table[0];
+}
+
+
 static struct wifi_platform_data wifi_pdata = {
 	.set_power		= wlan_power_en,
 	.set_reset		= wlan_reset_en,
 	.set_carddetect		= wlan_carddetect_en,
 	.mem_prealloc		= herring_mem_prealloc,
+	.get_country_code	= herring_wlan_get_country_code,
 };
 
 static struct platform_device sec_device_wifi = {
@@ -5926,9 +5997,8 @@ void otg_phy_init(void)
 	writel(readl(S3C_USBOTG_PHYTUNE) | (0x1<<20),
 			S3C_USBOTG_PHYTUNE);
 
-	/* set DC level as 6 (6%) */
-	writel((readl(S3C_USBOTG_PHYTUNE) & ~(0xf)) | (0x1<<2) | (0x1<<1),
-			S3C_USBOTG_PHYTUNE);
+	/* set DC level as 0xf (24%) */
+	writel(readl(S3C_USBOTG_PHYTUNE) | 0xf, S3C_USBOTG_PHYTUNE);
 }
 EXPORT_SYMBOL(otg_phy_init);
 
