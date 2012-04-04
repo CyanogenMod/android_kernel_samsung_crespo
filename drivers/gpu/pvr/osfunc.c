@@ -3173,6 +3173,55 @@ IMG_BOOL OSInvalidateCPUCacheRangeKM(IMG_HANDLE hOSMemHandle,
 
 #endif 
 
+typedef struct _AtomicStruct
+{
+	atomic_t RefCount;
+} AtomicStruct;
+
+PVRSRV_ERROR OSAtomicAlloc(IMG_PVOID *ppvRefCount)
+{
+	AtomicStruct *psRefCount;
+
+	psRefCount = kmalloc(sizeof(AtomicStruct), GFP_KERNEL);
+	if (psRefCount == NULL)
+	{
+		return PVRSRV_ERROR_OUT_OF_MEMORY;
+	}
+	atomic_set(&psRefCount->RefCount, 0);
+	
+	*ppvRefCount = psRefCount;
+	return PVRSRV_OK;
+}
+
+IMG_VOID OSAtomicFree(IMG_PVOID pvRefCount)
+{
+	AtomicStruct *psRefCount = pvRefCount;
+
+	PVR_ASSERT(atomic_read(&psRefCount->RefCount) == 0);
+	kfree(psRefCount);
+}
+
+IMG_VOID OSAtomicInc(IMG_PVOID pvRefCount)
+{
+	AtomicStruct *psRefCount = pvRefCount;
+
+	atomic_inc(&psRefCount->RefCount);
+}
+
+IMG_BOOL OSAtomicDecAndTest(IMG_PVOID pvRefCount)
+{
+	AtomicStruct *psRefCount = pvRefCount;
+
+	return atomic_dec_and_test(&psRefCount->RefCount) ? IMG_TRUE:IMG_FALSE;
+}
+
+IMG_UINT32 OSAtomicRead(IMG_PVOID pvRefCount)
+{
+	AtomicStruct *psRefCount = pvRefCount;
+
+	return (IMG_UINT32) atomic_read(&psRefCount->RefCount);
+}
+
 PVRSRV_ERROR PVROSFuncInit(IMG_VOID)
 {
 #if defined(PVR_LINUX_TIMERS_USING_WORKQUEUES)

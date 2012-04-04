@@ -135,7 +135,7 @@ typedef struct _SGX_BRIDGE_INIT_INFO_
 #endif
 #endif
 
-#if defined(FIX_HW_BRN_31542)
+#if defined(FIX_HW_BRN_31542) || defined(FIX_HW_BRN_36513)
 #if defined (SUPPORT_SID_INTERFACE)
 	IMG_SID hKernelClearClipWAVDMStreamMemInfo;
 	IMG_SID hKernelClearClipWAIndexStreamMemInfo;
@@ -170,13 +170,6 @@ typedef struct _SGX_BRIDGE_INIT_INFO_
 	IMG_SID		hKernelEDMStatusBufferMemInfo;
 #else
 	IMG_HANDLE	hKernelEDMStatusBufferMemInfo;
-#endif
-#endif
-#if defined(SGX_FEATURE_OVERLAPPED_SPM)
-#if defined (SUPPORT_SID_INTERFACE)
-	IMG_SID		hKernelTmpRgnHeaderMemInfo;
-#else
-	IMG_HANDLE hKernelTmpRgnHeaderMemInfo;
 #endif
 #endif
 

@@ -171,9 +171,6 @@ static PVRSRV_ERROR InitDevInfo(PVRSRV_PER_PROCESS_DATA *psPerProc,
 #if defined(PVRSRV_USSE_EDM_STATUS_DEBUG)
 	psDevInfo->psKernelEDMStatusBufferMemInfo = (PVRSRV_KERNEL_MEM_INFO *)psInitInfo->hKernelEDMStatusBufferMemInfo;
 #endif
-#if defined(SGX_FEATURE_OVERLAPPED_SPM)
-	psDevInfo->psKernelTmpRgnHeaderMemInfo = (PVRSRV_KERNEL_MEM_INFO *)psInitInfo->hKernelTmpRgnHeaderMemInfo;
-#endif
 	
 	psDevInfo->ui32ClientBuildOptions = psInitInfo->ui32ClientBuildOptions;
 
@@ -1078,6 +1075,26 @@ IMG_VOID SGXDumpDebugInfo (PVRSRV_SGXDEV_INFO	*psDevInfo,
 		#endif
 		}
 	}
+
+#if !defined(SGX_FEATURE_MULTIPLE_MEM_CONTEXTS) && !defined(FIX_HW_BRN_31620)
+	{
+		IMG_UINT32 ui32RegVal;
+		IMG_UINT32 ui32PDDevPAddr;
+
+		
+
+
+		ui32RegVal = OSReadHWReg(psDevInfo->pvRegsBaseKM, EUR_CR_BIF_INT_STAT);
+		if (ui32RegVal & EUR_CR_BIF_INT_STAT_PF_N_RW_MASK)
+		{
+			ui32RegVal = OSReadHWReg(psDevInfo->pvRegsBaseKM, EUR_CR_BIF_FAULT);
+			ui32RegVal &= EUR_CR_BIF_FAULT_ADDR_MASK;
+			ui32PDDevPAddr = OSReadHWReg(psDevInfo->pvRegsBaseKM, EUR_CR_BIF_DIR_LIST_BASE0);
+			ui32PDDevPAddr &= EUR_CR_BIF_DIR_LIST_BASE0_ADDR_MASK;
+			MMU_CheckFaultAddr(psDevInfo, ui32PDDevPAddr, ui32RegVal);
+		}
+	}
+#endif	
 
 	
 

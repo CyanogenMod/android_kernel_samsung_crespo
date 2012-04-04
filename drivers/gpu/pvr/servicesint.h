@@ -144,7 +144,7 @@ typedef struct _PVRSRV_KERNEL_SYNC_INFO_
 
 	
 	
-	IMG_UINT32              ui32RefCount;
+	IMG_PVOID              pvRefCount;
 
 	
 	IMG_HANDLE hResItem;

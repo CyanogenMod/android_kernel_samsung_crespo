@@ -613,6 +613,12 @@ static INLINE IMG_VOID OSMemoryBarrier(IMG_VOID) { }
 
 #endif 
 
+PVRSRV_ERROR OSAtomicAlloc(IMG_PVOID *ppvRefCount);
+IMG_VOID OSAtomicFree(IMG_PVOID pvRefCount);
+IMG_VOID OSAtomicInc(IMG_PVOID pvRefCount);
+IMG_BOOL OSAtomicDecAndTest(IMG_PVOID pvRefCount);
+IMG_UINT32 OSAtomicRead(IMG_PVOID pvRefCount);
+
 #if defined (__cplusplus)
 }
 #endif

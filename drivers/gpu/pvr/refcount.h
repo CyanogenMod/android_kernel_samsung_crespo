@@ -27,6 +27,8 @@
 #ifndef __REFCOUNT_H__
 #define __REFCOUNT_H__
 
+#include "pvr_bridge_km.h"
+
 #if defined(PVRSRV_REFCOUNT_DEBUG)
 
 void PVRSRVDumpRefCountCCB(void);
@@ -100,14 +102,14 @@ static INLINE void PVRSRVKernelSyncInfoIncRef(PVRSRV_KERNEL_SYNC_INFO *psKernelS
 								PVRSRV_KERNEL_MEM_INFO *psKernelMemInfo)
 {
 	PVR_UNREFERENCED_PARAMETER(psKernelMemInfo);
-	psKernelSyncInfo->ui32RefCount++;
+	PVRSRVAcquireSyncInfoKM(psKernelSyncInfo);
 }
 
 static INLINE void PVRSRVKernelSyncInfoDecRef(PVRSRV_KERNEL_SYNC_INFO *psKernelSyncInfo,
 								PVRSRV_KERNEL_MEM_INFO *psKernelMemInfo)
 {
 	PVR_UNREFERENCED_PARAMETER(psKernelMemInfo);
-	psKernelSyncInfo->ui32RefCount--;
+	PVRSRVReleaseSyncInfoKM(psKernelSyncInfo);
 }
 
 static INLINE void PVRSRVKernelMemInfoIncRef(PVRSRV_KERNEL_MEM_INFO *psKernelMemInfo)

@@ -273,12 +273,9 @@ static IMG_VOID MakeKernelPageReadWrite(IMG_PVOID ulCPUVAddr)
     pmd_t *psPMD;
     pte_t *psPTE;
     pte_t ptent;
-    spinlock_t *psPTLock;
     IMG_UINT32 ui32CPUVAddr = (IMG_UINT32) ulCPUVAddr;
-    struct mm_struct *psMM = current->active_mm;
 
-
-    psPGD = pgd_offset(psMM, ui32CPUVAddr);
+    psPGD = pgd_offset_k(ui32CPUVAddr);
     if (pgd_none(*psPGD) || pgd_bad(*psPGD))
     {
         PVR_ASSERT(0);
@@ -295,13 +292,11 @@ static IMG_VOID MakeKernelPageReadWrite(IMG_PVOID ulCPUVAddr)
     {
         PVR_ASSERT(0);
     }
+	psPTE = (pte_t *)pte_offset_kernel(psPMD, ui32CPUVAddr);
 
-    psPTE = (pte_t *)pte_offset_map_lock(psMM, psPMD, ui32CPUVAddr, &psPTLock);
-
-	ptent = ptep_modify_prot_start(psMM, ui32CPUVAddr, psPTE);
+	ptent = ptep_modify_prot_start(&init_mm, ui32CPUVAddr, psPTE);
 	ptent = pte_mkwrite(ptent);
-	ptep_modify_prot_commit(psMM, ui32CPUVAddr, psPTE, ptent);
-	pte_unmap_unlock(psPTE, psPTLock);
+	ptep_modify_prot_commit(&init_mm, ui32CPUVAddr, psPTE, ptent);
 
 	flush_tlb_all();
 }
@@ -313,13 +308,11 @@ static IMG_VOID MakeKernelPageReadOnly(IMG_PVOID ulCPUVAddr)
     pmd_t *psPMD;
     pte_t *psPTE;
     pte_t ptent;
-    spinlock_t *psPTLock;
     IMG_UINT32 ui32CPUVAddr = (IMG_UINT32) ulCPUVAddr;
-    struct mm_struct *psMM = current->active_mm;
 
 	OSWriteMemoryBarrier();
 
-    psPGD = pgd_offset(psMM, ui32CPUVAddr);
+    psPGD = pgd_offset_k(ui32CPUVAddr);
     if (pgd_none(*psPGD) || pgd_bad(*psPGD))
     {
         PVR_ASSERT(0);
@@ -337,13 +330,11 @@ static IMG_VOID MakeKernelPageReadOnly(IMG_PVOID ulCPUVAddr)
         PVR_ASSERT(0);
     }
 
+	psPTE = (pte_t *)pte_offset_kernel(psPMD, ui32CPUVAddr);
 
-    psPTE = (pte_t *)pte_offset_map_lock(psMM, psPMD, ui32CPUVAddr, &psPTLock);
-
-	ptent = ptep_modify_prot_start(psMM, ui32CPUVAddr, psPTE);
+	ptent = ptep_modify_prot_start(&init_mm, ui32CPUVAddr, psPTE);
 	ptent = pte_wrprotect(ptent);
-	ptep_modify_prot_commit(psMM, ui32CPUVAddr, psPTE, ptent);
-	pte_unmap_unlock(psPTE, psPTLock);
+	ptep_modify_prot_commit(&init_mm, ui32CPUVAddr, psPTE, ptent);
 
 	flush_tlb_all();
 
@@ -2045,6 +2036,7 @@ MMU_Finalise (MMU_CONTEXT *psMMUContext)
 #if defined(FIX_HW_BRN_31620)
 		PVRSRV_SGXDEV_INFO *psDevInfo = (PVRSRV_SGXDEV_INFO*)psMMUContext->psDevInfo;
 #endif
+		MakeKernelPageReadWrite(psMMUContext->pvPDCpuVAddr);
 		OSFreePages(PVRSRV_HAP_WRITECOMBINE | PVRSRV_HAP_KERNEL_ONLY,
 						SGX_MMU_PAGE_SIZE,
 						psMMUContext->pvPDCpuVAddr,
@@ -3449,6 +3441,48 @@ IMG_VOID MMU_BIFResetPDFree(PVRSRV_SGXDEV_INFO *psDevInfo)
 	}
 }
 
+IMG_VOID MMU_CheckFaultAddr(PVRSRV_SGXDEV_INFO *psDevInfo, IMG_UINT32 ui32PDDevPAddr, IMG_UINT32 ui32FaultAddr)
+{
+	MMU_CONTEXT *psMMUContext = psDevInfo->pvMMUContextList;
+
+	while (psMMUContext && (psMMUContext->sPDDevPAddr.uiAddr != ui32PDDevPAddr))
+	{
+		psMMUContext = psMMUContext->psNext;
+	}
+
+	if (psMMUContext)
+	{
+		IMG_UINT32 ui32PTIndex;
+		IMG_UINT32 ui32PDIndex;
+
+		PVR_LOG(("Found MMU context for page fault 0x%08x", ui32FaultAddr));
+
+		ui32PTIndex = (ui32FaultAddr & SGX_MMU_PT_MASK) >> SGX_MMU_PAGE_SHIFT;
+		ui32PDIndex = (ui32FaultAddr & SGX_MMU_PD_MASK) >> (SGX_MMU_PT_SHIFT + SGX_MMU_PAGE_SHIFT);
+
+		if (psMMUContext->apsPTInfoList[ui32PDIndex])
+		{
+			if (psMMUContext->apsPTInfoList[ui32PDIndex]->PTPageCpuVAddr)
+			{
+				IMG_UINT32 *pui32Ptr = psMMUContext->apsPTInfoList[ui32PDIndex]->PTPageCpuVAddr;
+				IMG_UINT32 ui32PTE = pui32Ptr[ui32PTIndex];
+
+				PVR_LOG(("PDE valid: PTE = 0x%08x (PhysAddr = 0x%08x, %s)",
+						  ui32PTE,
+						  ui32PTE & SGX_MMU_PTE_ADDR_MASK,
+						  ui32PTE & SGX_MMU_PTE_VALID?"valid":"Invalid"));
+			}
+			else
+			{
+				PVR_LOG(("Found PT info but no CPU address"));
+			}
+		}
+		else
+		{
+			PVR_LOG(("No PDE found"));
+		}
+	}
+}
 
 #if defined(FIX_HW_BRN_22997) && defined(FIX_HW_BRN_23030) && defined(SGX_FEATURE_HOST_PORT)
 PVRSRV_ERROR WorkaroundBRN22997Alloc(PVRSRV_DEVICE_NODE	*psDeviceNode)

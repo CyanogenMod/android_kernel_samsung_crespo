@@ -139,9 +139,6 @@ typedef struct _PVRSRV_SGXDEV_INFO_
 #if defined(PVRSRV_USSE_EDM_STATUS_DEBUG)
 	PPVRSRV_KERNEL_MEM_INFO	psKernelEDMStatusBufferMemInfo; 
 #endif
-#if defined(SGX_FEATURE_OVERLAPPED_SPM)
-	PPVRSRV_KERNEL_MEM_INFO	psKernelTmpRgnHeaderMemInfo; 
-#endif
 	
 	IMG_UINT32				ui32ClientRefCount;
 
@@ -372,9 +369,6 @@ typedef struct _SGX_BRIDGE_INIT_INFO_KM_
 #endif
 #if defined(PVRSRV_USSE_EDM_STATUS_DEBUG)
 	IMG_HANDLE	hKernelEDMStatusBufferMemInfo;
-#endif
-#if defined(SGX_FEATURE_OVERLAPPED_SPM)
-	IMG_HANDLE hKernelTmpRgnHeaderMemInfo;
 #endif
 
 	IMG_UINT32 ui32EDMTaskReg0;

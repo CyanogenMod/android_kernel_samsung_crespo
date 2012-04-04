@@ -1009,10 +1009,6 @@ IMG_VOID PVRSRVCommandCompleteKM(IMG_HANDLE	hCmdCookie,
 		psCmdCompleteData->psDstSync[i].psKernelSyncInfoKM->psSyncData->ui32WriteOpsComplete++;
 
 		PVRSRVKernelSyncInfoDecRef(psCmdCompleteData->psDstSync[i].psKernelSyncInfoKM, IMG_NULL);
-		if (psCmdCompleteData->psDstSync[i].psKernelSyncInfoKM->ui32RefCount == 0)
-		{
-			PVRSRVFreeSyncInfoKM(psCmdCompleteData->psDstSync[i].psKernelSyncInfoKM);
-		}
 
 		PVR_TTRACE_SYNC_OBJECT(PVRSRV_TRACE_GROUP_QUEUE, QUEUE_TOKEN_UPDATE_DST,
 					  psCmdCompleteData->psDstSync[i].psKernelSyncInfoKM,
@@ -1031,10 +1027,6 @@ IMG_VOID PVRSRVCommandCompleteKM(IMG_HANDLE	hCmdCookie,
 		psCmdCompleteData->psSrcSync[i].psKernelSyncInfoKM->psSyncData->ui32ReadOps2Complete++;
 
 		PVRSRVKernelSyncInfoDecRef(psCmdCompleteData->psSrcSync[i].psKernelSyncInfoKM, IMG_NULL);
-		if (psCmdCompleteData->psSrcSync[i].psKernelSyncInfoKM->ui32RefCount == 0)
-		{
-			PVRSRVFreeSyncInfoKM(psCmdCompleteData->psSrcSync[i].psKernelSyncInfoKM);
-		}
 
 		PVR_TTRACE_SYNC_OBJECT(PVRSRV_TRACE_GROUP_QUEUE, QUEUE_TOKEN_UPDATE_SRC,
 					  psCmdCompleteData->psSrcSync[i].psKernelSyncInfoKM,

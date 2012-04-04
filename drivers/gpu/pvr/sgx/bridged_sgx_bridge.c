@@ -1372,7 +1372,7 @@ SGXDevInitPart2BW(IMG_UINT32 ui32BridgeID,
 #endif
 
 
-#if defined(FIX_HW_BRN_31542)
+#if defined(FIX_HW_BRN_31542) || defined(FIX_HW_BRN_36513)
 	eError = PVRSRVLookupHandle(psPerProc->psHandleBase,
 						   &hDummy,
 						   psSGXDevInitPart2IN->sInitInfo.hKernelClearClipWAVDMStreamMemInfo,
@@ -1699,7 +1699,7 @@ SGXDevInitPart2BW(IMG_UINT32 ui32BridgeID,
 #endif
 
 
-#if defined(FIX_HW_BRN_31542)
+#if defined(FIX_HW_BRN_31542) || defined(FIX_HW_BRN_36513)
 	eError = PVRSRVLookupAndReleaseHandle(psPerProc->psHandleBase,
 #if defined (SUPPORT_SID_INTERFACE)
 						   &asInitInfoKM.hKernelClearClipWAVDMStreamMemInfo,
@@ -2027,7 +2027,7 @@ SGXDevInitPart2BW(IMG_UINT32 ui32BridgeID,
 #endif
 #endif
 
-#if defined(FIX_HW_BRN_31542)
+#if defined(FIX_HW_BRN_31542) || defined(FIX_HW_BRN_36513)
 #if defined (SUPPORT_SID_INTERFACE)
 	eError = PVRSRVDissociateDeviceMemKM(hDevCookieInt, asInitInfoKM.hKernelClearClipWAVDMStreamMemInfo);
 	if (eError != PVRSRV_OK)
