@@ -36,6 +36,7 @@ ccflags-y += \
 	-DPVRSRV_MODNAME="\"pvrsrvkm\"" \
 	-Idrivers/gpu/pvr/sgx \
 	-DSUPPORT_GET_DC_BUFFERS_SYS_PHYADDRS \
+	-DPVRSRV_MMU_MAKE_READWRITE_ON_DEMAND \
 	-DPVR_LDM_DRIVER_REGISTRATION_NAME="\"pvrsrvkm\""
 
 ccflags-$(CONFIG_PVR_BUILD_RELEASE) += \
