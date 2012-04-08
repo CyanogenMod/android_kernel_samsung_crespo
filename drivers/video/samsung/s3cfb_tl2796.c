@@ -33,7 +33,7 @@
 #include <linux/earlysuspend.h>
 #ifdef CONFIG_FB_VOODOO
 #include <linux/miscdevice.h>
-#define VOODOO_COLOR_VERSION 2
+#define VOODOO_COLOR_VERSION 3
 #endif
 
 #define SLEEPMSEC		0x1000
@@ -77,7 +77,7 @@ struct s5p_lcd *lcd_;
 u32 original_color_adj_mults[3];
 unsigned int panel_config_sequence = 0;
 
-u32 hacky_v1_offset[3] = {0, 0, 0};
+int hacky_v1_offset[3] = {0, 0, 0};
 
 static const u16 s6e63m0_SEQ_ETC_SETTING_SAMSUNG[] = {
 	/* ETC Condition Set Command  */
@@ -278,7 +278,11 @@ static void setup_gamma_regs(struct s5p_lcd *lcd, u16 gamma_regs[])
 		// terrible shameful hack allowing to get back standard
 		// colors without fixing the real thing properly (gamma table)
 		// it consist on a simple (negative) offset applied on v0
-        gamma_regs[c] = (adj > hacky_v1_offset[c] && (adj <=255)) ? (adj - hacky_v1_offset[c]) | 0x100 : adj | 0x100;
+        int iAdjHack;
+        iAdjHack = adj + ((hacky_v1_offset[c] * (int)adj) / 100);
+        if (iAdjHack > 140)
+            iAdjHack = 140;
+        gamma_regs[c] = iAdjHack | 0x100;
 #else
 		gamma_regs[c] = adj | 0x100;
 #endif
@@ -991,13 +995,13 @@ static ssize_t panel_config_sequence_store(struct device *dev, struct device_att
 
 static ssize_t red_v1_offset_show(struct device *dev, struct device_attribute *attr, char *buf)
 {
-	return sprintf(buf, "%u\n", hacky_v1_offset[0]);
+	return sprintf(buf, "%d\n", hacky_v1_offset[0]);
 }
 
 static ssize_t red_v1_offset_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t size)
 {
 	u32 value;
-	if (sscanf(buf, "%u", &value) == 1)
+	if (sscanf(buf, "%d", &value) == 1)
 	{
 		hacky_v1_offset[0] = value;
 		update_brightness(lcd_);
@@ -1007,13 +1011,13 @@ static ssize_t red_v1_offset_store(struct device *dev, struct device_attribute *
 
 static ssize_t green_v1_offset_show(struct device *dev, struct device_attribute *attr, char *buf)
 {
-	return sprintf(buf, "%u\n", hacky_v1_offset[1]);
+	return sprintf(buf, "%d\n", hacky_v1_offset[1]);
 }
 
 static ssize_t green_v1_offset_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t size)
 {
 	u32 value;
-	if (sscanf(buf, "%u", &value) == 1)
+	if (sscanf(buf, "%d", &value) == 1)
 	{
 		hacky_v1_offset[1] = value;
 		update_brightness(lcd_);
@@ -1023,13 +1027,13 @@ static ssize_t green_v1_offset_store(struct device *dev, struct device_attribute
 
 static ssize_t blue_v1_offset_show(struct device *dev, struct device_attribute *attr, char *buf)
 {
-	return sprintf(buf, "%u\n", hacky_v1_offset[2]);
+	return sprintf(buf, "%d\n", hacky_v1_offset[2]);
 }
 
 static ssize_t blue_v1_offset_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t size)
 {
 	int value;
-	if (sscanf(buf, "%u", &value) == 1)
+	if (sscanf(buf, "%d", &value) == 1)
 	{
 		hacky_v1_offset[2] = value;
 		update_brightness(lcd_);
