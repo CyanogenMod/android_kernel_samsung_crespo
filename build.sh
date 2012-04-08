@@ -141,7 +141,7 @@ build ()
     echo "Building for $target"
     local target_dir="$BUILD_DIR/$target"
     local module
-    [ x = "x$NO_RM" ] && rm -fr "$target_dir"
+    [ x = "x$NO_RM" ]
     mkdir -p "$target_dir"
     [ x = "x$NO_DEFCONFIG" ] && mka -C "$KERNEL_DIR" O="$target_dir" ARCH=arm ${BOARD}_defconfig HOSTCC="$CCACHE gcc"
     if [ x = "x$NO_BUILD" ] ; then
