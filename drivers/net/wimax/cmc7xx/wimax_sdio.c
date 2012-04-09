@@ -630,6 +630,8 @@ static void adapter_remove(struct sdio_func *func)
 		adapter->removed = true;
 		adapter->download_complete = true;
 		wake_up_interruptible(&adapter->download_event);
+		adapter->modem_resp = true;
+		wake_up_interruptible(&adapter->modem_resp_event);
 	}
 
 	if (!completion_done(&adapter->wakeup_event))

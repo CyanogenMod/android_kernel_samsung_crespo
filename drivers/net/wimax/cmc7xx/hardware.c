@@ -84,6 +84,7 @@ static void cmc732_release_wake_irq(struct net_adapter *adapter)
 
 int wimax_hw_start(struct net_adapter *adapter)
 {
+	int retry = 0;
 	struct wimax732_platform_data *pdata = adapter->pdata;
 
 	pdata->g_cfg->wimax_status = WIMAX_STATE_READY;
@@ -113,7 +114,17 @@ int wimax_hw_start(struct net_adapter *adapter)
 
 	if (adapter->downloading) {
 
-		send_cmd_packet(adapter, MSG_DRIVER_OK_REQ);
+		while (!adapter->modem_resp) {
+			send_cmd_packet(adapter, MSG_DRIVER_OK_REQ);
+			wait_event_interruptible_timeout(
+				adapter->modem_resp_event,
+				adapter->modem_resp,
+				HZ/10);
+			if (!adapter->modem_resp)
+				pr_err("no modem response");
+			if (++retry > MODEM_RESP_RETRY)
+				goto download_fail;
+		}
 
 		switch (wait_event_interruptible_timeout(
 				adapter->download_event,
@@ -192,6 +203,7 @@ int wimax_hw_init(struct net_adapter *adapter)
 	spin_lock_init(&adapter->hw.lock);
 
 	init_waitqueue_head(&adapter->download_event);
+	init_waitqueue_head(&adapter->modem_resp_event);
 	init_completion(&adapter->wakeup_event);
 
 	return STATUS_SUCCESS;

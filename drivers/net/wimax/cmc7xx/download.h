@@ -24,7 +24,8 @@
 #define MAX_IMAGE_DATA_LENGTH		3564
 #define MAX_IMAGE_DATA_MSG_LENGTH	4096
 
-#define FWDOWNLOAD_TIMEOUT		5
+#define MODEM_RESP_RETRY		15
+#define FWDOWNLOAD_TIMEOUT		12
 #define MAX_WIMAXFW_SIZE		2100000
 
 /* used for host boot (firmware download) */
