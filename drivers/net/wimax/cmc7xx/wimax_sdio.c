@@ -460,6 +460,8 @@ static void adapter_interrupt(struct sdio_func *func)
 	} else {
 		pr_debug("adapter->halted=true in	\
 				adapter_interrupt !!!!!!!!!");
+		intrd = sdio_readb(func, SDIO_INT_STATUS_REG, NULL);
+		sdio_writeb(func, intrd, SDIO_INT_STATUS_CLR_REG, NULL);
 
 		/* send stop message */
 		hdr.id0	 = 'W';
@@ -576,7 +578,6 @@ static int adapter_probe(struct sdio_func *func,
 		/* Free the resources and stop the driver processing */
 		misc_deregister(&adapter->uwibro_dev);
 		pr_debug("wimax_hw_start failed");
-		goto regchar_fail;
 		goto regchar_fail;
 	}
 

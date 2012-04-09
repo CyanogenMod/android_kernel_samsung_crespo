@@ -162,6 +162,9 @@ int wimax_hw_start(struct net_adapter *adapter)
 	return STATUS_SUCCESS;
 
 download_fail:
+	adapter->halted = true;
+	wake_up_interruptible(&adapter->receive_event);
+	msleep(20);
 	unload_wimax_image(adapter);
 	return STATUS_UNSUCCESSFUL;
 }
