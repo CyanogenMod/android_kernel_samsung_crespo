@@ -113,9 +113,17 @@ static irqreturn_t s3cfb_irq_frame(int irq, void *data)
 
 	s3cfb_clear_interrupt(fbdev);
 
-	complete_all(&fbdev->fb_complete);
+	fbdev->vsync_timestamp = ktime_get();
+	wmb();
+	wake_up_interruptible(&fbdev->vsync_wq);
 
 	return IRQ_HANDLED;
+}
+static int s3cfb_vsync_timestamp_changed(struct s3cfb_global *fbdev,
+		ktime_t prev_timestamp)
+{
+	rmb();
+	return !ktime_equal(prev_timestamp, fbdev->vsync_timestamp);
 }
 static void s3cfb_set_window(struct s3cfb_global *ctrl, int id, int enable)
 {
@@ -134,7 +142,7 @@ static int s3cfb_init_global(struct s3cfb_global *ctrl)
 	ctrl->output = OUTPUT_RGB;
 	ctrl->rgb_mode = MODE_RGB_P;
 
-	init_completion(&ctrl->fb_complete);
+	init_waitqueue_head(&ctrl->vsync_wq);
 	mutex_init(&ctrl->lock);
 
 	s3cfb_set_output(ctrl);
@@ -561,12 +569,15 @@ static int s3cfb_release(struct fb_info *fb, int user)
 
 static int s3cfb_wait_for_vsync(struct s3cfb_global *ctrl)
 {
+	ktime_t prev_timestamp;
 	int ret;
 
 	dev_dbg(ctrl->dev, "waiting for VSYNC interrupt\n");
 
-	ret = wait_for_completion_interruptible_timeout(
-		&ctrl->fb_complete, msecs_to_jiffies(100));
+	prev_timestamp = ctrl->vsync_timestamp;
+	ret = wait_event_interruptible_timeout(ctrl->vsync_wq,
+			s3cfb_vsync_timestamp_changed(ctrl, prev_timestamp),
+			msecs_to_jiffies(100));
 	if (ret == 0)
 		return -ETIMEDOUT;
 	if (ret < 0)

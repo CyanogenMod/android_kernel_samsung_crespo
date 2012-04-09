@@ -231,7 +231,9 @@ struct s3cfb_global {
 	struct regulator	*vlcd;
 	int			irq;
 	struct fb_info		**fb;
-	struct completion	fb_complete;
+
+	wait_queue_head_t	vsync_wq;
+	ktime_t			vsync_timestamp;
 
 	/* fimd */
 	int			enabled;
