@@ -359,7 +359,6 @@ static struct net_device_stats *adapter_netdev_stats(struct net_device *dev)
 static int adapter_start_xmit(struct sk_buff *skb, struct net_device *net)
 {
 	struct net_adapter	*adapter = netdev_priv(net);
-	int			len;
 
 	if (!adapter->media_state || adapter->halted) {
 		pr_debug("Driver already halted. Returning Failure...");
@@ -370,8 +369,7 @@ static int adapter_start_xmit(struct sk_buff *skb, struct net_device *net)
 		return 0;
 	}
 
-	len = ((skb->len) & 0x3f) ? skb->len : skb->len + 1;
-	hw_send_data(adapter, skb->data, len);
+	hw_send_data(adapter, skb->data, skb->len);
 	dev_kfree_skb(skb);
 
 	if (!adapter->media_state)
