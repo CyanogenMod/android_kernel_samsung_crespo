@@ -83,6 +83,31 @@ static ssize_t show_idle_stats(struct device * dev, struct device_attribute * at
 		   msecs_in_idlestate[0], avg_in_idlestate[0], msecs_in_idlestate[1], avg_in_idlestate[1], msecs_in_idlestate[2], avg_in_idlestate[2]);
 }
 
+static ssize_t show_idle_stats_list(struct device * dev, struct device_attribute * attr, char * buf)
+{
+    int i;
+    unsigned long long msecs_in_idlestate[NUM_IDLESTATES], avg_in_idlestate[NUM_IDLESTATES];
+
+    mutex_lock(&lock);
+
+    for (i = 0; i < NUM_IDLESTATES; i++) {
+	msecs_in_idlestate[i] = time_in_idlestate[i] + 500;
+	do_div(msecs_in_idlestate[i], 1000);
+	if (num_idlecalls[i] == 0) {
+	    avg_in_idlestate[i] = 0;
+	} else {
+	    avg_in_idlestate[i] = msecs_in_idlestate[i];
+	    do_div(avg_in_idlestate[i], num_idlecalls[i]);
+	}
+    }
+
+    mutex_unlock(&lock);
+
+    return sprintf(buf, "%llu %llu %llu %llu %llu %llu\n",
+            msecs_in_idlestate[0], avg_in_idlestate[0], msecs_in_idlestate[1],
+            avg_in_idlestate[1], msecs_in_idlestate[2], avg_in_idlestate[2]);
+}
+
 static void reset_stats(void)
 {
     int i;
@@ -128,6 +153,7 @@ static ssize_t deepidle_version(struct device * dev, struct device_attribute * a
 
 static DEVICE_ATTR(enabled, S_IRUGO | S_IWUGO, deepidle_status_read, deepidle_status_write);
 static DEVICE_ATTR(idle_stats, S_IRUGO , show_idle_stats, NULL);
+static DEVICE_ATTR(idle_stats_list, S_IRUGO , show_idle_stats_list, NULL);
 static DEVICE_ATTR(reset_stats, S_IWUGO , NULL, reset_idle_stats);
 static DEVICE_ATTR(version, S_IRUGO , deepidle_version, NULL);
 
@@ -135,6 +161,7 @@ static struct attribute *deepidle_attributes[] =
     {
 	&dev_attr_enabled.attr,
 	&dev_attr_idle_stats.attr,
+	&dev_attr_idle_stats_list.attr,
 	&dev_attr_reset_stats.attr,
 	&dev_attr_version.attr,
 	NULL
