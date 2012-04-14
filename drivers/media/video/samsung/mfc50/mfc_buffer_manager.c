@@ -164,7 +164,7 @@ int mfc_init_buffer(void)
 			free_node->size = mfc_port1_memsize;
 		} else {
 			free_node->start_addr = mfc_get_port0_buff_paddr();
-			free_node->size = mfc_port1_memsize -
+			free_node->size = mfc_port0_memsize -
 				(mfc_get_port0_buff_paddr() - mfc_get_fw_buff_paddr());
 		}
 
