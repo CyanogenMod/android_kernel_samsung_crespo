@@ -52,6 +52,24 @@
 #include "lists.h"
 #include "srvkm.h"
 #include "ttrace.h"
+
+#if defined(PVRSRV_USSE_EDM_STATUS_DEBUG)
+
+static const IMG_CHAR *SGXUKernelStatusString(IMG_UINT32 code)
+{
+	switch(code)
+	{
+#define MKTC_ST(x) \
+		case x: \
+			return #x;
+#include "sgx_ukernel_status_codes.h"
+		default:
+			return "(Unknown)";
+	}
+}
+
+#endif 
+
 #define VAR(x) #x
 
  
@@ -160,7 +178,7 @@ static PVRSRV_ERROR InitDevInfo(PVRSRV_PER_PROCESS_DATA *psPerProc,
 #if defined(FIX_HW_BRN_29823)
 	psDevInfo->psKernelDummyTermStreamMemInfo = (PVRSRV_KERNEL_MEM_INFO *)psInitInfo->hKernelDummyTermStreamMemInfo;
 #endif
-#if defined(SGX_FEATURE_VDM_CONTEXT_SWITCH) && defined(FIX_HW_BRN_31425)
+#if defined(SGX_FEATURE_VDM_CONTEXT_SWITCH) && defined(FIX_HW_BRN_31559)
 	psDevInfo->psKernelVDMSnapShotBufferMemInfo = (PVRSRV_KERNEL_MEM_INFO *)psInitInfo->hKernelVDMSnapShotBufferMemInfo;
 	psDevInfo->psKernelVDMCtrlStreamBufferMemInfo = (PVRSRV_KERNEL_MEM_INFO *)psInitInfo->hKernelVDMCtrlStreamBufferMemInfo;
 #endif
@@ -1153,7 +1171,8 @@ IMG_VOID SGXDumpDebugInfo (PVRSRV_SGXDEV_INFO	*psDevInfo,
 		ui32WriteOffset = *pui32MKTraceBuffer;
 		pui32MKTraceBuffer++;
 
-		PVR_LOG(("Last SGX microkernel status code: %08X", ui32LastStatusCode));
+		PVR_LOG(("Last SGX microkernel status code: %08X %s",
+				 ui32LastStatusCode, SGXUKernelStatusString(ui32LastStatusCode)));
 
 		#if defined(PVRSRV_DUMP_MK_TRACE)
 		
@@ -1168,8 +1187,9 @@ IMG_VOID SGXDumpDebugInfo (PVRSRV_SGXDEV_INFO	*psDevInfo,
 				IMG_UINT32	*pui32BufPtr;
 				pui32BufPtr = pui32MKTraceBuffer +
 								(((ui32WriteOffset + ui32LoopCounter) % SGXMK_TRACE_BUFFER_SIZE) * 4);
-				PVR_LOG(("\t(MKT-%X) %08X %08X %08X %08X", ui32LoopCounter,
-						 pui32BufPtr[2], pui32BufPtr[3], pui32BufPtr[1], pui32BufPtr[0]));
+				PVR_LOG(("\t(MKT-%X) %08X %08X %08X %08X %s", ui32LoopCounter,
+						 pui32BufPtr[2], pui32BufPtr[3], pui32BufPtr[1], pui32BufPtr[0],
+						 SGXUKernelStatusString(pui32BufPtr[0])));
 			}
 		}
 		#endif 

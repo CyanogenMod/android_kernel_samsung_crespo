@@ -102,9 +102,11 @@ extern "C" {
 /* note: there is implicitly 1 3D Dst Sync */
 #else
 /* sync info structure array size */
-#define SGX_MAX_SRC_SYNCS				8
-#define SGX_MAX_DST_SYNCS				1
+#define SGX_MAX_SRC_SYNCS_TA				8
+#define SGX_MAX_DST_SYNCS_TA				1
 /* note: there is implicitly 1 3D Dst Sync */
+#define SGX_MAX_SRC_SYNCS_TQ				8
+#define SGX_MAX_DST_SYNCS_TQ				1
 #endif
 
 

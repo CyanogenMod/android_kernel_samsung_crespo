@@ -377,7 +377,7 @@ SGXDoKickBW(IMG_UINT32 ui32BridgeID,
 	}
 #else
 	
-	if (psDoKickIN->sCCBKick.ui32NumSrcSyncs > SGX_MAX_SRC_SYNCS)
+	if (psDoKickIN->sCCBKick.ui32NumSrcSyncs > SGX_MAX_SRC_SYNCS_TA)
 	{
 		psRetOUT->eError = PVRSRV_ERROR_INVALID_PARAMS;
 		return 0;
@@ -1440,7 +1440,7 @@ SGXDevInitPart2BW(IMG_UINT32 ui32BridgeID,
 	}
 #endif
 
-#if defined(SGX_FEATURE_VDM_CONTEXT_SWITCH) && defined(FIX_HW_BRN_31425)
+#if defined(SGX_FEATURE_VDM_CONTEXT_SWITCH) && defined(FIX_HW_BRN_31559)
 	eError = PVRSRVLookupHandle(psPerProc->psHandleBase,
 						   &hDummy,
 						   psSGXDevInitPart2IN->sInitInfo.hKernelVDMSnapShotBufferMemInfo,
@@ -1797,7 +1797,7 @@ SGXDevInitPart2BW(IMG_UINT32 ui32BridgeID,
 		bReleaseFailed = IMG_TRUE;
 	}
 #endif
-#if defined(SGX_FEATURE_VDM_CONTEXT_SWITCH) && defined(FIX_HW_BRN_31425)
+#if defined(SGX_FEATURE_VDM_CONTEXT_SWITCH) && defined(FIX_HW_BRN_31559)
 	eError = PVRSRVLookupAndReleaseHandle(psPerProc->psHandleBase,
 						   &psSGXDevInitPart2IN->sInitInfo.hKernelVDMSnapShotBufferMemInfo,
 						   psSGXDevInitPart2IN->sInitInfo.hKernelVDMSnapShotBufferMemInfo,
@@ -2110,7 +2110,7 @@ SGXDevInitPart2BW(IMG_UINT32 ui32BridgeID,
 #endif
 #endif
 
-#if defined(SGX_FEATURE_VDM_CONTEXT_SWITCH) && defined(FIX_HW_BRN_31425)
+#if defined(SGX_FEATURE_VDM_CONTEXT_SWITCH) && defined(FIX_HW_BRN_31559)
 	eError = PVRSRVDissociateDeviceMemKM(hDevCookieInt, psSGXDevInitPart2IN->sInitInfo.hKernelVDMSnapShotBufferMemInfo);
 	bDissociateFailed |= (IMG_BOOL)(eError != PVRSRV_OK);
 	

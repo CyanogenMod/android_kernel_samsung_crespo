@@ -128,7 +128,7 @@ typedef struct _PVRSRV_SGXDEV_INFO_
 #if defined(FIX_HW_BRN_29823)
 	PPVRSRV_KERNEL_MEM_INFO	psKernelDummyTermStreamMemInfo; 
 #endif
-#if defined(SGX_FEATURE_VDM_CONTEXT_SWITCH) && defined(FIX_HW_BRN_31425)
+#if defined(SGX_FEATURE_VDM_CONTEXT_SWITCH) && defined(FIX_HW_BRN_31559)
 	PPVRSRV_KERNEL_MEM_INFO	psKernelVDMSnapShotBufferMemInfo; 
 	PPVRSRV_KERNEL_MEM_INFO	psKernelVDMCtrlStreamBufferMemInfo; 
 #endif
@@ -435,7 +435,7 @@ typedef struct _SGX_CCB_KICK_KM_
 #else
 	
 	IMG_UINT32	ui32NumSrcSyncs;
-	IMG_HANDLE	ahSrcKernelSyncInfo[SGX_MAX_SRC_SYNCS];
+	IMG_HANDLE	ahSrcKernelSyncInfo[SGX_MAX_SRC_SYNCS_TA];
 #endif
 
 	
