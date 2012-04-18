@@ -20,8 +20,17 @@
 #include <linux/syscalls.h> /* sys_sync */
 #include <linux/wakelock.h>
 #include <linux/workqueue.h>
-
+#ifdef CONFIG_CPU_DIDLE
+#include <linux/cpufreq.h>
+#include <linux/deep_idle.h>
+#endif
 #include "power.h"
+
+#ifdef CONFIG_CPU_DIDLE
+static unsigned long lMinOldFreq;
+static unsigned long lPolicyMinOldFreq;
+unsigned int uIsSuspended;
+#endif
 
 enum {
 	DEBUG_USER_STATE = 1U << 0,
@@ -156,6 +165,7 @@ void request_suspend_state(suspend_state_t new_state)
 
 	spin_lock_irqsave(&state_lock, irqflags);
 	old_sleep = state & SUSPEND_REQUESTED;
+
 	if (debug_mask & DEBUG_USER_STATE) {
 		struct timespec ts;
 		struct rtc_time tm;
@@ -178,6 +188,34 @@ void request_suspend_state(suspend_state_t new_state)
 		queue_work(suspend_work_queue, &late_resume_work);
 	}
 	requested_suspend_state = new_state;
+#ifdef CONFIG_CPU_DIDLE
+    /* Increases the CPU min speed if we have deepidle enabled and we go into
+       suspend mode. This is fully independent of the governor, so we can add
+       or remove our favourite governor */
+    struct cpufreq_policy *policy;
+
+    if (deepidle_is_enabled()) {
+        policy = cpufreq_cpu_get(0);
+        if ((new_state == PM_SUSPEND_MEM) && (uIsSuspended == 0)) {
+            lMinOldFreq = policy->max;
+            lPolicyMinOldFreq = policy->user_policy.max;
+            policy->user_policy.max = 800000;
+            policy->max = 800000;
+            cpufreq_cpu_put(policy);
+            uIsSuspended = 1;
+        } else {
+            if (lMinOldFreq < 100000) {
+                lMinOldFreq = policy->max;
+                lPolicyMinOldFreq = policy->user_policy.max;
+                uIsSuspended = 0;
+            }
+            policy->max = lMinOldFreq;
+            policy->user_policy.max = lPolicyMinOldFreq;
+            cpufreq_cpu_put(policy);
+            uIsSuspended = 0;
+        }
+    }
+#endif
 	spin_unlock_irqrestore(&state_lock, irqflags);
 }
 

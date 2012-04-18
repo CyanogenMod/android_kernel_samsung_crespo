@@ -26,6 +26,10 @@
 #include <mach/regs-clock.h>
 #include <mach/cpu-freq-v210.h>
 
+#ifdef CONFIG_CPU_DIDLE
+#include <linux/deep_idle.h>
+#endif
+
 static struct clk *cpu_clk;
 static struct clk *dmc0_clk;
 static struct clk *dmc1_clk;
@@ -250,6 +254,20 @@ static int s5pv210_target(struct cpufreq_policy *policy,
 
 	if (relation & ENABLE_FURTHER_CPUFREQ)
 		no_cpufreq_access = false;
+
+#ifdef CONFIG_CPU_DIDLE
+    // Ensures no application decreases the min freq when deepidle enabled at
+    // suspend mement
+    if (deepidle_is_enabled()) {
+        if (uIsSuspended == 1) {
+            if (policy->max != 800000) {
+                policy->user_policy.max = 800000;
+                policy->max = 800000;
+            }
+        }
+    }
+#endif
+
 	if (no_cpufreq_access) {
 #ifdef CONFIG_PM_VERBOSE
 		pr_err("%s:%d denied access to %s as it is disabled"
