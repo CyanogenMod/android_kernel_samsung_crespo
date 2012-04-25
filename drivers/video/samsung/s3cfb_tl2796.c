@@ -278,11 +278,10 @@ static void setup_gamma_regs(struct s5p_lcd *lcd, u16 gamma_regs[])
 		// terrible shameful hack allowing to get back standard
 		// colors without fixing the real thing properly (gamma table)
 		// it consist on a simple (negative) offset applied on v0
-        int iAdjHack;
-        iAdjHack = adj + ((hacky_v1_offset[c] * (int)adj) / 100);
-        if (iAdjHack > 140)
-            iAdjHack = 140;
-        gamma_regs[c] = iAdjHack | 0x100;
+        int adj_hack = adj + ((hacky_v1_offset[c] * (int)adj) / 100);
+        if (adj_hack > 140)
+            adj_hack = 140;
+        gamma_regs[c] = adj_hack | 0x100;
 #else
 		gamma_regs[c] = adj | 0x100;
 #endif
