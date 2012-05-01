@@ -103,6 +103,7 @@
 #include "private_data.h"
 #include "lock.h"
 #include "linkage.h"
+#include "buffer_manager.h"
 
 #if defined(SUPPORT_DRI_DRM)
 #include "pvr_drm.h"
@@ -549,6 +550,12 @@ static int PVRSRVRelease(struct inode unref__ * pInode, struct file *pFile)
 				PVR_DPF((PVR_DBG_ERROR, "%s: Failed to look up export handle", __FUNCTION__));
 				err = -EFAULT;
 				goto err_unlock;
+			}
+
+			
+			if (psKernelMemInfo->sShareMemWorkaround.bInUse)
+			{
+				BM_XProcIndexRelease(psKernelMemInfo->sShareMemWorkaround.ui32ShareIndex);
 			}
 
 			

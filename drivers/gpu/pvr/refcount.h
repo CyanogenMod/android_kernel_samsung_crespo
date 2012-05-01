@@ -68,6 +68,10 @@ void PVRSRVBMBufIncExport2(const IMG_CHAR *pszFile,
 						   IMG_INT iLine, BM_BUF *pBuf);
 void PVRSRVBMBufDecExport2(const IMG_CHAR *pszFile,
 						   IMG_INT iLine, BM_BUF *pBuf);
+void PVRSRVBMXProcIncRef2(const IMG_CHAR *pszFile, IMG_INT iLine,
+						  IMG_UINT32 ui32Index);
+void PVRSRVBMXProcDecRef2(const IMG_CHAR *pszFile, IMG_INT iLine,
+						  IMG_UINT32 ui32Index);
 
 #if defined(__linux__)
 
@@ -140,6 +144,16 @@ static INLINE void PVRSRVBMBufIncExport(BM_BUF *pBuf)
 static INLINE void PVRSRVBMBufDecExport(BM_BUF *pBuf)
 {
 	pBuf->ui32ExportCount--;
+}
+
+static INLINE void PVRSRVBMXProcIncRef(IMG_UINT32 ui32Index)
+{
+	gXProcWorkaroundShareData[ui32Index].ui32RefCount++;
+}
+
+static INLINE void PVRSRVBMXProcDecRef(IMG_UINT32 ui32Index)
+{
+	gXProcWorkaroundShareData[ui32Index].ui32RefCount--;
 }
 
 #if defined(__linux__)

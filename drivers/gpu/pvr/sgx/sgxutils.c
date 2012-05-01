@@ -49,6 +49,8 @@
 #include <stdio.h>
 #endif
 
+IMG_UINT64 ui64KickCount;
+
 
 #if defined(SYS_CUSTOM_POWERDOWN)
 PVRSRV_ERROR SysPowerDownMISR(PVRSRV_DEVICE_NODE	* psDeviceNode, IMG_UINT32 ui32CallerID);
@@ -527,6 +529,7 @@ PVRSRV_ERROR SGXScheduleCCBCommand(PVRSRV_DEVICE_NODE	*psDeviceNode,
 	*psKernelCCB->pui32ReadOffset = (*psKernelCCB->pui32ReadOffset + 1) & 255;
 #endif
 
+	ui64KickCount++;
 Exit:
 	return eError;
 }

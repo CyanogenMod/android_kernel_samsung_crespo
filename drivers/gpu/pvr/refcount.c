@@ -46,10 +46,11 @@ static DEFINE_MUTEX(gsCCBLock);
 #define PVRSRV_REFCOUNT_CCB_DEBUG_MEMINFO	(1U << 1)
 #define PVRSRV_REFCOUNT_CCB_DEBUG_BM_BUF	(1U << 2)
 #define PVRSRV_REFCOUNT_CCB_DEBUG_BM_BUF2	(1U << 3)
+#define PVRSRV_REFCOUNT_CCB_DEBUG_BM_XPROC	(1U << 4)
 
 #if defined(__linux__)
-#define PVRSRV_REFCOUNT_CCB_DEBUG_MMAP		(1U << 4)
-#define PVRSRV_REFCOUNT_CCB_DEBUG_MMAP2		(1U << 5)
+#define PVRSRV_REFCOUNT_CCB_DEBUG_MMAP		(1U << 16)
+#define PVRSRV_REFCOUNT_CCB_DEBUG_MMAP2		(1U << 17)
 #else
 #define PVRSRV_REFCOUNT_CCB_DEBUG_MMAP		0
 #define PVRSRV_REFCOUNT_CCB_DEBUG_MMAP2		0
@@ -366,6 +367,68 @@ void PVRSRVBMBufDecExport2(const IMG_CHAR *pszFile, IMG_INT iLine, BM_BUF *pBuf)
 
 skip:
 	pBuf->ui32ExportCount--;
+}
+
+IMG_INTERNAL
+void PVRSRVBMXProcIncRef2(const IMG_CHAR *pszFile, IMG_INT iLine, IMG_UINT32 ui32Index)
+{
+	if(!(guiDebugMask & PVRSRV_REFCOUNT_CCB_DEBUG_BM_XPROC))
+		goto skip;
+
+	PVRSRV_LOCK_CCB();
+
+	gsRefCountCCB[giOffset].pszFile = pszFile;
+	gsRefCountCCB[giOffset].iLine = iLine;
+	gsRefCountCCB[giOffset].ui32PID = OSGetCurrentProcessIDKM();
+	snprintf(gsRefCountCCB[giOffset].pcMesg,
+			 PVRSRV_REFCOUNT_CCB_MESG_MAX - 1,
+			 PVRSRV_REFCOUNT_CCB_FMT_STRING,
+			 "BM_XPROC",
+			 NULL,
+			 NULL,
+			 gXProcWorkaroundShareData[ui32Index].hOSMemHandle,
+			 (IMG_VOID *) ui32Index,
+			 gXProcWorkaroundShareData[ui32Index].ui32RefCount,
+			 gXProcWorkaroundShareData[ui32Index].ui32RefCount + 1,
+			 gXProcWorkaroundShareData[ui32Index].ui32Size);
+	gsRefCountCCB[giOffset].pcMesg[PVRSRV_REFCOUNT_CCB_MESG_MAX - 1] = 0;
+	giOffset = (giOffset + 1) % PVRSRV_REFCOUNT_CCB_MAX;
+
+	PVRSRV_UNLOCK_CCB();
+
+skip:
+	gXProcWorkaroundShareData[ui32Index].ui32RefCount++;
+}
+
+IMG_INTERNAL
+void PVRSRVBMXProcDecRef2(const IMG_CHAR *pszFile, IMG_INT iLine, IMG_UINT32 ui32Index)
+{
+	if(!(guiDebugMask & PVRSRV_REFCOUNT_CCB_DEBUG_BM_XPROC))
+		goto skip;
+
+	PVRSRV_LOCK_CCB();
+
+	gsRefCountCCB[giOffset].pszFile = pszFile;
+	gsRefCountCCB[giOffset].iLine = iLine;
+	gsRefCountCCB[giOffset].ui32PID = OSGetCurrentProcessIDKM();
+	snprintf(gsRefCountCCB[giOffset].pcMesg,
+			 PVRSRV_REFCOUNT_CCB_MESG_MAX - 1,
+			 PVRSRV_REFCOUNT_CCB_FMT_STRING,
+			 "BM_XPROC",
+			 NULL,
+			 NULL,
+			 gXProcWorkaroundShareData[ui32Index].hOSMemHandle,
+			 (IMG_VOID *) ui32Index,
+			 gXProcWorkaroundShareData[ui32Index].ui32RefCount,
+			 gXProcWorkaroundShareData[ui32Index].ui32RefCount - 1,
+			 gXProcWorkaroundShareData[ui32Index].ui32Size);
+	gsRefCountCCB[giOffset].pcMesg[PVRSRV_REFCOUNT_CCB_MESG_MAX - 1] = 0;
+	giOffset = (giOffset + 1) % PVRSRV_REFCOUNT_CCB_MAX;
+
+	PVRSRV_UNLOCK_CCB();
+
+skip:
+	gXProcWorkaroundShareData[ui32Index].ui32RefCount--;
 }
 
 #if defined(__linux__)

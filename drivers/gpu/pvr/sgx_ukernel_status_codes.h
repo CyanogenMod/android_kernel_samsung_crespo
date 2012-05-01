@@ -1,27 +1,27 @@
-/*!****************************************************************************
-@File           sgx_ukernel_status_codes.h
-
-@Title          SGX microkernel debug status codes
-
-@Author         Imagination Technologies
-
-@Date           7th Feb 2008
-
-@Copyright      Copyright 2003-2008 by Imagination Technologies Limited.
-                All rights reserved. No part of this software, either material
-                or conceptual may be copied or distributed, transmitted,
-                transcribed, stored in a retrieval system or translated into
-                any human or computer language in any form by any means,
-                electronic, mechanical, manual or otherwise, or disclosed to
-                third parties without the express written permission of
-                Imagination Technologies Limited, Home Park Estate,
-                Kings Langley, Hertfordshire, WD4 8LZ, U.K.
-
-@Platform       Generic
-
-@Description    SGX microkernel debug status codes
-
-@DoxygenVer
+/**********************************************************************
+ *
+ * Copyright (C) Imagination Technologies Ltd. All rights reserved.
+ * 
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms and conditions of the GNU General Public License,
+ * version 2, as published by the Free Software Foundation.
+ * 
+ * This program is distributed in the hope it will be useful but, except 
+ * as otherwise stated in writing, without any warranty; without even the 
+ * implied warranty of merchantability or fitness for a particular purpose. 
+ * See the GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License along with
+ * this program; if not, write to the Free Software Foundation, Inc.,
+ * 51 Franklin St - Fifth Floor, Boston, MA 02110-1301 USA.
+ * 
+ * The full GNU General Public License is included in this distribution in
+ * the file called "COPYING".
+ *
+ * Contact Information:
+ * Imagination Technologies Ltd. <gpl-support@imgtec.com>
+ * Home Park Estate, Kings Langley, Herts, WD4 8LZ, UK 
+ *
 
 ******************************************************************************/
 

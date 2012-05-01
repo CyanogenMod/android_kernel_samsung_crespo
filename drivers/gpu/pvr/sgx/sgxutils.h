@@ -36,6 +36,8 @@
 	((type *)(((IMG_CHAR *)(psCCBMemInfo)->pvLinAddrKM) + \
 		(psCCBKick)->offset))
 
+extern IMG_UINT64 ui64KickCount;
+
 
 IMG_IMPORT
 IMG_VOID SGXTestActivePowerEvent(PVRSRV_DEVICE_NODE	*psDeviceNode,
