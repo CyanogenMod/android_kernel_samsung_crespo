@@ -705,12 +705,30 @@ int wimax_resume(struct platform_device *pdev)
 	mutex_unlock(&pdata->g_cfg->suspend_mutex);
 	return 0;
 }
+static int adapter_suspend(struct device *dev)
+{
+	pr_debug("adapter_suspend sdio");
+	return 0;
+}
+
+static int adapter_resume(struct device *dev)
+{
+	pr_debug("adapter_resume sdio");
+	return 0;
+}
+static const struct dev_pm_ops adapter_pm_ops = {
+	.suspend	=	adapter_suspend,
+	.resume		=	adapter_resume,
+};
 
 static struct sdio_driver adapter_driver = {
 	.name		= "C730SDIO",
 	.probe		= adapter_probe,
 	.remove		= adapter_remove,
 	.id_table	= adapter_table,
+	.drv = {
+		.pm = &adapter_pm_ops,
+	},
 };
 
 static int wimax_probe(struct platform_device *pdev)
