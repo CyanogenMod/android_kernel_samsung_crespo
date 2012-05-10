@@ -33,6 +33,7 @@ extern "C" {
 
 #include "services.h"
 #include "sysinfo.h"
+#include "sysconfig.h"
 
 #define HWREC_DEFAULT_TIMEOUT	(500)
 
@@ -46,6 +47,10 @@ extern "C" {
 #ifndef MIN
 #define MIN(a,b) 					(((a) < (b)) ? (a) : (b))
 #endif
+
+#define MAX_CLEANUP_TIME_US			(MAX_HW_TIME_US * 4)
+#define MAX_CLEANUP_TRYS			100
+#define MAX_CLEANUP_TIME_WAIT_US	(MAX_CLEANUP_TIME_US/MAX_CLEANUP_TRYS)
 
 typedef enum _PVRSRV_MEMTYPE_
 {
