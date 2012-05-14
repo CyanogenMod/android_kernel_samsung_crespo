@@ -234,7 +234,6 @@ struct s3cfb_global {
 
 	wait_queue_head_t	vsync_wq;
 	ktime_t			vsync_timestamp;
-	bool			vsync_active;
 
 	int			vsync_state;
 	struct task_struct	*vsync_thread;
@@ -308,7 +307,6 @@ struct s3cfb_next_info {
 						struct s3cfb_user_chroma)
 #define S3CFB_SET_VSYNC_INT		_IOW('F', 206, u32)
 #define S3CFB_GET_VSYNC_INT_STATUS	_IOR('F', 207, u32)
-#define S3CFB_SET_VSYNC_ACTIVE		_IOW('F', 208, u32)
 #define S3CFB_GET_LCD_WIDTH		_IOR('F', 302, int)
 #define S3CFB_GET_LCD_HEIGHT		_IOR('F', 303, int)
 #define S3CFB_SET_WRITEBACK		_IOW('F', 304, u32)

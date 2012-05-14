@@ -680,16 +680,6 @@ static int s3cfb_ioctl(struct fb_info *fb, unsigned int cmd, unsigned long arg)
 		}
 		break;
 
-	case S3CFB_SET_VSYNC_ACTIVE:
-		if (get_user(p.vsync, (int __user *)arg))
-			ret = -EFAULT;
-
-		fbdev->vsync_active = p.vsync;
-		wmb();
-		if (p.vsync)
-			wake_up(&fbdev->vsync_wq);
-		break;
-
 	case S3CFB_GET_CURR_FB_INFO:
 		next_fb_info.phy_start_addr = fix->smem_start;
 		next_fb_info.xres = var->xres;
@@ -937,8 +927,7 @@ static int s3cfb_wait_for_vsync_thread(void *data)
 		ktime_t prev_timestamp = fbdev->vsync_timestamp;
 		int ret = wait_event_interruptible_timeout(fbdev->vsync_wq,
 				s3cfb_vsync_timestamp_changed(fbdev,
-						prev_timestamp) &&
-				fbdev->vsync_active,
+						prev_timestamp),
 				msecs_to_jiffies(100));
 		if (ret > 0) {
 			char *envp[2];
