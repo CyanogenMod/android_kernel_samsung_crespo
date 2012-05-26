@@ -47,7 +47,7 @@ modules.builtin
 /build
 /bin/kernel.cyano.*.zip
 /bin/kernel/zImage
-/bin/kernel/system/modules
+/bin/kernel/system/lib/modules
 
 #
 # git files that we don't want to ignore even it they are dot-files

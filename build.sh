@@ -128,7 +128,7 @@ SenModulesToCMDevice()
     # use for loop read all modules but not the last
     for (( i=0; i<${tLen}-1; i++ ));
     do
-         echo '    device/samsung/'${BOARD}'/'${MODULEF[$i]}':system/modules/'${MODULEF[$i]}' \' >>$DEVICE_CM_DIR/KernelModules.mk
+      echo '    device/samsung/'${BOARD}'/'${MODULEF[$i]}':system/modules/'${MODULEF[$i]}' \' >>$DEVICE_CM_DIR/KernelModules.mk
       echo ${MODULEF[$i]}
     done
     echo '    device/samsung/'${BOARD}'/'${MODULEF[$i]}':system/modules/'${MODULEF[$i]} >>$DEVICE_CM_DIR/KernelModules.mk
@@ -151,15 +151,13 @@ build ()
             mka -C "$KERNEL_DIR" O="$target_dir" ARCH=arm HOSTCC="$CCACHE gcc" CROSS_COMPILE="$CCACHE $CROSS_PREFIX" zImage
             RET=$?
             if [[ $RET == 0 ]] ; then
-                cp "$target_dir"/arch/arm/boot/zImage $DEVICE_CM_DIR/kernel
                 cp "$target_dir"/arch/arm/boot/zImage bin/kernel/zImage
                 MODULES=( $(find $target_dir/* -type f -name *.ko) )
                 for module in "${MODULES[@]}" ; do
                     echo $module
-                    cp "$module" $DEVICE_CM_DIR
-                    cp "$module" bin/system/modules
+                    cp "$module" bin/system/lib/modules
                 done
-                SenModulesToCMDevice
+                # SenModulesToCMDevice
                 CheckVersion
                 CreateKernelZip
                 UpgradeMinor
