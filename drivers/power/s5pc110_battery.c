@@ -469,8 +469,7 @@ static int max8998_charging_control(struct chg_data *chg)
 		}
 
 		ret = max8998_write_reg(i2c, MAX8998_REG_CHGR2,
-					/* Enable USB VBUS of CP or WiMAX */
-					(3 << MAX8998_SHIFT_ESAFEOUT) |
+					(2 << MAX8998_SHIFT_ESAFEOUT) |
 					(2 << MAX8998_SHIFT_FT) |
 					(0 << MAX8998_SHIFT_CHGEN));
 		if (ret < 0)
