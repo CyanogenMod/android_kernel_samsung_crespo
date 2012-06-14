@@ -43,6 +43,9 @@ extern IMG_UINT32 ui32BridgeLockPID;
 
 #define UINT32_MAX_VALUE	0xFFFFFFFFUL
 
+#define PT_INFO_LIST_SIGNATURE 0xDEADBE01
+#define MMU_CONTEXT_SIGNATURE  0xDEADBE02
+
 #define SGX_MAX_PD_ENTRIES	(1<<(SGX_FEATURE_ADDRESS_SPACE_SIZE - SGX_MMU_PT_SHIFT - SGX_MMU_PAGE_SHIFT))
 
 #if defined(FIX_HW_BRN_31620)
@@ -79,17 +82,21 @@ extern IMG_UINT32 ui32BridgeLockPID;
 
 typedef struct _MMU_PT_INFO_
 {
-	
+	IMG_UINT32 ui32Signature1;
+
 	IMG_VOID *hPTPageOSMemHandle;
 	IMG_CPU_VIRTADDR PTPageCpuVAddr;
 	
 	
 	IMG_UINT32 ui32ValidPTECount;
+
+	IMG_UINT32 ui32Signature2;
 } MMU_PT_INFO;
 
 struct _MMU_CONTEXT_
 {
-	
+	IMG_UINT32 ui32Signature1;
+
 	PVRSRV_DEVICE_NODE *psDeviceNode;
 
 	
@@ -116,6 +123,8 @@ struct _MMU_CONTEXT_
 	MMU_PT_INFO *apsPTInfoListSave[SGX_MAX_PD_ENTRIES];
 #endif
 	struct _MMU_CONTEXT_ *psNext;
+
+	IMG_UINT32 ui32Signature2;
 };
 
 struct _MMU_HEAP_
@@ -751,12 +760,20 @@ _DeferredFreePageTable (MMU_HEAP *pMMUHeap, IMG_UINT32 ui32PTIndex, IMG_BOOL bOS
 	ppsPTInfoList = &pMMUHeap->psMMUContext->apsPTInfoList[ui32PDIndex];
 
 	{
-		if(ppsPTInfoList[ui32PTIndex] && ppsPTInfoList[ui32PTIndex]->ui32ValidPTECount > 0)
+		PVR_ASSERT(pMMUHeap->psMMUContext->ui32Signature1 == MMU_CONTEXT_SIGNATURE);
+		PVR_ASSERT(pMMUHeap->psMMUContext->ui32Signature2 == MMU_CONTEXT_SIGNATURE);
+
+		if(ppsPTInfoList[ui32PTIndex])
 		{
-			DumpPT(ppsPTInfoList[ui32PTIndex]);
+			if(ppsPTInfoList[ui32PTIndex]->ui32ValidPTECount > 0)
+			{
+				DumpPT(ppsPTInfoList[ui32PTIndex]);
+			}
+
+			PVR_ASSERT(ppsPTInfoList[ui32PTIndex]->ui32Signature1 == PT_INFO_LIST_SIGNATURE);
+			PVR_ASSERT(ppsPTInfoList[ui32PTIndex]->ui32Signature2 == PT_INFO_LIST_SIGNATURE);
+			PVR_ASSERT(ppsPTInfoList[ui32PTIndex]->ui32ValidPTECount == 0);
 		}
-		
-		PVR_ASSERT(ppsPTInfoList[ui32PTIndex] == IMG_NULL || ppsPTInfoList[ui32PTIndex]->ui32ValidPTECount == 0);
 	}
 
 #if defined(PDUMP)
@@ -891,7 +908,8 @@ _DeferredFreePageTable (MMU_HEAP *pMMUHeap, IMG_UINT32 ui32PTIndex, IMG_BOOL bOS
 
 		if(bOSFreePT)
 		{
-			
+			ppsPTInfoList[ui32PTIndex]->ui32Signature1 = 0;
+			ppsPTInfoList[ui32PTIndex]->ui32Signature2 = 0;
 			OSFreeMem(PVRSRV_OS_PAGEABLE_HEAP,
 						sizeof(MMU_PT_INFO),
 						ppsPTInfoList[ui32PTIndex],
@@ -1121,6 +1139,8 @@ _DeferredAllocPagetables(MMU_HEAP *pMMUHeap, IMG_DEV_VIRTADDR DevVAddr, IMG_UINT
 				return IMG_FALSE;
 			}
 			OSMemSet (ppsPTInfoList[i], 0, sizeof(MMU_PT_INFO));
+			ppsPTInfoList[i]->ui32Signature1 = PT_INFO_LIST_SIGNATURE;
+			ppsPTInfoList[i]->ui32Signature2 = PT_INFO_LIST_SIGNATURE;
 #if defined(FIX_HW_BRN_31620)
 			}
 #endif
@@ -1418,7 +1438,8 @@ MMU_Initialise (PVRSRV_DEVICE_NODE *psDeviceNode, MMU_CONTEXT **ppsMMUContext, I
 		return PVRSRV_ERROR_OUT_OF_MEMORY;
 	}
 	OSMemSet (psMMUContext, 0, sizeof(MMU_CONTEXT));
-
+	psMMUContext->ui32Signature1 = MMU_CONTEXT_SIGNATURE;
+	psMMUContext->ui32Signature2 = MMU_CONTEXT_SIGNATURE;
 	
 	psDevInfo = (PVRSRV_SGXDEV_INFO*)psDeviceNode->pvDevice;
 	psMMUContext->psDevInfo = psDevInfo;
@@ -2204,7 +2225,8 @@ MMU_Finalise (MMU_CONTEXT *psMMUContext)
 		ppsMMUContext = &((*ppsMMUContext)->psNext);
 	}
 
-	
+	psMMUContext->ui32Signature1 = 0;
+	psMMUContext->ui32Signature2 = 0;
 	OSFreeMem(PVRSRV_OS_PAGEABLE_HEAP, sizeof(MMU_CONTEXT), psMMUContext, IMG_NULL);
 	
 }
