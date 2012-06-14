@@ -37,9 +37,12 @@
 #include <services.h>
 
 #include "mutex.h"
-
+#include "osfunc.h"
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,15))
+
+extern PVRSRV_LINUX_MUTEX gPVRSRVLock;
+IMG_UINT32 ui32BridgeLockPID = 0;
 
 IMG_VOID LinuxInitMutex(PVRSRV_LINUX_MUTEX *psPVRSRVMutex)
 {
@@ -49,6 +52,8 @@ IMG_VOID LinuxInitMutex(PVRSRV_LINUX_MUTEX *psPVRSRVMutex)
 IMG_VOID LinuxLockMutex(PVRSRV_LINUX_MUTEX *psPVRSRVMutex)
 {
     mutex_lock(psPVRSRVMutex);
+	if(psPVRSRVMutex == &gPVRSRVLock)
+		ui32BridgeLockPID = OSGetCurrentProcessIDKM();
 }
 
 PVRSRV_ERROR LinuxLockMutexInterruptible(PVRSRV_LINUX_MUTEX *psPVRSRVMutex)
@@ -59,17 +64,24 @@ PVRSRV_ERROR LinuxLockMutexInterruptible(PVRSRV_LINUX_MUTEX *psPVRSRVMutex)
     }
     else
     {
+		if(psPVRSRVMutex == &gPVRSRVLock)
+			ui32BridgeLockPID = OSGetCurrentProcessIDKM();
         return PVRSRV_OK;
     }
 }
 
 IMG_INT32 LinuxTryLockMutex(PVRSRV_LINUX_MUTEX *psPVRSRVMutex)
 {
-    return mutex_trylock(psPVRSRVMutex);
+    IMG_UINT32 err = mutex_trylock(psPVRSRVMutex);
+	if(psPVRSRVMutex == &gPVRSRVLock)
+		ui32BridgeLockPID = OSGetCurrentProcessIDKM();
+	return err;
 }
 
 IMG_VOID LinuxUnLockMutex(PVRSRV_LINUX_MUTEX *psPVRSRVMutex)
 {
+	if(psPVRSRVMutex == &gPVRSRVLock)
+		ui32BridgeLockPID = 0;
     mutex_unlock(psPVRSRVMutex);
 }
 

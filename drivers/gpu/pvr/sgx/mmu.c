@@ -39,6 +39,8 @@
 #include "sgx_bridge_km.h"
 #include "pdump_osfunc.h"
 
+extern IMG_UINT32 ui32BridgeLockPID;
+
 #define UINT32_MAX_VALUE	0xFFFFFFFFUL
 
 #define SGX_MAX_PD_ENTRIES	(1<<(SGX_FEATURE_ADDRESS_SPACE_SIZE - SGX_MMU_PT_SHIFT - SGX_MMU_PAGE_SHIFT))
@@ -733,6 +735,12 @@ _DeferredFreePageTable (MMU_HEAP *pMMUHeap, IMG_UINT32 ui32PTIndex, IMG_BOOL bOS
 
 	SysAcquireData(&psSysData);
 
+	if(OSGetCurrentProcessIDKM() != 1 && ui32BridgeLockPID != OSGetCurrentProcessIDKM())
+	{
+		PVR_DPF((PVR_DBG_ERROR, "ERROR!!: MMU code used by pid %u but bridge lock from pid %u", OSGetCurrentProcessIDKM(), ui32BridgeLockPID));
+		PVR_ASSERT(0);
+	}
+
 	
 	ui32PDIndex = pMMUHeap->psDevArena->BaseDevVAddr.uiAddr >> pMMUHeap->ui32PDShift;
 
@@ -912,6 +920,13 @@ _DeferredFreePageTables (MMU_HEAP *pMMUHeap)
 	IMG_UINT32 *pui32Tmp;
 	IMG_UINT32 j;
 #endif
+
+	if(OSGetCurrentProcessIDKM() != 1 && ui32BridgeLockPID != OSGetCurrentProcessIDKM())
+	{
+		PVR_DPF((PVR_DBG_ERROR, "ERROR!!: MMU code used by pid %u but bridge lock from pid %u", OSGetCurrentProcessIDKM(), ui32BridgeLockPID));
+		PVR_ASSERT(0);
+	}
+
 #if defined(PDUMP)
 	PDUMPCOMMENT("Free PTs (MMU Context ID == %u, PDBaseIndex == %u, PT count == 0x%x)",
 			pMMUHeap->psMMUContext->ui32PDumpMMUContextID,
@@ -980,6 +995,12 @@ _DeferredAllocPagetables(MMU_HEAP *pMMUHeap, IMG_DEV_VIRTADDR DevVAddr, IMG_UINT
 	IMG_UINT32 ui32PDRequestEnd;
 	IMG_UINT32 ui32ModifiedCachelines[BRN31620_CACHE_FLUSH_INDEX_SIZE];
 #endif
+
+	if(OSGetCurrentProcessIDKM() != 1 && ui32BridgeLockPID != OSGetCurrentProcessIDKM())
+	{
+		PVR_DPF((PVR_DBG_ERROR, "ERROR!!: MMU code used by pid %u but bridge lock from pid %u", OSGetCurrentProcessIDKM(), ui32BridgeLockPID));
+		PVR_ASSERT(0);
+	}
 
 	
 #if SGX_FEATURE_ADDRESS_SPACE_SIZE < 32
@@ -1993,6 +2014,12 @@ MMU_Finalise (MMU_CONTEXT *psMMUContext)
 	MMU_CONTEXT *psMMUContextList = (MMU_CONTEXT*)psDevInfo->pvMMUContextList;
 #endif
 
+	if(OSGetCurrentProcessIDKM() != 1 && ui32BridgeLockPID != OSGetCurrentProcessIDKM())
+	{
+		PVR_DPF((PVR_DBG_ERROR, "ERROR!!: MMU code used by pid %u but bridge lock from pid %u", OSGetCurrentProcessIDKM(), ui32BridgeLockPID));
+		PVR_ASSERT(0);
+	}
+
 	SysAcquireData(&psSysData);
 
 #if defined(PDUMP)
@@ -2194,6 +2221,12 @@ MMU_InsertHeap(MMU_CONTEXT *psMMUContext, MMU_HEAP *psMMUHeap)
 	IMG_BOOL bInvalidateDirectoryCache = IMG_FALSE;
 #endif
 
+	if(OSGetCurrentProcessIDKM() != 1 && ui32BridgeLockPID != OSGetCurrentProcessIDKM())
+	{
+		PVR_DPF((PVR_DBG_ERROR, "ERROR!!: MMU code used by pid %u but bridge lock from pid %u", OSGetCurrentProcessIDKM(), ui32BridgeLockPID));
+		PVR_ASSERT(0);
+	}
+
 	
 	pui32PDCpuVAddr += psMMUHeap->psDevArena->BaseDevVAddr.uiAddr >> psMMUHeap->ui32PDShift;
 	pui32KernelPDCpuVAddr += psMMUHeap->psDevArena->BaseDevVAddr.uiAddr >> psMMUHeap->ui32PDShift;
@@ -2269,6 +2302,12 @@ MMU_UnmapPagesAndFreePTs (MMU_HEAP *psMMUHeap,
 	IMG_UINT32			ui32PTIndex;
 	IMG_UINT32			*pui32Tmp;
 	IMG_BOOL			bInvalidateDirectoryCache = IMG_FALSE;
+
+	if(OSGetCurrentProcessIDKM() != 1 && ui32BridgeLockPID != OSGetCurrentProcessIDKM())
+	{
+		PVR_DPF((PVR_DBG_ERROR, "ERROR!!: MMU code used by pid %u but bridge lock from pid %u", OSGetCurrentProcessIDKM(), ui32BridgeLockPID));
+		PVR_ASSERT(0);
+	}
 
 #if !defined (PDUMP)
 	PVR_UNREFERENCED_PARAMETER(hUniqueTag);
@@ -2404,6 +2443,12 @@ MMU_Create (MMU_CONTEXT *psMMUContext,
 	IMG_UINT32 ui32ScaleSize;
 
 	PVR_UNREFERENCED_PARAMETER(ppsMMUAttrib);
+
+	if(OSGetCurrentProcessIDKM() != 1 && ui32BridgeLockPID != OSGetCurrentProcessIDKM())
+	{
+		PVR_DPF((PVR_DBG_ERROR, "ERROR!!: MMU code used by pid %u but bridge lock from pid %u", OSGetCurrentProcessIDKM(), ui32BridgeLockPID));
+		PVR_ASSERT(0);
+	}
 
 	PVR_ASSERT (psDevArena != IMG_NULL);
 
@@ -2594,6 +2639,12 @@ ErrorFreeHeap:
 IMG_VOID
 MMU_Delete (MMU_HEAP *pMMUHeap)
 {
+	if(OSGetCurrentProcessIDKM() != 1 && ui32BridgeLockPID != OSGetCurrentProcessIDKM())
+	{
+		PVR_DPF((PVR_DBG_ERROR, "ERROR!!: MMU code used by pid %u but bridge lock from pid %u", OSGetCurrentProcessIDKM(), ui32BridgeLockPID));
+		PVR_ASSERT(0);
+	}
+
 	if (pMMUHeap != IMG_NULL)
 	{
 		PVR_DPF ((PVR_DBG_MESSAGE, "MMU_Delete"));
@@ -2632,6 +2683,12 @@ MMU_Alloc (MMU_HEAP *pMMUHeap,
 		   IMG_DEV_VIRTADDR *psDevVAddr)
 {
 	IMG_BOOL bStatus;
+
+	if(OSGetCurrentProcessIDKM() != 1 && ui32BridgeLockPID != OSGetCurrentProcessIDKM())
+	{
+		PVR_DPF((PVR_DBG_ERROR, "ERROR!!: MMU code used by pid %u but bridge lock from pid %u", OSGetCurrentProcessIDKM(), ui32BridgeLockPID));
+		PVR_ASSERT(0);
+	}
 
 	PVR_DPF ((PVR_DBG_MESSAGE,
 		"MMU_Alloc: uSize=0x%x, flags=0x%x, align=0x%x",
@@ -2697,6 +2754,12 @@ IMG_VOID
 MMU_Free (MMU_HEAP *pMMUHeap, IMG_DEV_VIRTADDR DevVAddr, IMG_UINT32 ui32Size)
 {
 	PVR_ASSERT (pMMUHeap != IMG_NULL);
+
+	if(OSGetCurrentProcessIDKM() != 1 && ui32BridgeLockPID != OSGetCurrentProcessIDKM())
+	{
+		PVR_DPF((PVR_DBG_ERROR, "ERROR!!: MMU code used by pid %u but bridge lock from pid %u", OSGetCurrentProcessIDKM(), ui32BridgeLockPID));
+		PVR_ASSERT(0);
+	}
 
 	if (pMMUHeap == IMG_NULL)
 	{
@@ -2834,6 +2897,12 @@ MMU_MapPage (MMU_HEAP *pMMUHeap,
 	IMG_UINT32 ui32MMUFlags = 0;
 	MMU_PT_INFO **ppsPTInfoList;
 
+	if(OSGetCurrentProcessIDKM() != 1 && ui32BridgeLockPID != OSGetCurrentProcessIDKM())
+	{
+		PVR_DPF((PVR_DBG_ERROR, "ERROR!!: MMU code used by pid %u but bridge lock from pid %u", OSGetCurrentProcessIDKM(), ui32BridgeLockPID));
+		PVR_ASSERT(0);
+	}
+
 	
 	PVR_ASSERT((DevPAddr.uiAddr & pMMUHeap->ui32DataPageMask) == 0);
 
@@ -2942,6 +3011,12 @@ MMU_MapScatter (MMU_HEAP *pMMUHeap,
 	IMG_UINT32 uCount, i;
 	IMG_DEV_PHYADDR DevPAddr;
 
+	if(OSGetCurrentProcessIDKM() != 1 && ui32BridgeLockPID != OSGetCurrentProcessIDKM())
+	{
+		PVR_DPF((PVR_DBG_ERROR, "ERROR!!: MMU code used by pid %u but bridge lock from pid %u", OSGetCurrentProcessIDKM(), ui32BridgeLockPID));
+		PVR_ASSERT(0);
+	}
+
 	PVR_ASSERT (pMMUHeap != IMG_NULL);
 
 #if defined(PDUMP)
@@ -2990,6 +3065,12 @@ MMU_MapPages (MMU_HEAP *pMMUHeap,
 	IMG_UINT32 uCount;
 	IMG_UINT32 ui32VAdvance;
 	IMG_UINT32 ui32PAdvance;
+
+	if(OSGetCurrentProcessIDKM() != 1 && ui32BridgeLockPID != OSGetCurrentProcessIDKM())
+	{
+		PVR_DPF((PVR_DBG_ERROR, "ERROR!!: MMU code used by pid %u but bridge lock from pid %u", OSGetCurrentProcessIDKM(), ui32BridgeLockPID));
+		PVR_ASSERT(0);
+	}
 
 	PVR_ASSERT (pMMUHeap != IMG_NULL);
 
@@ -3057,6 +3138,12 @@ MMU_MapShadow (MMU_HEAP          *pMMUHeap,
 	IMG_DEV_VIRTADDR	MapDevVAddr;
 	IMG_UINT32			ui32VAdvance;
 	IMG_UINT32			ui32PAdvance;
+
+	if(OSGetCurrentProcessIDKM() != 1 && ui32BridgeLockPID != OSGetCurrentProcessIDKM())
+	{
+		PVR_DPF((PVR_DBG_ERROR, "ERROR!!: MMU code used by pid %u but bridge lock from pid %u", OSGetCurrentProcessIDKM(), ui32BridgeLockPID));
+		PVR_ASSERT(0);
+	}
 
 #if !defined (PDUMP)
 	PVR_UNREFERENCED_PARAMETER(hUniqueTag);
@@ -3146,6 +3233,12 @@ MMU_UnmapPages (MMU_HEAP *psMMUHeap,
 	IMG_UINT32			ui32PDIndex;
 	IMG_UINT32			ui32PTIndex;
 	IMG_UINT32			*pui32Tmp;
+
+	if(OSGetCurrentProcessIDKM() != 1 && ui32BridgeLockPID != OSGetCurrentProcessIDKM())
+	{
+		PVR_DPF((PVR_DBG_ERROR, "ERROR!!: MMU code used by pid %u but bridge lock from pid %u", OSGetCurrentProcessIDKM(), ui32BridgeLockPID));
+		PVR_ASSERT(0);
+	}
 
 #if !defined (PDUMP)
 	PVR_UNREFERENCED_PARAMETER(hUniqueTag);
