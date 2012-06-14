@@ -689,14 +689,17 @@ _FreePageTableMemory (MMU_HEAP *pMMUHeap, MMU_PT_INFO *psPTInfoList)
 
 	if(pMMUHeap->psDevArena->psDeviceMemoryHeapInfo->psLocalDevMemArena == IMG_NULL)
 	{
-		
 		MakeKernelPageReadWrite(psPTInfoList->PTPageCpuVAddr);
 
-		
+#if 0
 		OSFreePages(PVRSRV_HAP_WRITECOMBINE | PVRSRV_HAP_KERNEL_ONLY,
 					  pMMUHeap->ui32PTSize,
 					  psPTInfoList->PTPageCpuVAddr,
 					  psPTInfoList->hPTPageOSMemHandle);
+#else
+		OSMemSet(psPTInfoList->PTPageCpuVAddr, 0, pMMUHeap->ui32PTSize);
+		MakeKernelPageReadOnly(psPTInfoList->PTPageCpuVAddr);
+#endif
 	}
 	else
 	{
