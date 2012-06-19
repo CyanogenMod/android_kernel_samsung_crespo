@@ -983,7 +983,11 @@ NewVMallocLinuxMemArea(IMG_UINT32 ui32Bytes, IMG_UINT32 ui32AreaFlags)
     
     if (AreaIsUncached(ui32AreaFlags) && !bFromPagePool)
     {
+#if !defined(PVRSRV_AVOID_RANGED_INVALIDATE)
         OSInvalidateCPUCacheRangeKM(psLinuxMemArea, pvCpuVAddr, ui32Bytes);
+#else
+        OSFlushCPUCacheKM();
+#endif
     }
 
     return psLinuxMemArea;
