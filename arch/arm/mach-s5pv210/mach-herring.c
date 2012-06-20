@@ -425,12 +425,12 @@ static struct s5p_media_device herring_media_devs[] = {
 static struct s5pv210_cpufreq_voltage smdkc110_cpufreq_volt[] = {
 	{
 		.freq	= 1400000,
-		.varm	= 1450000,
-		.vint	= 1250000,
+		.varm	= 1420000,
+		.vint	= 1180000,
 	}, {
 		.freq	= 1200000,
-		.varm	= 1350000,
-		.vint	= 1150000,
+		.varm	= 1320000,
+		.vint	= 1110000,
 	}, {
 		.freq	= 1000000,
 		.varm	= 1275000,
