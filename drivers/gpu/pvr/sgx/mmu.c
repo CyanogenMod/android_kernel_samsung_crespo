@@ -3471,6 +3471,8 @@ IMG_VOID MMU_CheckFaultAddr(PVRSRV_SGXDEV_INFO *psDevInfo, IMG_UINT32 ui32PDDevP
 						  ui32PTE,
 						  ui32PTE & SGX_MMU_PTE_ADDR_MASK,
 						  ui32PTE & SGX_MMU_PTE_VALID?"valid":"Invalid"));
+
+				DumpPT(psMMUContext->apsPTInfoList[ui32PDIndex]);
 			}
 			else
 			{
