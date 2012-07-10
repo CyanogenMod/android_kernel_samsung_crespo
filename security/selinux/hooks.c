@@ -1864,6 +1864,9 @@ static int selinux_binder_transfer_file(struct task_struct *from, struct task_st
 			return rc;
 	}
 
+	if (unlikely(IS_PRIVATE(inode)))
+		return 0;
+
 	return avc_has_perm(sid, isec->sid, isec->sclass, file_to_av(file),
 			    &ad);
 }
