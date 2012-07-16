@@ -2807,7 +2807,7 @@ static u8 t7_config[] = {GEN_POWERCONFIG_T7,
 static u8 t8_config[] = {GEN_ACQUISITIONCONFIG_T8,
 				7, 0, 5, 0, 0, 0, 9, 35};
 static u8 t9_config[] = {TOUCH_MULTITOUCHSCREEN_T9,
-				139, 0, 0, 19, 11, 0, 32, 25, 2, 1, 25, 3, 1,
+				139, 0, 0, 19, 11, 0, 28, 36, 2, 1, 25, 3, 1,
 				46, MXT224_MAX_MT_FINGERS, 5, 14, 10, 255, 3,
 				255, 3, 18, 18, 10, 10, 141, 65, 143, 110, 18};
 static u8 t18_config[] = {SPT_COMCONFIG_T18,
@@ -2815,7 +2815,7 @@ static u8 t18_config[] = {SPT_COMCONFIG_T18,
 static u8 t20_config[] = {PROCI_GRIPFACESUPPRESSION_T20,
 				7, 0, 0, 0, 0, 0, 0, 80, 40, 4, 35, 10};
 static u8 t22_config[] = {PROCG_NOISESUPPRESSION_T22,
-				5, 0, 0, 0, 0, 0, 0, 3, 30, 0, 0, 29, 34, 39,
+				5, 0, 0, 0, 0, 0, 0, 3, 20, 0, 0, 29, 34, 39,
 				49, 58, 3};
 static u8 t28_config[] = {SPT_CTECONFIG_T28,
 				1, 0, 3, 16, 63, 60};

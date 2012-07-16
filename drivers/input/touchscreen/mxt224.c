@@ -30,6 +30,7 @@
 
 #define CMD_RESET_OFFSET		0
 #define CMD_BACKUP_OFFSET		1
+#define CMD_CALIBRATE_OFFSET		2
 
 #define DETECT_MSG_MASK			0x80
 #define PRESS_MSG_MASK			0x40
@@ -127,6 +128,12 @@ static int __devinit mxt224_backup(struct mxt224_data *data)
 {
 	u8 buf = 0x55u;
 	return write_mem(data, data->cmd_proc + CMD_BACKUP_OFFSET, 1, &buf);
+}
+
+static int __devinit mxt224_calibrate(struct mxt224_data *data)
+{
+	u8 buf = 0x55u;
+	return write_mem(data, data->cmd_proc + CMD_CALIBRATE_OFFSET, 1, &buf);
 }
 
 static int get_object_info(struct mxt224_data *data, u8 object_type, u16 *size,
@@ -403,12 +410,19 @@ static int mxt224_internal_resume(struct mxt224_data *data)
 
 	data->power_on();
 
+	/* reset after resume */
+	ret = mxt224_reset(data);
+	msleep(20);
+
 	i = 0;
 	do {
 		ret = write_config(data, GEN_POWERCONFIG_T7, data->power_cfg);
 		msleep(20);
 		i++;
 	} while (ret && i < 10);
+
+	/* calibrate after resume */
+	mxt224_calibrate(data);
 
 	return ret;
 }
