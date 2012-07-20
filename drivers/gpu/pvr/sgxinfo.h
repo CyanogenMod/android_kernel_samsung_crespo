@@ -135,7 +135,7 @@ typedef struct _SGX_BRIDGE_INIT_INFO_
 #endif
 #endif
 
-#if defined(FIX_HW_BRN_31542)
+#if defined(FIX_HW_BRN_31542) || defined(FIX_HW_BRN_36513)
 #if defined (SUPPORT_SID_INTERFACE)
 	IMG_SID hKernelClearClipWAVDMStreamMemInfo;
 	IMG_SID hKernelClearClipWAIndexStreamMemInfo;
@@ -157,7 +157,7 @@ typedef struct _SGX_BRIDGE_INIT_INFO_
 #endif
 #endif
 
-#if defined(SGX_FEATURE_VDM_CONTEXT_SWITCH) && defined(FIX_HW_BRN_31425)
+#if defined(SGX_FEATURE_VDM_CONTEXT_SWITCH) && defined(FIX_HW_BRN_31559)
 	IMG_HANDLE	hKernelVDMSnapShotBufferMemInfo;
 	IMG_HANDLE	hKernelVDMCtrlStreamBufferMemInfo;
 #endif
@@ -170,13 +170,6 @@ typedef struct _SGX_BRIDGE_INIT_INFO_
 	IMG_SID		hKernelEDMStatusBufferMemInfo;
 #else
 	IMG_HANDLE	hKernelEDMStatusBufferMemInfo;
-#endif
-#endif
-#if defined(SGX_FEATURE_OVERLAPPED_SPM)
-#if defined (SUPPORT_SID_INTERFACE)
-	IMG_SID		hKernelTmpRgnHeaderMemInfo;
-#else
-	IMG_HANDLE hKernelTmpRgnHeaderMemInfo;
 #endif
 #endif
 
@@ -315,9 +308,9 @@ typedef struct _SGX_CCB_KICK_
 	
 	IMG_UINT32	ui32NumSrcSyncs;
 #if defined (SUPPORT_SID_INTERFACE)
-	IMG_SID		ahSrcKernelSyncInfo[SGX_MAX_SRC_SYNCS];
+	IMG_SID		ahSrcKernelSyncInfo[SGX_MAX_SRC_SYNCS_TA];
 #else
-	IMG_HANDLE	ahSrcKernelSyncInfo[SGX_MAX_SRC_SYNCS];
+	IMG_HANDLE	ahSrcKernelSyncInfo[SGX_MAX_SRC_SYNCS_TA];
 #endif
 #endif
 

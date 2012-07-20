@@ -364,10 +364,18 @@ static inline void fimc_irq_out(struct fimc_control *ctrl)
 	struct fimc_ctx *ctx;
 	u32 wakeup = 1;
 	int ctx_num = ctrl->out->idxs.active.ctx;
-	ctx = &ctrl->out->ctx[ctx_num];
 
 	/* Interrupt pendding clear */
 	fimc_hwset_clear_irq(ctrl);
+
+	/* check context num */
+	if (ctx_num < 0 || ctx_num >= FIMC_MAX_CTXS) {
+		fimc_err("fimc_irq_out: invalid ctx (ctx=%d)\n", ctx_num);
+		wake_up(&ctrl->wq);
+		return;
+	}
+
+	ctx = &ctrl->out->ctx[ctx_num];
 
 	switch (ctx->overlay.mode) {
 	case FIMC_OVLY_NONE_SINGLE_BUF:
@@ -381,6 +389,8 @@ static inline void fimc_irq_out(struct fimc_control *ctrl)
 		wakeup = fimc_irq_out_dma(ctrl, ctx);
 		break;
 	default:
+		fimc_err("[ctx=%d] fimc_irq_out: wrong overlay.mode (%d)\n",
+				ctx_num, ctx->overlay.mode);
 		break;
 	}
 
@@ -1503,13 +1513,12 @@ int fimc_suspend(struct platform_device *pdev, pm_message_t state)
 
 	if (ctrl->out)
 		fimc_suspend_out(ctrl);
-
 	else if (ctrl->cap)
 		fimc_suspend_cap(ctrl);
 	else
 		ctrl->status = FIMC_OFF_SLEEP;
 
-	if (atomic_read(&ctrl->in_use))
+	if (atomic_read(&ctrl->in_use) && ctrl->status != FIMC_OFF_SLEEP)
 		fimc_clk_en(ctrl, false);
 
 	return 0;
@@ -1626,12 +1635,11 @@ int fimc_resume(struct platform_device *pdev)
 
 	in_use = atomic_read(&ctrl->in_use);
 
-	if (in_use)
+	if (in_use && ctrl->status != FIMC_OFF_SLEEP)
 		fimc_clk_en(ctrl, true);
 
 	if (ctrl->out)
 		fimc_resume_out(ctrl);
-
 	else if (ctrl->cap)
 		fimc_resume_cap(ctrl);
 	else

@@ -65,6 +65,7 @@ static inline unsigned long pvr_copy_from_user(void *pvTo, const void __user *pv
 }
 
 #define	pvr_put_user	put_user
+#define	pvr_get_user	get_user
 
 #endif 
 

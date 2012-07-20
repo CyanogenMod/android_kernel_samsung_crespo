@@ -44,9 +44,9 @@
 #error " Unknown S3C OTG operation mode, Select a correct operation mode"
 #endif
 
-#undef DEBUG_S3C_UDC_SETUP
+#define DEBUG_S3C_UDC_SETUP
 #undef DEBUG_S3C_UDC_EP0
-#undef DEBUG_S3C_UDC_ISR
+#define DEBUG_S3C_UDC_ISR
 #undef DEBUG_S3C_UDC_OUT_EP
 #undef DEBUG_S3C_UDC_IN_EP
 #undef DEBUG_S3C_UDC
@@ -70,7 +70,7 @@ static char *state_names[] = {
 #endif
 
 #ifdef DEBUG_S3C_UDC_SETUP
-#define DEBUG_SETUP(fmt, args...) printk(fmt, ##args)
+#define DEBUG_SETUP(fmt, args...) pr_debug(fmt, ##args)
 #else
 #define DEBUG_SETUP(fmt, args...) do {} while (0)
 #endif
@@ -88,7 +88,7 @@ static char *state_names[] = {
 #endif
 
 #ifdef DEBUG_S3C_UDC_ISR
-#define DEBUG_ISR(fmt, args...) printk(fmt, ##args)
+#define DEBUG_ISR(fmt, args...) pr_debug(fmt, ##args)
 #else
 #define DEBUG_ISR(fmt, args...) do {} while (0)
 #endif
@@ -661,7 +661,8 @@ static int s3c_ep_enable(struct usb_ep *_ep,
 	}
 
 	/* xfer types must match, except that interrupt ~= bulk */
-	if (ep->bmAttributes != desc->bmAttributes
+	if (ep->bmAttributes !=
+			(desc->bmAttributes & USB_ENDPOINT_XFERTYPE_MASK)
 	    && ep->bmAttributes != USB_ENDPOINT_XFER_BULK
 	    && desc->bmAttributes != USB_ENDPOINT_XFER_INT) {
 
@@ -1182,6 +1183,20 @@ static struct s3c_udc memory = {
 
 		  .ep_type = ep_bulk_in,
 		  .fifo = (unsigned int) S3C_UDC_OTG_EP14_FIFO,
+		  },
+	.ep[15] = {
+		  .ep = {
+			 .name = "ep15-iso",
+			 .ops = &s3c_ep_ops,
+			 .maxpacket = EP_FIFO_SIZE,
+			 },
+		  .dev = &memory,
+
+		  .bEndpointAddress = USB_DIR_IN | 0xf,
+		  .bmAttributes = USB_ENDPOINT_XFER_ISOC,
+
+		  .ep_type = ep_isochronous,
+		  .fifo = (unsigned int) S3C_UDC_OTG_EP15_FIFO,
 		  },
 };
 

@@ -49,6 +49,8 @@
 #include <stdio.h>
 #endif
 
+IMG_UINT64 ui64KickCount;
+
 
 #if defined(SYS_CUSTOM_POWERDOWN)
 PVRSRV_ERROR SysPowerDownMISR(PVRSRV_DEVICE_NODE	* psDeviceNode, IMG_UINT32 ui32CallerID);
@@ -527,6 +529,7 @@ PVRSRV_ERROR SGXScheduleCCBCommand(PVRSRV_DEVICE_NODE	*psDeviceNode,
 	*psKernelCCB->pui32ReadOffset = (*psKernelCCB->pui32ReadOffset + 1) & 255;
 #endif
 
+	ui64KickCount++;
 Exit:
 	return eError;
 }
@@ -563,11 +566,16 @@ PVRSRV_ERROR SGXScheduleCCBCommandKM(PVRSRV_DEVICE_NODE		*psDeviceNode,
 		{
 			if (ui32CallerID == ISR_ID)
 			{
+				SYS_DATA *psSysData;
+				
 				
 
 
 				psDeviceNode->bReProcessDeviceCommandComplete = IMG_TRUE;
 				eError = PVRSRV_OK;
+
+				SysAcquireData(&psSysData);
+				OSScheduleMISR(psSysData);
 			}
 			else
 			{
@@ -689,11 +697,18 @@ PVRSRV_ERROR SGXCleanupRequest(PVRSRV_DEVICE_NODE *psDeviceNode,
 	
 		#if defined(PDUMP)
 		
+
+
+
+
+
+
+
 		PDUMPCOMMENTWITHFLAGS(0, "Host Control - Poll for clean-up request to complete");
 		PDUMPMEMPOL(psHostCtlMemInfo,
 					offsetof(SGXMKIF_HOST_CTL, ui32CleanupStatus),
-					PVRSRV_USSE_EDM_CLEANUPCMD_COMPLETE,
-					PVRSRV_USSE_EDM_CLEANUPCMD_COMPLETE,
+					PVRSRV_USSE_EDM_CLEANUPCMD_COMPLETE | PVRSRV_USSE_EDM_CLEANUPCMD_DONE,
+					PVRSRV_USSE_EDM_CLEANUPCMD_COMPLETE | PVRSRV_USSE_EDM_CLEANUPCMD_DONE,
 					PDUMP_POLL_OPERATOR_EQUAL,
 					0,
 					MAKEUNIQUETAG(psHostCtlMemInfo));
@@ -704,8 +719,20 @@ PVRSRV_ERROR SGXCleanupRequest(PVRSRV_DEVICE_NODE *psDeviceNode,
 			return eError;
 		}
 	}
+
+	if (psHostCtl->ui32CleanupStatus & PVRSRV_USSE_EDM_CLEANUPCMD_BUSY)
+	{
+		
+		PVR_ASSERT((psHostCtl->ui32CleanupStatus & PVRSRV_USSE_EDM_CLEANUPCMD_DONE) == 0);
+		eError = PVRSRV_ERROR_RETRY;
+		psHostCtl->ui32CleanupStatus &= ~(PVRSRV_USSE_EDM_CLEANUPCMD_COMPLETE | PVRSRV_USSE_EDM_CLEANUPCMD_BUSY);
+	}
+	else
+	{
+		eError = PVRSRV_OK;
+		psHostCtl->ui32CleanupStatus &= ~(PVRSRV_USSE_EDM_CLEANUPCMD_COMPLETE | PVRSRV_USSE_EDM_CLEANUPCMD_DONE);
+	}
 	
-	psHostCtl->ui32CleanupStatus &= ~(PVRSRV_USSE_EDM_CLEANUPCMD_COMPLETE);
 	PDUMPMEM(IMG_NULL, psHostCtlMemInfo, offsetof(SGXMKIF_HOST_CTL, ui32CleanupStatus), sizeof(IMG_UINT32), 0, MAKEUNIQUETAG(psHostCtlMemInfo));
 
 	
@@ -714,16 +741,18 @@ PVRSRV_ERROR SGXCleanupRequest(PVRSRV_DEVICE_NODE *psDeviceNode,
 #else
 	psDevInfo->ui32CacheControl |= SGXMKIF_CC_INVAL_DATA;
 #endif
-	return PVRSRV_OK;
+	return eError;
 }
 
 
 typedef struct _SGX_HW_RENDER_CONTEXT_CLEANUP_
 {
 	PVRSRV_DEVICE_NODE *psDeviceNode;
-	IMG_DEV_VIRTADDR sHWRenderContextDevVAddr;
-	IMG_HANDLE hBlockAlloc;
+    PVRSRV_KERNEL_MEM_INFO *psHWRenderContextMemInfo;
+    IMG_HANDLE hBlockAlloc;
 	PRESMAN_ITEM psResItem;
+	IMG_BOOL bCleanupTimerRunning;
+	IMG_PVOID pvTimeData;
 } SGX_HW_RENDER_CONTEXT_CLEANUP;
 
 
@@ -737,15 +766,48 @@ static PVRSRV_ERROR SGXCleanupHWRenderContextCallback(IMG_PVOID		pvParam,
 	PVR_UNREFERENCED_PARAMETER(ui32Param);
 
 	eError = SGXCleanupRequest(psCleanup->psDeviceNode,
-					  &psCleanup->sHWRenderContextDevVAddr,
+					  &psCleanup->psHWRenderContextMemInfo->sDevVAddr,
 					  PVRSRV_CLEANUPCMD_RC,
 					  bForceCleanup);
 
-	OSFreeMem(PVRSRV_OS_PAGEABLE_HEAP,
-			  sizeof(SGX_HW_RENDER_CONTEXT_CLEANUP),
-			  psCleanup,
-			  psCleanup->hBlockAlloc);
+	if (eError == PVRSRV_ERROR_RETRY)
+	{
+		if (!psCleanup->bCleanupTimerRunning)
+		{
+			OSTimeCreateWithUSOffset(&psCleanup->pvTimeData, MAX_CLEANUP_TIME_US);
+			psCleanup->bCleanupTimerRunning = IMG_TRUE;
+		}
+		else
+		{
+			if (OSTimeHasTimePassed(psCleanup->pvTimeData))
+			{
+				eError = PVRSRV_ERROR_TIMEOUT_POLLING_FOR_VALUE;
+				psCleanup->bCleanupTimerRunning = IMG_FALSE;
+				OSTimeDestroy(psCleanup->pvTimeData);
+			}
+		}
+	}
+	else
+	{
+		if (psCleanup->bCleanupTimerRunning)
+		{
+			OSTimeDestroy(psCleanup->pvTimeData);
+		}
+	}
+
+	if (eError != PVRSRV_ERROR_RETRY)
+	{
+	    
+	    PVRSRVFreeDeviceMemKM(psCleanup->psDeviceNode,
+	            psCleanup->psHWRenderContextMemInfo);
 	
+	    
+		OSFreeMem(PVRSRV_OS_PAGEABLE_HEAP,
+				  sizeof(SGX_HW_RENDER_CONTEXT_CLEANUP),
+				  psCleanup,
+				  psCleanup->hBlockAlloc);
+		
+	}
 
 	return eError;
 }
@@ -753,9 +815,11 @@ static PVRSRV_ERROR SGXCleanupHWRenderContextCallback(IMG_PVOID		pvParam,
 typedef struct _SGX_HW_TRANSFER_CONTEXT_CLEANUP_
 {
 	PVRSRV_DEVICE_NODE *psDeviceNode;
-	IMG_DEV_VIRTADDR sHWTransferContextDevVAddr;
+    PVRSRV_KERNEL_MEM_INFO *psHWTransferContextMemInfo;
 	IMG_HANDLE hBlockAlloc;
 	PRESMAN_ITEM psResItem;
+	IMG_BOOL bCleanupTimerRunning;
+	IMG_PVOID pvTimeData;
 } SGX_HW_TRANSFER_CONTEXT_CLEANUP;
 
 
@@ -769,27 +833,73 @@ static PVRSRV_ERROR SGXCleanupHWTransferContextCallback(IMG_PVOID	pvParam,
 	PVR_UNREFERENCED_PARAMETER(ui32Param);
 
 	eError = SGXCleanupRequest(psCleanup->psDeviceNode,
-					  &psCleanup->sHWTransferContextDevVAddr,
+					  &psCleanup->psHWTransferContextMemInfo->sDevVAddr,
 					  PVRSRV_CLEANUPCMD_TC,
 					  bForceCleanup);
 
-	OSFreeMem(PVRSRV_OS_PAGEABLE_HEAP,
-			  sizeof(SGX_HW_TRANSFER_CONTEXT_CLEANUP),
-			  psCleanup,
-			  psCleanup->hBlockAlloc);
+	if (eError == PVRSRV_ERROR_RETRY)
+	{
+		if (!psCleanup->bCleanupTimerRunning)
+		{
+			OSTimeCreateWithUSOffset(&psCleanup->pvTimeData, MAX_CLEANUP_TIME_US);
+			psCleanup->bCleanupTimerRunning = IMG_TRUE;
+		}
+		else
+		{
+			if (OSTimeHasTimePassed(psCleanup->pvTimeData))
+			{
+				eError = PVRSRV_ERROR_TIMEOUT_POLLING_FOR_VALUE;
+				psCleanup->bCleanupTimerRunning = IMG_FALSE;
+				OSTimeDestroy(psCleanup->pvTimeData);
+			}
+		}
+	}
+	else
+	{
+		if (psCleanup->bCleanupTimerRunning)
+		{
+			OSTimeDestroy(psCleanup->pvTimeData);
+		}
+	}
+
+	if (eError != PVRSRV_ERROR_RETRY)
+	{
+	    
+	    PVRSRVFreeDeviceMemKM(psCleanup->psDeviceNode,
+	            psCleanup->psHWTransferContextMemInfo);
 	
+	    
+		OSFreeMem(PVRSRV_OS_PAGEABLE_HEAP,
+				  sizeof(SGX_HW_TRANSFER_CONTEXT_CLEANUP),
+				  psCleanup,
+				  psCleanup->hBlockAlloc);
+		
+	}
 
 	return eError;
 }
 
 IMG_EXPORT
-IMG_HANDLE SGXRegisterHWRenderContextKM(IMG_HANDLE				psDeviceNode,
-										IMG_DEV_VIRTADDR		*psHWRenderContextDevVAddr,
+IMG_HANDLE SGXRegisterHWRenderContextKM(IMG_HANDLE				hDeviceNode,
+                                        IMG_CPU_VIRTADDR        *psHWRenderContextCpuVAddr,
+                                        IMG_UINT32              ui32HWRenderContextSize,
+                                        IMG_UINT32              ui32OffsetToPDDevPAddr,
+                                        IMG_HANDLE              hDevMemContext,
+                                        IMG_DEV_VIRTADDR        *psHWRenderContextDevVAddr,
 										PVRSRV_PER_PROCESS_DATA *psPerProc)
 {
 	PVRSRV_ERROR eError;
 	IMG_HANDLE hBlockAlloc;
 	SGX_HW_RENDER_CONTEXT_CLEANUP *psCleanup;
+    PVRSRV_DEVICE_NODE *psDeviceNode = (PVRSRV_DEVICE_NODE *)hDeviceNode;
+	DEVICE_MEMORY_INFO	*psDevMemoryInfo;
+    DEVICE_MEMORY_HEAP_INFO *psHeapInfo;
+    IMG_HANDLE hDevMemContextInt;
+    MMU_CONTEXT *psMMUContext;
+    IMG_DEV_PHYADDR sPDDevPAddr;
+    int iPtrByte;
+    IMG_UINT8 *pSrc;
+    IMG_UINT8 *pDst;
 	PRESMAN_ITEM psResItem;
 
 	eError = OSAllocMem(PVRSRV_OS_PAGEABLE_HEAP,
@@ -801,12 +911,99 @@ IMG_HANDLE SGXRegisterHWRenderContextKM(IMG_HANDLE				psDeviceNode,
 	if (eError != PVRSRV_OK)
 	{
 		PVR_DPF((PVR_DBG_ERROR, "SGXRegisterHWRenderContextKM: Couldn't allocate memory for SGX_HW_RENDER_CONTEXT_CLEANUP structure"));
-		return IMG_NULL;
+		goto exit0;
 	}
+
+	psDevMemoryInfo = &psDeviceNode->sDevMemoryInfo;
+    psHeapInfo = &psDevMemoryInfo->psDeviceMemoryHeap[SGX_KERNEL_DATA_HEAP_ID];
+
+    eError = PVRSRVAllocDeviceMemKM(hDeviceNode,
+                               psPerProc,
+                               psHeapInfo->hDevMemHeap,
+                               PVRSRV_MEM_READ | PVRSRV_MEM_WRITE 
+                                 | PVRSRV_MEM_NO_SYNCOBJ | PVRSRV_MEM_EDM_PROTECT 
+                                 | PVRSRV_MEM_CACHE_CONSISTENT,
+                               ui32HWRenderContextSize,
+                               32,
+                               IMG_NULL,
+                               0,
+                               &psCleanup->psHWRenderContextMemInfo,
+                               "HW Render Context");
+
+	if (eError != PVRSRV_OK)
+	{
+		PVR_DPF((PVR_DBG_ERROR, "SGXRegisterHWRenderContextKM: Couldn't allocate device memory for HW Render Context"));
+		goto exit1;
+	}
+
+    eError = OSCopyFromUser(psPerProc,
+                            psCleanup->psHWRenderContextMemInfo->pvLinAddrKM,
+                            psHWRenderContextCpuVAddr,
+                            ui32HWRenderContextSize);
+
+	if (eError != PVRSRV_OK)
+	{
+		PVR_DPF((PVR_DBG_ERROR, "SGXRegisterHWRenderContextKM: Couldn't copy user-mode copy of HWContext into device memory"));
+		goto exit2;
+	}
+
+    
+    psHWRenderContextDevVAddr->uiAddr = psCleanup->psHWRenderContextMemInfo->sDevVAddr.uiAddr;
+
+    
+    eError = PVRSRVLookupHandle(psPerProc->psHandleBase, 
+                           &hDevMemContextInt,
+                           hDevMemContext,
+                           PVRSRV_HANDLE_TYPE_DEV_MEM_CONTEXT);
+
+    if (eError != PVRSRV_OK)
+    {
+        PVR_DPF((PVR_DBG_ERROR, "SGXRegisterHWRenderContextKM: Can't lookup DevMem Context"));
+        goto exit2;
+    }
+
+    psMMUContext = BM_GetMMUContextFromMemContext(hDevMemContextInt);
+    sPDDevPAddr = psDeviceNode->pfnMMUGetPDDevPAddr(psMMUContext);
+
+    
+
+
+
+
+    pSrc = (IMG_UINT8 *)&sPDDevPAddr;
+    pDst = (IMG_UINT8 *)psCleanup->psHWRenderContextMemInfo->pvLinAddrKM;
+    pDst += ui32OffsetToPDDevPAddr;
+
+    for (iPtrByte = 0; iPtrByte < sizeof(IMG_DEV_PHYADDR); iPtrByte++)
+    {
+        pDst[iPtrByte] = pSrc[iPtrByte];
+    }
+
+#if defined(PDUMP)
+    
+	PDUMPCOMMENTWITHFLAGS(PDUMP_FLAGS_CONTINUOUS, "HW Render context struct");
+
+	PDUMPMEM(
+        IMG_NULL, 
+        psCleanup->psHWRenderContextMemInfo,
+        0, 
+        ui32HWRenderContextSize, 
+        PDUMP_FLAGS_CONTINUOUS, 
+        MAKEUNIQUETAG(psCleanup->psHWRenderContextMemInfo));
+
+    
+	PDUMPCOMMENT("Page directory address in HW render context");
+    PDUMPPDDEVPADDR(
+            psCleanup->psHWRenderContextMemInfo,
+            ui32OffsetToPDDevPAddr,
+            sPDDevPAddr,
+            MAKEUNIQUETAG(psCleanup->psHWRenderContextMemInfo),
+            PDUMP_PD_UNIQUETAG);
+#endif
 
 	psCleanup->hBlockAlloc = hBlockAlloc;
 	psCleanup->psDeviceNode = psDeviceNode;
-	psCleanup->sHWRenderContextDevVAddr = *psHWRenderContextDevVAddr;
+	psCleanup->bCleanupTimerRunning = IMG_FALSE;
 
 	psResItem = ResManRegisterRes(psPerProc->hResManContext,
 								  RESMAN_TYPE_HW_RENDER_CONTEXT,
@@ -814,21 +1011,27 @@ IMG_HANDLE SGXRegisterHWRenderContextKM(IMG_HANDLE				psDeviceNode,
 								  0,
 								  &SGXCleanupHWRenderContextCallback);
 
-	if (psResItem == IMG_NULL)
-	{
-		PVR_DPF((PVR_DBG_ERROR, "SGXRegisterHWRenderContextKM: ResManRegisterRes failed"));
-		OSFreeMem(PVRSRV_OS_PAGEABLE_HEAP,
-				  sizeof(SGX_HW_RENDER_CONTEXT_CLEANUP),
-				  psCleanup,
-				  psCleanup->hBlockAlloc);
-		
-
-		return IMG_NULL;
-	}
+    if (psResItem == IMG_NULL)
+    {
+        PVR_DPF((PVR_DBG_ERROR, "SGXRegisterHWRenderContextKM: ResManRegisterRes failed"));
+        goto exit2;
+    }
 
 	psCleanup->psResItem = psResItem;
 
 	return (IMG_HANDLE)psCleanup;
+
+exit2:
+	 PVRSRVFreeDeviceMemKM(hDeviceNode,
+                           psCleanup->psHWRenderContextMemInfo);
+exit1:
+    OSFreeMem(PVRSRV_OS_PAGEABLE_HEAP,
+              sizeof(SGX_HW_RENDER_CONTEXT_CLEANUP),
+              psCleanup,
+              psCleanup->hBlockAlloc);
+    
+exit0:
+    return IMG_NULL;
 }
 
 IMG_EXPORT
@@ -854,13 +1057,26 @@ PVRSRV_ERROR SGXUnregisterHWRenderContextKM(IMG_HANDLE hHWRenderContext, IMG_BOO
 
 
 IMG_EXPORT
-IMG_HANDLE SGXRegisterHWTransferContextKM(IMG_HANDLE				psDeviceNode,
-										  IMG_DEV_VIRTADDR			*psHWTransferContextDevVAddr,
+IMG_HANDLE SGXRegisterHWTransferContextKM(IMG_HANDLE				hDeviceNode,
+                                          IMG_CPU_VIRTADDR          *psHWTransferContextCpuVAddr,
+                                          IMG_UINT32                ui32HWTransferContextSize,
+                                          IMG_UINT32                ui32OffsetToPDDevPAddr,
+                                          IMG_HANDLE                hDevMemContext,
+                                          IMG_DEV_VIRTADDR          *psHWTransferContextDevVAddr,
 										  PVRSRV_PER_PROCESS_DATA	*psPerProc)
 {
 	PVRSRV_ERROR eError;
 	IMG_HANDLE hBlockAlloc;
 	SGX_HW_TRANSFER_CONTEXT_CLEANUP *psCleanup;
+    PVRSRV_DEVICE_NODE *psDeviceNode = (PVRSRV_DEVICE_NODE *)hDeviceNode;
+	DEVICE_MEMORY_INFO	*psDevMemoryInfo;
+    DEVICE_MEMORY_HEAP_INFO *psHeapInfo;
+    IMG_HANDLE hDevMemContextInt;
+    MMU_CONTEXT *psMMUContext;
+    IMG_DEV_PHYADDR sPDDevPAddr;
+    int iPtrByte;
+    IMG_UINT8 *pSrc;
+    IMG_UINT8 *pDst;
 	PRESMAN_ITEM psResItem;
 
 	eError = OSAllocMem(PVRSRV_OS_PAGEABLE_HEAP,
@@ -872,12 +1088,100 @@ IMG_HANDLE SGXRegisterHWTransferContextKM(IMG_HANDLE				psDeviceNode,
 	if (eError != PVRSRV_OK)
 	{
 		PVR_DPF((PVR_DBG_ERROR, "SGXRegisterHWTransferContextKM: Couldn't allocate memory for SGX_HW_TRANSFER_CONTEXT_CLEANUP structure"));
-		return IMG_NULL;
+		goto exit0;
 	}
+
+	psDevMemoryInfo = &psDeviceNode->sDevMemoryInfo;
+    psHeapInfo = &psDevMemoryInfo->psDeviceMemoryHeap[SGX_KERNEL_DATA_HEAP_ID];
+
+    eError = PVRSRVAllocDeviceMemKM(hDeviceNode,
+                               psPerProc,
+                               psHeapInfo->hDevMemHeap,
+                               PVRSRV_MEM_READ | PVRSRV_MEM_WRITE 
+                                 | PVRSRV_MEM_NO_SYNCOBJ | PVRSRV_MEM_EDM_PROTECT 
+                                 | PVRSRV_MEM_CACHE_CONSISTENT,
+                               ui32HWTransferContextSize,
+                               32,
+                               IMG_NULL,
+                               0,
+                               &psCleanup->psHWTransferContextMemInfo,
+                               "HW Render Context");
+
+	if (eError != PVRSRV_OK)
+	{
+		PVR_DPF((PVR_DBG_ERROR, "SGXRegisterHWTransferContextKM: Couldn't allocate device memory for HW Render Context"));
+		goto exit1;
+	}
+
+    eError = OSCopyFromUser(psPerProc,
+                            psCleanup->psHWTransferContextMemInfo->pvLinAddrKM,
+                            psHWTransferContextCpuVAddr,
+                            ui32HWTransferContextSize);
+
+	if (eError != PVRSRV_OK)
+	{
+		PVR_DPF((PVR_DBG_ERROR, "SGXRegisterHWTransferContextKM: Couldn't copy user-mode copy of HWContext into device memory"));
+		goto exit2;
+	}
+
+    
+    psHWTransferContextDevVAddr->uiAddr = psCleanup->psHWTransferContextMemInfo->sDevVAddr.uiAddr;
+
+    
+    eError = PVRSRVLookupHandle(psPerProc->psHandleBase, 
+                           &hDevMemContextInt,
+                           hDevMemContext,
+                           PVRSRV_HANDLE_TYPE_DEV_MEM_CONTEXT);
+
+    if (eError != PVRSRV_OK)
+    {
+        PVR_DPF((PVR_DBG_ERROR, "SGXRegisterHWTransferContextKM: Can't lookup DevMem Context"));
+        goto exit2;
+    }
+
+    psMMUContext = BM_GetMMUContextFromMemContext(hDevMemContextInt);
+    sPDDevPAddr = psDeviceNode->pfnMMUGetPDDevPAddr(psMMUContext);
+
+    
+
+
+
+
+    pSrc = (IMG_UINT8 *)&sPDDevPAddr;
+    pDst = (IMG_UINT8 *)psCleanup->psHWTransferContextMemInfo->pvLinAddrKM;
+    pDst += ui32OffsetToPDDevPAddr;
+
+    for (iPtrByte = 0; iPtrByte < sizeof(IMG_DEV_PHYADDR); iPtrByte++)
+    {
+        pDst[iPtrByte] = pSrc[iPtrByte];
+    }
+
+#if defined(PDUMP)
+    
+	PDUMPCOMMENTWITHFLAGS(PDUMP_FLAGS_CONTINUOUS, "HW Transfer context struct");
+
+	PDUMPMEM(
+        IMG_NULL, 
+        psCleanup->psHWTransferContextMemInfo,
+        0, 
+        ui32HWTransferContextSize, 
+        PDUMP_FLAGS_CONTINUOUS, 
+        MAKEUNIQUETAG(psCleanup->psHWTransferContextMemInfo));
+
+    
+	PDUMPCOMMENT("Page directory address in HW transfer context");
+
+    PDUMPPDDEVPADDR(
+            psCleanup->psHWTransferContextMemInfo,
+            ui32OffsetToPDDevPAddr,
+            sPDDevPAddr,
+            MAKEUNIQUETAG(psCleanup->psHWTransferContextMemInfo),
+            PDUMP_PD_UNIQUETAG);
+#endif
 
 	psCleanup->hBlockAlloc = hBlockAlloc;
 	psCleanup->psDeviceNode = psDeviceNode;
-	psCleanup->sHWTransferContextDevVAddr = *psHWTransferContextDevVAddr;
+	psCleanup->bCleanupTimerRunning = IMG_FALSE;
 
 	psResItem = ResManRegisterRes(psPerProc->hResManContext,
 								  RESMAN_TYPE_HW_TRANSFER_CONTEXT,
@@ -888,18 +1192,25 @@ IMG_HANDLE SGXRegisterHWTransferContextKM(IMG_HANDLE				psDeviceNode,
 	if (psResItem == IMG_NULL)
 	{
 		PVR_DPF((PVR_DBG_ERROR, "SGXRegisterHWTransferContextKM: ResManRegisterRes failed"));
-		OSFreeMem(PVRSRV_OS_PAGEABLE_HEAP,
-				  sizeof(SGX_HW_TRANSFER_CONTEXT_CLEANUP),
-				  psCleanup,
-				  psCleanup->hBlockAlloc);
-		
-
-		return IMG_NULL;
-	}
+        goto exit2;
+    }
 
 	psCleanup->psResItem = psResItem;
 
 	return (IMG_HANDLE)psCleanup;
+
+exit2:
+    PVRSRVFreeDeviceMemKM(hDeviceNode,
+            psCleanup->psHWTransferContextMemInfo);
+exit1:
+    OSFreeMem(PVRSRV_OS_PAGEABLE_HEAP,
+              sizeof(SGX_HW_TRANSFER_CONTEXT_CLEANUP),
+              psCleanup,
+              psCleanup->hBlockAlloc);
+    
+
+exit0:
+    return IMG_NULL;
 }
 
 IMG_EXPORT
@@ -923,13 +1234,99 @@ PVRSRV_ERROR SGXUnregisterHWTransferContextKM(IMG_HANDLE hHWTransferContext, IMG
 	return eError;
 }
 
+IMG_EXPORT
+PVRSRV_ERROR SGXSetTransferContextPriorityKM(
+                IMG_HANDLE hDeviceNode,
+                IMG_HANDLE hHWTransferContext,
+                IMG_UINT32 ui32Priority,
+                IMG_UINT32 ui32OffsetOfPriorityField)
+{
+	SGX_HW_TRANSFER_CONTEXT_CLEANUP *psCleanup;
+    IMG_UINT8 *pSrc;
+    IMG_UINT8 *pDst;
+    int iPtrByte;
+	PVR_UNREFERENCED_PARAMETER(hDeviceNode);
+
+    if (hHWTransferContext != IMG_NULL)
+    {
+        psCleanup = (SGX_HW_TRANSFER_CONTEXT_CLEANUP *)hHWTransferContext;
+
+        if ((ui32OffsetOfPriorityField + sizeof(ui32Priority)) 
+            >= psCleanup->psHWTransferContextMemInfo->uAllocSize)
+        {
+            PVR_DPF((
+                PVR_DBG_ERROR, 
+                "SGXSetTransferContextPriorityKM: invalid context prioirty offset"));
+
+            return PVRSRV_ERROR_INVALID_PARAMS;
+        }
+
+        
+
+
+        pDst = (IMG_UINT8 *)psCleanup->psHWTransferContextMemInfo->pvLinAddrKM;
+        pDst += ui32OffsetOfPriorityField;
+        pSrc = (IMG_UINT8 *)&ui32Priority;
+
+        for (iPtrByte = 0; iPtrByte < sizeof(ui32Priority); iPtrByte++)
+        {
+            pDst[iPtrByte] = pSrc[iPtrByte];
+        }
+    }
+    return PVRSRV_OK;
+}
+
+IMG_EXPORT
+PVRSRV_ERROR SGXSetRenderContextPriorityKM(
+                IMG_HANDLE hDeviceNode,
+                IMG_HANDLE hHWRenderContext,
+                IMG_UINT32 ui32Priority,
+                IMG_UINT32 ui32OffsetOfPriorityField)
+{
+	SGX_HW_RENDER_CONTEXT_CLEANUP *psCleanup;
+    IMG_UINT8 *pSrc;
+    IMG_UINT8 *pDst;
+    int iPtrByte;
+	PVR_UNREFERENCED_PARAMETER(hDeviceNode);
+
+    if (hHWRenderContext != IMG_NULL)
+    {
+        psCleanup = (SGX_HW_RENDER_CONTEXT_CLEANUP *)hHWRenderContext;
+        if ((ui32OffsetOfPriorityField + sizeof(ui32Priority)) 
+            >= psCleanup->psHWRenderContextMemInfo->uAllocSize)
+        {
+            PVR_DPF((
+                PVR_DBG_ERROR, 
+                "SGXSetContextPriorityKM: invalid HWRenderContext prioirty offset"));
+
+            return PVRSRV_ERROR_INVALID_PARAMS;
+        }
+
+        
+
+
+        pDst = (IMG_UINT8 *)psCleanup->psHWRenderContextMemInfo->pvLinAddrKM;
+        pDst += ui32OffsetOfPriorityField;
+
+        pSrc = (IMG_UINT8 *)&ui32Priority;
+
+        for (iPtrByte = 0; iPtrByte < sizeof(ui32Priority); iPtrByte++)
+        {
+            pDst[iPtrByte] = pSrc[iPtrByte];
+        }
+    }
+    return PVRSRV_OK;
+}
+
 #if defined(SGX_FEATURE_2D_HARDWARE)
 typedef struct _SGX_HW_2D_CONTEXT_CLEANUP_
 {
 	PVRSRV_DEVICE_NODE *psDeviceNode;
-	IMG_DEV_VIRTADDR sHW2DContextDevVAddr;
+	PVRSRV_KERNEL_MEM_INFO *psHW2DContextMemInfo;
 	IMG_HANDLE hBlockAlloc;
 	PRESMAN_ITEM psResItem;
+	IMG_BOOL bCleanupTimerRunning;
+	IMG_PVOID pvTimeData;
 } SGX_HW_2D_CONTEXT_CLEANUP;
 
 static PVRSRV_ERROR SGXCleanupHW2DContextCallback(IMG_PVOID  pvParam,
@@ -941,28 +1338,73 @@ static PVRSRV_ERROR SGXCleanupHW2DContextCallback(IMG_PVOID  pvParam,
 
 	PVR_UNREFERENCED_PARAMETER(ui32Param);
 
-	eError = SGXCleanupRequest(psCleanup->psDeviceNode,
-					  &psCleanup->sHW2DContextDevVAddr,
+    
+    eError = SGXCleanupRequest(psCleanup->psDeviceNode,
+					  &psCleanup->psHW2DContextMemInfo->sDevVAddr,
 					  PVRSRV_CLEANUPCMD_2DC,
 					  bForceCleanup);
 
-	OSFreeMem(PVRSRV_OS_PAGEABLE_HEAP,
-			  sizeof(SGX_HW_2D_CONTEXT_CLEANUP),
-			  psCleanup,
-			  psCleanup->hBlockAlloc);
-	
+	if (eError == PVRSRV_ERROR_RETRY)
+	{
+		if (!psCleanup->bCleanupTimerRunning)
+		{
+			OSTimeCreateWithUSOffset(&psCleanup->pvTimeData, MAX_CLEANUP_TIME_US);
+			psCleanup->bCleanupTimerRunning = IMG_TRUE;
+		}
+		else
+		{
+			if (OSTimeHasTimePassed(psCleanup->pvTimeData))
+			{
+				eError = PVRSRV_ERROR_TIMEOUT_POLLING_FOR_VALUE;
+				psCleanup->bCleanupTimerRunning = IMG_FALSE;
+				OSTimeDestroy(psCleanup->pvTimeData);
+			}
+		}
+	}
+	else
+	{
+		if (psCleanup->bCleanupTimerRunning)
+		{
+			OSTimeDestroy(psCleanup->pvTimeData);
+		}
+	}
 
+	if (eError != PVRSRV_ERROR_RETRY)
+	{
+	    
+	    PVRSRVFreeDeviceMemKM(psCleanup->psDeviceNode,
+	            psCleanup->psHW2DContextMemInfo);
+	
+	    
+	    OSFreeMem(PVRSRV_OS_PAGEABLE_HEAP,
+				  sizeof(SGX_HW_2D_CONTEXT_CLEANUP),
+				  psCleanup,
+				  psCleanup->hBlockAlloc);
+	                  
+	}
 	return eError;
 }
 
-IMG_EXPORT
-IMG_HANDLE SGXRegisterHW2DContextKM(IMG_HANDLE				psDeviceNode,
-									IMG_DEV_VIRTADDR		*psHW2DContextDevVAddr,
+IMG_HANDLE SGXRegisterHW2DContextKM(IMG_HANDLE				hDeviceNode,
+                                    IMG_CPU_VIRTADDR        *psHW2DContextCpuVAddr,
+                                    IMG_UINT32              ui32HW2DContextSize,
+                                    IMG_UINT32              ui32OffsetToPDDevPAddr,
+                                    IMG_HANDLE              hDevMemContext,
+                                    IMG_DEV_VIRTADDR        *psHW2DContextDevVAddr,
 									PVRSRV_PER_PROCESS_DATA *psPerProc)
 {
 	PVRSRV_ERROR eError;
 	IMG_HANDLE hBlockAlloc;
 	SGX_HW_2D_CONTEXT_CLEANUP *psCleanup;
+    PVRSRV_DEVICE_NODE *psDeviceNode = (PVRSRV_DEVICE_NODE *)hDeviceNode;
+	DEVICE_MEMORY_INFO	*psDevMemoryInfo;
+    DEVICE_MEMORY_HEAP_INFO *psHeapInfo;
+    IMG_HANDLE hDevMemContextInt;
+    MMU_CONTEXT *psMMUContext;
+    IMG_DEV_PHYADDR sPDDevPAddr;
+    int iPtrByte;
+    IMG_UINT8 *pSrc;
+    IMG_UINT8 *pDst;
 	PRESMAN_ITEM psResItem;
 
 	eError = OSAllocMem(PVRSRV_OS_PAGEABLE_HEAP,
@@ -974,12 +1416,98 @@ IMG_HANDLE SGXRegisterHW2DContextKM(IMG_HANDLE				psDeviceNode,
 	if (eError != PVRSRV_OK)
 	{
 		PVR_DPF((PVR_DBG_ERROR, "SGXRegisterHW2DContextKM: Couldn't allocate memory for SGX_HW_2D_CONTEXT_CLEANUP structure"));
-		return IMG_NULL;
+		goto exit0;
 	}
+
+	psDevMemoryInfo = &psDeviceNode->sDevMemoryInfo;
+    psHeapInfo = &psDevMemoryInfo->psDeviceMemoryHeap[SGX_KERNEL_DATA_HEAP_ID];
+
+    eError = PVRSRVAllocDeviceMemKM(hDeviceNode,
+                               psPerProc,
+                               psHeapInfo->hDevMemHeap,
+                               PVRSRV_MEM_READ | PVRSRV_MEM_WRITE 
+                                 | PVRSRV_MEM_NO_SYNCOBJ | PVRSRV_MEM_EDM_PROTECT 
+                                 | PVRSRV_MEM_CACHE_CONSISTENT,
+                               ui32HW2DContextSize,
+                               32,
+                               IMG_NULL,
+                               0,
+                               &psCleanup->psHW2DContextMemInfo,
+                               "HW 2D Context");
+
+	if (eError != PVRSRV_OK)
+	{
+		PVR_DPF((PVR_DBG_ERROR, "SGXRegisterHW2DContextKM: Couldn't allocate device memory for HW Render Context"));
+		goto exit1;
+	}
+
+    eError = OSCopyFromUser(psPerProc,
+                            psCleanup->psHW2DContextMemInfo->pvLinAddrKM,
+                            psHW2DContextCpuVAddr,
+                            ui32HW2DContextSize);
+	if (eError != PVRSRV_OK)
+	{
+		PVR_DPF((PVR_DBG_ERROR, "SGXRegisterHW2DContextKM: Couldn't copy user-mode copy of HWContext into device memory"));
+		goto exit2;
+	}
+ 
+    
+    psHW2DContextDevVAddr->uiAddr = psCleanup->psHW2DContextMemInfo->sDevVAddr.uiAddr;
+
+    
+    eError = PVRSRVLookupHandle(psPerProc->psHandleBase, 
+                           &hDevMemContextInt,
+                           hDevMemContext,
+                           PVRSRV_HANDLE_TYPE_DEV_MEM_CONTEXT);
+
+    if (eError != PVRSRV_OK)
+    {
+        PVR_DPF((PVR_DBG_ERROR, "SGXRegisterHW2DContextKM: Can't lookup DevMem Context"));
+        goto exit2;
+    }
+
+    psMMUContext = BM_GetMMUContextFromMemContext(hDevMemContextInt);
+    sPDDevPAddr = psDeviceNode->pfnMMUGetPDDevPAddr(psMMUContext);
+
+    
+
+
+
+
+    pSrc = (IMG_UINT8 *)&sPDDevPAddr;
+    pDst = (IMG_UINT8 *)psCleanup->psHW2DContextMemInfo->pvLinAddrKM;
+    pDst += ui32OffsetToPDDevPAddr;
+
+    for (iPtrByte = 0; iPtrByte < sizeof(IMG_DEV_PHYADDR); iPtrByte++)
+    {
+        pDst[iPtrByte] = pSrc[iPtrByte];
+    }
+
+#if defined(PDUMP)
+    
+	PDUMPCOMMENTWITHFLAGS(PDUMP_FLAGS_CONTINUOUS, "HW 2D context struct");
+
+	PDUMPMEM(
+        IMG_NULL, 
+        psCleanup->psHW2DContextMemInfo,
+        0, 
+        ui32HW2DContextSize, 
+        PDUMP_FLAGS_CONTINUOUS, 
+        MAKEUNIQUETAG(psCleanup->psHW2DContextMemInfo));
+
+    
+	PDUMPCOMMENT("Page directory address in HW 2D transfer context");
+    PDUMPPDDEVPADDR(
+            psCleanup->psHW2DContextMemInfo,
+            ui32OffsetToPDDevPAddr,
+            sPDDevPAddr,
+            MAKEUNIQUETAG(psCleanup->psHW2DContextMemInfo),
+            PDUMP_PD_UNIQUETAG);
+#endif
 
 	psCleanup->hBlockAlloc = hBlockAlloc;
 	psCleanup->psDeviceNode = psDeviceNode;
-	psCleanup->sHW2DContextDevVAddr = *psHW2DContextDevVAddr;
+	psCleanup->bCleanupTimerRunning = IMG_FALSE;
 
 	psResItem = ResManRegisterRes(psPerProc->hResManContext,
 								  RESMAN_TYPE_HW_2D_CONTEXT,
@@ -990,18 +1518,24 @@ IMG_HANDLE SGXRegisterHW2DContextKM(IMG_HANDLE				psDeviceNode,
 	if (psResItem == IMG_NULL)
 	{
 		PVR_DPF((PVR_DBG_ERROR, "SGXRegisterHW2DContextKM: ResManRegisterRes failed"));
-		OSFreeMem(PVRSRV_OS_PAGEABLE_HEAP,
-				  sizeof(SGX_HW_2D_CONTEXT_CLEANUP),
-				  psCleanup,
-				  psCleanup->hBlockAlloc);
-		
-
-		return IMG_NULL;
+        goto exit2;
 	}
 
 	psCleanup->psResItem = psResItem;
 
 	return (IMG_HANDLE)psCleanup;
+
+exit2:
+    PVRSRVFreeDeviceMemKM(hDeviceNode,
+                         psCleanup->psHW2DContextMemInfo);
+exit1:
+    OSFreeMem(PVRSRV_OS_PAGEABLE_HEAP,
+              sizeof(SGX_HW_2D_CONTEXT_CLEANUP),
+              psCleanup,
+              psCleanup->hBlockAlloc);
+    
+exit0:
+    return IMG_NULL;
 }
 
 IMG_EXPORT
@@ -1139,6 +1673,15 @@ IMG_UINT32 SGXConvertTimeStamp(PVRSRV_SGXDEV_INFO	*psDevInfo,
 
 	return ui32Clocksx16;
 #endif 
+}
+
+
+IMG_VOID SGXWaitClocks(PVRSRV_SGXDEV_INFO	*psDevInfo,
+					   IMG_UINT32			ui32SGXClocks)
+{
+	
+
+	OSWaitus(1 + (ui32SGXClocks * 1000000 / psDevInfo->ui32CoreClockSpeed));
 }
 
 

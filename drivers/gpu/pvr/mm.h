@@ -48,6 +48,8 @@
 
 #define	ADDR_TO_PAGE_OFFSET(addr) (((unsigned long)(addr)) & (PAGE_SIZE - 1))
 
+#define	PAGES_TO_BYTES(pages) ((pages) << PAGE_SHIFT)
+
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,10))
 #define	REMAP_PFN_RANGE(vma, addr, pfn, size, prot) remap_pfn_range(vma, addr, pfn, size, prot)
 #else
@@ -78,13 +80,16 @@ static inline IMG_UINT32 VMallocToPhys(IMG_VOID *pCpuVAddr)
 
 typedef enum {
     LINUX_MEM_AREA_IOREMAP,
-	LINUX_MEM_AREA_EXTERNAL_KV,
+    LINUX_MEM_AREA_EXTERNAL_KV,
     LINUX_MEM_AREA_IO,
     LINUX_MEM_AREA_VMALLOC,
     LINUX_MEM_AREA_ALLOC_PAGES,
     LINUX_MEM_AREA_SUB_ALLOC,
-    LINUX_MEM_AREA_TYPE_COUNT,
     LINUX_MEM_AREA_ION,
+#if defined(PVR_LINUX_MEM_AREA_USE_VMAP)
+    LINUX_MEM_AREA_VMAP,
+#endif
+    LINUX_MEM_AREA_TYPE_COUNT
 }LINUX_MEM_AREA_TYPE;
 
 typedef struct _LinuxMemArea LinuxMemArea;
@@ -120,18 +125,22 @@ struct _LinuxMemArea {
         {
             
             IMG_VOID *pvVmallocAddress;
+#if defined(PVR_LINUX_MEM_AREA_USE_VMAP)
+            struct page **ppsPageList;
+	    IMG_HANDLE hBlockPageList;
+#endif
         }sVmalloc;
         struct _sPageList
         {
             
-            struct page **pvPageList;
+            struct page **ppsPageList;
 	    IMG_HANDLE hBlockPageList;
         }sPageList;
         struct _sIONTilerAlloc
         {
             
             IMG_CPU_PHYADDR *pCPUPhysAddrs;
-            struct ion_handle *psIONHandle;
+            struct ion_handle *psIONHandle[2];
         }sIONTilerAlloc;
         struct _sSubAlloc
         {

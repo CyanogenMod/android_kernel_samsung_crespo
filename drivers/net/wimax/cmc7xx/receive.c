@@ -29,6 +29,8 @@ static void process_indicate_packet(struct net_adapter *adapter, u8 *buffer)
 
 	switch (be16_to_cpu(packet->id)) {
 	case MSG_DRIVER_OK_RESP:
+		adapter->modem_resp = true;
+		wake_up_interruptible(&adapter->modem_resp_event);
 		pr_debug("%s: MSG_DRIVER_OK_RESP\n", __func__);
 		send_image_info_packet(adapter, MSG_IMAGE_INFO_REQ);
 		break;
