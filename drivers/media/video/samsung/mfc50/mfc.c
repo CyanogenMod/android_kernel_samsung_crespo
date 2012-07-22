@@ -85,7 +85,7 @@ static int mfc_open(struct inode *inode, struct file *file)
 
 		mfc_load_firmware(mfc_fw_info->data, mfc_fw_info->size);
 
-		if (mfc_init_hw() != true) {
+		if (mfc_init_hw() != MFCINST_RET_OK) {
 			clk_disable(mfc_sclk);
 			ret =  -ENODEV;
 			goto err_regulator;
@@ -677,7 +677,7 @@ err_irq_req:
 err_irq_res:
 	iounmap(mfc_sfr_base_vaddr);
 err_mem_map:
-	release_mem_region(mfc_mem, size);
+	release_mem_region((resource_size_t)mfc_mem, size);
 err_mem_req:
 probe_out:
 	dev_err(&pdev->dev, "not found (%d).\n", ret);
