@@ -98,12 +98,14 @@ static int read_multiple_data(struct modemctl *mc, int offset, char *buf,
 static int dpram_write_from_user(struct modemctl *mc, int addr,
 				const char __user *data, size_t size)
 {
+	int ret;
 	if (!read_semaphore(mc)) {
 		pr_err("Semaphore is held by modem!");
 		return -EINVAL;
 	}
 
-	if (copy_from_user(mc->mmio + addr, data, size) < 0) {
+	ret = copy_from_user(mc->mmio + addr, data, size);
+	if (ret < 0) {
 		pr_err("[%s:%d] Copy from user failed\n", __func__, __LINE__);
 		return -EINVAL;
 	}
@@ -336,6 +338,7 @@ static int dpram_chk_delta_update(struct modemctl *mc,
 	char buf[DPRAM_MODEM_MSG_SIZE];
 	int debugprint = false;
 	int wait = 0;
+	int ret;
 	/* check mailboxAB for the modem status */
 	status = get_mailbox_ab(mc);
 
@@ -393,7 +396,9 @@ out:
 	mc->dpram_prev_status = status;
 	if (put_user(percent, pct) < 0)
 		pr_err("[%s:%d] Copy to user failed\n", __func__, __LINE__);
-	if (copy_to_user((void *)msg, (void *)buf, DPRAM_MODEM_MSG_SIZE) < 0)
+
+	ret = copy_to_user((void *)msg, (void *)buf, DPRAM_MODEM_MSG_SIZE);
+	if (ret < 0)
 		pr_err("[%s:%d] Copy to user failed\n", __func__, __LINE__);
 	return err;
 }
@@ -839,18 +844,19 @@ static long modemctl_ioctl(struct file *filp,
 	/* CDMA modem update in recovery mode */
 	case IOCTL_MODEM_FW_UPDATE:
 		pr_info("IOCTL_MODEM_FW_UPDATE\n");
-		if (arg == NULL) {
+		if (arg == '\0') {
 			pr_err("No firmware");
 			break;
 		}
 
-		if (copy_from_user((void *)&fw, (void *)arg, sizeof(fw)) < 0) {
+		ret = copy_from_user((void *)&fw, (void *)arg, sizeof(fw));
+			if (ret < 0) {
 			pr_err("copy from user failed!");
 			ret = -EINVAL;
-		} else if (dpram_process_modem_update(mc, &fw) < 0) {
-			pr_err("firmware write failed\n");
-			ret = -EIO;
-		}
+			} else if (dpram_process_modem_update(mc, &fw) < 0) {
+				pr_err("firmware write failed\n");
+				ret = -EIO;
+			}
 		break;
 	case IOCTL_MODEM_CHK_STAT:
 		pst = (struct stat_info *)arg;
@@ -1145,8 +1151,8 @@ static int __devinit modemctl_probe(struct platform_device *pdev)
 
 	return 0;
 
-err_irq_mbox:
-	free_irq(mc->irq_mbox, mc);
+//err_irq_mbox:
+//	free_irq(mc->irq_mbox, mc);
 err_irq_bp:
 	free_irq(mc->irq_bp, mc);
 err_ioremap:
