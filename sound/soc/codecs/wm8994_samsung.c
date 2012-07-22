@@ -756,6 +756,7 @@ static int configure_clock(struct snd_soc_codec *codec)
 	return 0;
 }
 
+#if 0
 static int wm8994_set_bias_level(struct snd_soc_codec *codec,
 				 enum snd_soc_bias_level level)
 {
@@ -816,6 +817,7 @@ static int wm8994_set_bias_level(struct snd_soc_codec *codec,
 
 	return 0;
 }
+#endif
 
 static int wm8994_set_sysclk(struct snd_soc_dai *codec_dai,
 			     int clk_id, unsigned int freq, int dir)
@@ -1076,6 +1078,7 @@ static int wm8994_hw_params(struct snd_pcm_substream *substream,
 	return 0;
 }
 
+#if 0
 static int wm8994_digital_mute(struct snd_soc_dai *codec_dai, int mute)
 {
 	struct snd_soc_codec *codec = codec_dai->codec;
@@ -1102,6 +1105,7 @@ static int wm8994_digital_mute(struct snd_soc_dai *codec_dai, int mute)
 
 	return 0;
 }
+#endif
 
 static int wm8994_startup(struct snd_pcm_substream *substream,
 			  struct snd_soc_dai *codec_dai)
@@ -2955,7 +2959,7 @@ static int wm8994_init(struct wm8994_priv *wm8994_private,
 card_err:
 	//snd_soc_free_pcms(wm8994_socdev);
 	//snd_soc_dapm_free(wm8994_socdev);
-pcm_err:
+//pcm_err:
 
 	return ret;
 }

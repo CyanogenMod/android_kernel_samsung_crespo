@@ -468,7 +468,7 @@ static void s5p_tick_timer_setup(void)
 	s5p_tick_timer_start((rate / HZ) - 1, 1);
 }
 
-static void __init s5p_timer_init(void)
+static void __init s5p_systimer_timer_init(void)
 {
 
 	/* clock configuration setting and enable */
@@ -506,7 +506,7 @@ static void __init s5p_timer_init(void)
 #endif
 }
 
-struct sys_timer s5p_systimer = {
-	.init		= s5p_timer_init,
+struct sys_timer s5p_systimer_timer = {
+	.init		= s5p_systimer_timer_init
 };
 

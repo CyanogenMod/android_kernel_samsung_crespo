@@ -2416,7 +2416,7 @@ static int s5k4ecgx_s_ext_ctrls(struct v4l2_subdev *sd,
 				struct v4l2_ext_controls *ctrls)
 {
 	struct v4l2_ext_control *ctrl = ctrls->controls;
-	int ret;
+	int ret = 0;
 	int i;
 
 	for (i = 0; i < ctrls->count; i++, ctrl++) {

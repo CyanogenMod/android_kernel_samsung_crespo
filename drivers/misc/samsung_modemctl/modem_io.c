@@ -136,6 +136,7 @@ static unsigned fifo_skip(struct m_fifo *q, unsigned count)
 #define fifo_count(mf) CIRC_CNT(*(mf)->head, *(mf)->tail, (mf)->size)
 #define fifo_space(mf) CIRC_SPACE(*(mf)->head, *(mf)->tail, (mf)->size)
 
+#if 0
 static void fifo_dump(const char *tag, struct m_fifo *q,
 		      unsigned start, unsigned count)
 {
@@ -152,7 +153,7 @@ static void fifo_dump(const char *tag, struct m_fifo *q,
 				     q->data, count - (q->size - start));
 	}
 }
-
+#endif
 
 
 /* Called with mc->lock held whenever we gain access

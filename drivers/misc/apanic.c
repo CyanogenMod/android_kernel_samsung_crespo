@@ -197,7 +197,7 @@ static int apanic_proc_read(char *buffer, char **start, off_t offset,
 		count -= page_offset;
 	memcpy(buffer, ctx->bounce + page_offset, count);
 
-	*start = count;
+	*start = (char *)count;
 
 	if ((offset + count) == file_length)
 		*peof = 1;

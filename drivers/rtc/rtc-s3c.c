@@ -520,7 +520,7 @@ static int __devexit s3c_rtc_remove(struct platform_device *dev)
 static int __devinit s3c_rtc_probe(struct platform_device *pdev)
 {
 	struct rtc_device *rtc;
-	struct rtc_time rtc_tm;
+//	struct rtc_time rtc_tm;
 	struct resource *res;
 	unsigned char bcd_tmp, bcd_loop;
 	int ret;
