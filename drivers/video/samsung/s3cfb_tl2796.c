@@ -655,7 +655,7 @@ static u64 tl2796_voltage_lookup(struct s5p_lcd *lcd, int c, u32 v)
 {
 	int i;
 	u32 vh = ~0, vl = ~0;
-	u32 bl, bh = 0;
+	u32 bl = 0, bh = 0;
 	u64 ret;
 	struct s5p_panel_data *pdata = lcd->data;
 
