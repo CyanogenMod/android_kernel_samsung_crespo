@@ -1846,8 +1846,8 @@ void sdhci_adjust_cfg(struct mmc_host *mmc, int rw)
 {
 	struct sdhci_host *host;
 	unsigned long flags;
-	struct mmc_ios *ios = &mmc->ios;
-	unsigned int clock;
+//	struct mmc_ios *ios = &mmc->ios;
+//	unsigned int clock;
 
 	host = mmc_priv(mmc);
 
