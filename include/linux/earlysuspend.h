@@ -20,6 +20,8 @@
 #include <linux/list.h>
 #endif
 
+extern unsigned int is_device_lcd;
+
 /* The early_suspend structure defines suspend and resume hooks to be called
  * when the user visible sleep state of the system changes, and a level to
  * control the order. They can be used to turn off the screen and input

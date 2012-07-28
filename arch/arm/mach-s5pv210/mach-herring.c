@@ -32,6 +32,7 @@
 #include <linux/irq.h>
 #include <linux/skbuff.h>
 #include <linux/console.h>
+#include <linux/earlysuspend.h>
 
 #include <asm/mach/arch.h>
 #include <asm/mach/map.h>
@@ -109,6 +110,8 @@ EXPORT_SYMBOL(sec_set_param_value);
 
 void (*sec_get_param_value)(int idx, void *value);
 EXPORT_SYMBOL(sec_get_param_value);
+
+unsigned int is_device_lcd;
 
 #define REBOOT_MODE_FAST_BOOT		7
 
@@ -5889,10 +5892,12 @@ static void __init herring_machine_init(void)
 	}
 
 	if (!herring_is_tft_dev()) {
+		is_device_lcd = false;
 		spi_register_board_info(spi_board_info,
 					ARRAY_SIZE(spi_board_info));
 		s3cfb_set_platdata(&tl2796_data);
 	} else {
+		is_device_lcd = true;
 		switch (lcd_type) {
 		case 1:
 			spi_register_board_info(spi_board_info_hydis,
