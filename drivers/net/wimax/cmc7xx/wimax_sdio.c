@@ -359,7 +359,6 @@ static struct net_device_stats *adapter_netdev_stats(struct net_device *dev)
 static int adapter_start_xmit(struct sk_buff *skb, struct net_device *net)
 {
 	struct net_adapter	*adapter = netdev_priv(net);
-	int			len;
 
 	if (!adapter->media_state || adapter->halted) {
 		pr_debug("Driver already halted. Returning Failure...");
@@ -370,8 +369,7 @@ static int adapter_start_xmit(struct sk_buff *skb, struct net_device *net)
 		return 0;
 	}
 
-	len = ((skb->len) & 0x3f) ? skb->len : skb->len + 1;
-	hw_send_data(adapter, skb->data, len);
+	hw_send_data(adapter, skb->data, skb->len);
 	dev_kfree_skb(skb);
 
 	if (!adapter->media_state)
@@ -460,6 +458,8 @@ static void adapter_interrupt(struct sdio_func *func)
 	} else {
 		pr_debug("adapter->halted=true in	\
 				adapter_interrupt !!!!!!!!!");
+		intrd = sdio_readb(func, SDIO_INT_STATUS_REG, NULL);
+		sdio_writeb(func, intrd, SDIO_INT_STATUS_CLR_REG, NULL);
 
 		/* send stop message */
 		hdr.id0	 = 'W';
@@ -577,7 +577,6 @@ static int adapter_probe(struct sdio_func *func,
 		misc_deregister(&adapter->uwibro_dev);
 		pr_debug("wimax_hw_start failed");
 		goto regchar_fail;
-		goto regchar_fail;
 	}
 
 	return 0;
@@ -630,6 +629,8 @@ static void adapter_remove(struct sdio_func *func)
 		adapter->removed = true;
 		adapter->download_complete = true;
 		wake_up_interruptible(&adapter->download_event);
+		adapter->modem_resp = true;
+		wake_up_interruptible(&adapter->modem_resp_event);
 	}
 
 	if (!completion_done(&adapter->wakeup_event))
@@ -704,12 +705,30 @@ int wimax_resume(struct platform_device *pdev)
 	mutex_unlock(&pdata->g_cfg->suspend_mutex);
 	return 0;
 }
+static int adapter_suspend(struct device *dev)
+{
+	pr_debug("adapter_suspend sdio");
+	return 0;
+}
+
+static int adapter_resume(struct device *dev)
+{
+	pr_debug("adapter_resume sdio");
+	return 0;
+}
+static const struct dev_pm_ops adapter_pm_ops = {
+	.suspend	=	adapter_suspend,
+	.resume		=	adapter_resume,
+};
 
 static struct sdio_driver adapter_driver = {
 	.name		= "C730SDIO",
 	.probe		= adapter_probe,
 	.remove		= adapter_remove,
 	.id_table	= adapter_table,
+	.drv = {
+		.pm = &adapter_pm_ops,
+	},
 };
 
 static int wimax_probe(struct platform_device *pdev)

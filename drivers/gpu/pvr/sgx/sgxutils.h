@@ -36,6 +36,8 @@
 	((type *)(((IMG_CHAR *)(psCCBMemInfo)->pvLinAddrKM) + \
 		(psCCBKick)->offset))
 
+extern IMG_UINT64 ui64KickCount;
+
 
 IMG_IMPORT
 IMG_VOID SGXTestActivePowerEvent(PVRSRV_DEVICE_NODE	*psDeviceNode,
@@ -66,13 +68,21 @@ IMG_BOOL SGXIsDevicePowered(PVRSRV_DEVICE_NODE *psDeviceNode);
 
 IMG_IMPORT
 IMG_HANDLE SGXRegisterHWRenderContextKM(IMG_HANDLE				psDeviceNode,
-										IMG_DEV_VIRTADDR		*psHWRenderContextDevVAddr,
+                                        IMG_CPU_VIRTADDR        *psHWRenderContextCpuVAddr,
+                                        IMG_UINT32              ui32HWRenderContextSize,
+                                        IMG_UINT32              ui32OffsetToPDDevPAddr,
+                                        IMG_HANDLE              hDevMemContext,
+                                        IMG_DEV_VIRTADDR        *psHWRenderContextDevVAddr,
 										PVRSRV_PER_PROCESS_DATA *psPerProc);
 
 IMG_IMPORT
-IMG_HANDLE SGXRegisterHWTransferContextKM(IMG_HANDLE				psDeviceNode,
-										  IMG_DEV_VIRTADDR			*psHWTransferContextDevVAddr,
-										  PVRSRV_PER_PROCESS_DATA	*psPerProc);
+IMG_HANDLE SGXRegisterHWTransferContextKM(IMG_HANDLE		      psDeviceNode,
+                                          IMG_CPU_VIRTADDR        *psHWTransferContextCpuVAddr,
+                                          IMG_UINT32              ui32HWTransferContextSize,
+                                          IMG_UINT32              ui32OffsetToPDDevPAddr,
+                                          IMG_HANDLE              hDevMemContext,
+                                          IMG_DEV_VIRTADDR        *psHWTransferContextDevVAddr,
+										  PVRSRV_PER_PROCESS_DATA *psPerProc);
 
 IMG_IMPORT
 PVRSRV_ERROR SGXFlushHWRenderTargetKM(IMG_HANDLE psSGXDevInfo,
@@ -85,10 +95,26 @@ PVRSRV_ERROR SGXUnregisterHWRenderContextKM(IMG_HANDLE hHWRenderContext, IMG_BOO
 IMG_IMPORT
 PVRSRV_ERROR SGXUnregisterHWTransferContextKM(IMG_HANDLE hHWTransferContext, IMG_BOOL bForceCleanup);
 
+IMG_IMPORT
+PVRSRV_ERROR SGXSetRenderContextPriorityKM(IMG_HANDLE       hDeviceNode,
+                                           IMG_HANDLE       hHWRenderContext,
+                                           IMG_UINT32       ui32Priority,
+                                           IMG_UINT32       ui32OffsetOfPriorityField);
+
+IMG_IMPORT
+PVRSRV_ERROR SGXSetTransferContextPriorityKM(IMG_HANDLE       hDeviceNode,
+                                             IMG_HANDLE       hHWTransferContext,
+                                             IMG_UINT32       ui32Priority,
+                                             IMG_UINT32       ui32OffsetOfPriorityField);
+
 #if defined(SGX_FEATURE_2D_HARDWARE)
 IMG_IMPORT
 IMG_HANDLE SGXRegisterHW2DContextKM(IMG_HANDLE				psDeviceNode,
-									IMG_DEV_VIRTADDR		*psHW2DContextDevVAddr,
+                                    IMG_CPU_VIRTADDR        *psHW2DContextCpuVAddr,
+                                    IMG_UINT32              ui32HW2DContextSize,
+                                    IMG_UINT32              ui32OffsetToPDDevPAddr,
+                                    IMG_HANDLE              hDevMemContext,
+                                    IMG_DEV_VIRTADDR        *psHW2DContextDevVAddr,
 									PVRSRV_PER_PROCESS_DATA *psPerProc);
 
 IMG_IMPORT
@@ -98,6 +124,9 @@ PVRSRV_ERROR SGXUnregisterHW2DContextKM(IMG_HANDLE hHW2DContext, IMG_BOOL bForce
 IMG_UINT32 SGXConvertTimeStamp(PVRSRV_SGXDEV_INFO	*psDevInfo,
 							   IMG_UINT32			ui32TimeWraps,
 							   IMG_UINT32			ui32Time);
+
+IMG_VOID SGXWaitClocks(PVRSRV_SGXDEV_INFO	*psDevInfo,
+					   IMG_UINT32			ui32SGXClocks);
 
 PVRSRV_ERROR SGXCleanupRequest(PVRSRV_DEVICE_NODE	*psDeviceNode,
 							IMG_DEV_VIRTADDR	*psHWDataDevVAddr,

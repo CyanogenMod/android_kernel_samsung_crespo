@@ -52,10 +52,12 @@ struct net_adapter {
 	struct completion		wakeup_event;
 	struct wimax732_platform_data	*pdata;
 	wait_queue_head_t		download_event;
+	wait_queue_head_t		modem_resp_event;
 	wait_queue_head_t		receive_event;
 	wait_queue_head_t		send_event;
 	u8			downloading;	/* firmware downloading */
 	u8			download_complete;
+	u8			modem_resp;
 	u8			mac_ready;
 
 	u8			media_state;/* mac completion */

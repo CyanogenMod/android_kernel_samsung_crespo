@@ -79,6 +79,7 @@ static int fimc_outdev_stop_camif(void *param)
 	fimc_hwset_disable_autoload(ctrl);
 	fimc_hwset_stop_scaler(ctrl);
 	fimc_hwset_disable_capture(ctrl);
+	fimc_hwset_sw_reset(ctrl);
 
 	fimc_clk_en(ctrl, false);
 	return 0;
@@ -1851,17 +1852,17 @@ static int fimc_qbuf_output_single_buf(struct fimc_control *ctrl,
 		return -EINVAL;
 	}
 
-	ret = fimc_outdev_start_camif(ctrl);
-	if (ret < 0) {
-		fimc_err("Fail: fimc_start_camif\n");
-		return -EINVAL;
-	}
-
 	ctrl->out->idxs.active.idx = idx;
 	ctrl->out->idxs.active.ctx = ctx->ctx_num;
 
 	ctrl->status = FIMC_STREAMON;
 	ctx->status = FIMC_STREAMON;
+
+	ret = fimc_outdev_start_camif(ctrl);
+	if (ret < 0) {
+		fimc_err("Fail: fimc_start_camif\n");
+		return -EINVAL;
+	}
 
 	return 0;
 }
@@ -2112,6 +2113,7 @@ int fimc_dqbuf_output(void *fh, struct v4l2_buffer *b)
 		if (ret == 0) {
 			fimc_dump_context(ctrl, ctx);
 			fimc_err("[0] out_queue is empty\n");
+			ctx->status = FIMC_STREAMON_IDLE;
 			return -EAGAIN;
 		} else if (ret == -ERESTARTSYS) {
 			fimc_print_signal(ctrl);
@@ -2157,6 +2159,12 @@ int fimc_g_fmt_vid_out(struct file *filp, void *fh, struct v4l2_format *f)
 	int i, j;
 
 	fimc_info1("%s: called\n", __func__);
+
+	if (ctrl->cap) {
+		fimc_err("%s: fimc is already used for capture mode\n",
+			 __func__);
+		return -EINVAL;
+	}
 
 	if (!out) {
 		out = kzalloc(sizeof(*out), GFP_KERNEL);

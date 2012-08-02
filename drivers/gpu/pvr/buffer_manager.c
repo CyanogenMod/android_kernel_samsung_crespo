@@ -1764,16 +1764,7 @@ static IMG_UINT32 gXProcWorkaroundShareIndex = XPROC_WORKAROUND_BAD_SHAREINDEX;
 static IMG_UINT32 gXProcWorkaroundState = XPROC_WORKAROUND_UNKNOWN;
 
  
-static struct {
-	IMG_UINT32 ui32RefCount;
-	IMG_UINT32 ui32AllocFlags;
-	IMG_UINT32 ui32Size;
-	IMG_UINT32 ui32PageSize;
-    RA_ARENA *psArena;
-    IMG_SYS_PHYADDR sSysPAddr;
-	IMG_VOID *pvCpuVAddr;
-	IMG_HANDLE hOSMemHandle;
-} gXProcWorkaroundShareData[XPROC_WORKAROUND_NUM_SHAREABLES] = {{0}};
+XPROC_DATA gXProcWorkaroundShareData[XPROC_WORKAROUND_NUM_SHAREABLES] = {{0}};
 
 PVRSRV_ERROR BM_XProcWorkaroundSetShareIndex(IMG_UINT32 ui32Index)
 {
@@ -1888,7 +1879,7 @@ XProcWorkaroundAllocShareable(RA_ARENA *psArena,
 		*ppvCpuVAddr = gXProcWorkaroundShareData[gXProcWorkaroundShareIndex].pvCpuVAddr;
 		*phOSMemHandle = gXProcWorkaroundShareData[gXProcWorkaroundShareIndex].hOSMemHandle;
 
-		gXProcWorkaroundShareData[gXProcWorkaroundShareIndex].ui32RefCount++;
+		BM_XProcIndexAcquire(gXProcWorkaroundShareIndex);
 
 		return PVRSRV_OK;
 	}
@@ -1969,7 +1960,7 @@ XProcWorkaroundAllocShareable(RA_ARENA *psArena,
 		*ppvCpuVAddr = gXProcWorkaroundShareData[gXProcWorkaroundShareIndex].pvCpuVAddr;
 		*phOSMemHandle = gXProcWorkaroundShareData[gXProcWorkaroundShareIndex].hOSMemHandle;
 
-		gXProcWorkaroundShareData[gXProcWorkaroundShareIndex].ui32RefCount++;
+		BM_XProcIndexAcquire(gXProcWorkaroundShareIndex);
 
 		return PVRSRV_OK;
 	}
@@ -2009,6 +2000,63 @@ static PVRSRV_ERROR XProcWorkaroundHandleToSI(IMG_HANDLE hOSMemHandle, IMG_UINT3
 	return PVRSRV_OK;
 }
 
+#if defined(PVRSRV_REFCOUNT_DEBUG)
+IMG_VOID _BM_XProcIndexAcquireDebug(const IMG_CHAR *pszFile, IMG_INT iLine, IMG_UINT32 ui32Index)
+#else
+IMG_VOID _BM_XProcIndexAcquire(IMG_UINT32 ui32Index)
+#endif
+{
+#if defined(PVRSRV_REFCOUNT_DEBUG)
+	PVRSRVBMXProcIncRef2(pszFile, iLine, ui32Index);
+#else
+	PVRSRVBMXProcIncRef(ui32Index);
+#endif
+}
+
+#if defined(PVRSRV_REFCOUNT_DEBUG)
+IMG_VOID _BM_XProcIndexReleaseDebug(const IMG_CHAR *pszFile, IMG_INT iLine, IMG_UINT32 ui32Index)
+#else
+IMG_VOID _BM_XProcIndexRelease(IMG_UINT32 ui32Index)
+#endif
+{
+#if defined(PVRSRV_REFCOUNT_DEBUG)
+	PVRSRVBMXProcDecRef2(pszFile, iLine, ui32Index);
+#else
+	PVRSRVBMXProcDecRef(ui32Index);
+#endif
+
+	PVR_DPF((PVR_DBG_VERBOSE, "Reduced refcount of SI[%d] from %d to %d",
+			 ui32Index, gXProcWorkaroundShareData[ui32Index].ui32RefCount+1, gXProcWorkaroundShareData[ui32Index].ui32RefCount));
+
+	if (gXProcWorkaroundShareData[ui32Index].ui32RefCount == 0)
+	{
+		if (gXProcWorkaroundShareData[ui32Index].psArena != IMG_NULL)
+		{
+			IMG_SYS_PHYADDR sSysPAddr;
+
+			if (gXProcWorkaroundShareData[ui32Index].pvCpuVAddr != IMG_NULL)
+			{
+				OSUnReservePhys(gXProcWorkaroundShareData[ui32Index].pvCpuVAddr,
+								gXProcWorkaroundShareData[ui32Index].ui32Size,
+								gXProcWorkaroundShareData[ui32Index].ui32AllocFlags,
+								gXProcWorkaroundShareData[ui32Index].hOSMemHandle);
+			}
+			sSysPAddr = gXProcWorkaroundShareData[ui32Index].sSysPAddr;
+			RA_Free (gXProcWorkaroundShareData[ui32Index].psArena,
+					 sSysPAddr.uiAddr,
+					 IMG_FALSE);
+		}
+		else
+		{
+			PVR_DPF((PVR_DBG_VERBOSE, "freeing OS memory"));
+			OSFreePages(gXProcWorkaroundShareData[ui32Index].ui32AllocFlags,
+						gXProcWorkaroundShareData[ui32Index].ui32PageSize,
+						gXProcWorkaroundShareData[ui32Index].pvCpuVAddr,
+						gXProcWorkaroundShareData[ui32Index].hOSMemHandle);
+		}
+	}
+}
+
 static IMG_VOID XProcWorkaroundFreeShareable(IMG_HANDLE hOSMemHandle)
 {
 	IMG_UINT32 ui32SI = (IMG_UINT32)((IMG_UINTPTR_T)hOSMemHandle & 0xffffU);
@@ -2021,38 +2069,7 @@ static IMG_VOID XProcWorkaroundFreeShareable(IMG_HANDLE hOSMemHandle)
 		return;
 	}
 
-	gXProcWorkaroundShareData[ui32SI].ui32RefCount--;
-
-	PVR_DPF((PVR_DBG_VERBOSE, "Reduced refcount of SI[%d] from %d to %d",
-			 ui32SI, gXProcWorkaroundShareData[ui32SI].ui32RefCount+1, gXProcWorkaroundShareData[ui32SI].ui32RefCount));
-
-	if (gXProcWorkaroundShareData[ui32SI].ui32RefCount == 0)
-	{
-		if (gXProcWorkaroundShareData[ui32SI].psArena != IMG_NULL)
-		{
-			IMG_SYS_PHYADDR sSysPAddr;
-
-			if (gXProcWorkaroundShareData[ui32SI].pvCpuVAddr != IMG_NULL)
-			{
-				OSUnReservePhys(gXProcWorkaroundShareData[ui32SI].pvCpuVAddr,
-								gXProcWorkaroundShareData[ui32SI].ui32Size,
-								gXProcWorkaroundShareData[ui32SI].ui32AllocFlags,
-								gXProcWorkaroundShareData[ui32SI].hOSMemHandle);
-			}
-			sSysPAddr = gXProcWorkaroundShareData[ui32SI].sSysPAddr;
-			RA_Free (gXProcWorkaroundShareData[ui32SI].psArena,
-					 sSysPAddr.uiAddr,
-					 IMG_FALSE);
-		}
-		else
-		{
-			PVR_DPF((PVR_DBG_VERBOSE, "freeing OS memory"));
-			OSFreePages(gXProcWorkaroundShareData[ui32SI].ui32AllocFlags,
-						gXProcWorkaroundShareData[ui32SI].ui32PageSize,
-						gXProcWorkaroundShareData[ui32SI].pvCpuVAddr,
-						gXProcWorkaroundShareData[ui32SI].hOSMemHandle);
-		}
-	}
+	BM_XProcIndexRelease(ui32SI);
 }
 
 

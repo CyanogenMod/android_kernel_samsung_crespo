@@ -613,6 +613,33 @@ static INLINE IMG_VOID OSMemoryBarrier(IMG_VOID) { }
 
 #endif 
 
+PVRSRV_ERROR OSAtomicAlloc(IMG_PVOID *ppvRefCount);
+IMG_VOID OSAtomicFree(IMG_PVOID pvRefCount);
+IMG_VOID OSAtomicInc(IMG_PVOID pvRefCount);
+IMG_BOOL OSAtomicDecAndTest(IMG_PVOID pvRefCount);
+IMG_UINT32 OSAtomicRead(IMG_PVOID pvRefCount);
+
+PVRSRV_ERROR OSTimeCreateWithUSOffset(IMG_PVOID *pvRet, IMG_UINT32 ui32MSOffset);
+IMG_BOOL OSTimeHasTimePassed(IMG_PVOID pvData);
+IMG_VOID OSTimeDestroy(IMG_PVOID pvData);
+
+#if defined(__linux__)
+IMG_VOID OSReleaseBridgeLock(IMG_VOID);
+IMG_VOID OSReacquireBridgeLock(IMG_VOID);
+#else
+
+#ifdef INLINE_IS_PRAGMA
+#pragma inline(OSReleaseBridgeLock)
+#endif
+static INLINE IMG_VOID OSReleaseBridgeLock(IMG_VOID) { }
+
+#ifdef INLINE_IS_PRAGMA
+#pragma inline(OSReacquireBridgeLock)
+#endif
+static INLINE IMG_VOID OSReacquireBridgeLock(IMG_VOID) { }
+
+#endif
+
 #if defined (__cplusplus)
 }
 #endif
