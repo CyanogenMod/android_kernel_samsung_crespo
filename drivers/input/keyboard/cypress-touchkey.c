@@ -31,6 +31,10 @@
 #include <linux/firmware.h>
 #include <linux/bln.h>
 
+#ifdef CONFIG_BLD
+#include <linux/bld.h>
+#endif
+
 #define SCANCODE_MASK		0x07
 #define UPDOWN_EVENT_MASK	0x08
 #define ESD_STATE_MASK		0x10
@@ -58,6 +62,9 @@ struct cypress_touchkey_devdata {
 };
 
 static struct cypress_touchkey_devdata *blndevdata;
+#ifdef CONFIG_BLD
+static struct cypress_touchkey_devdata *blddevdata;
+#endif
 
 static int i2c_touchkey_read_byte(struct cypress_touchkey_devdata *devdata,
 					u8 *val)
@@ -176,11 +183,33 @@ static irqreturn_t touchkey_interrupt_thread(int irq, void *touchkey_devdata)
 		input_report_key(devdata->input_dev,
 			devdata->pdata->keycode[scancode],
 			!(data & UPDOWN_EVENT_MASK));
+
+#if defined(CONFIG_TOUCH_WAKE) || defined(CONFIG_BLD)
+		if (!(data & UPDOWN_EVENT_MASK))
+		    {
+#ifdef CONFIG_BLD			
+			touchkey_pressed();
+#endif
+		    }
+#endif
 	} else {
 		for (i = 0; i < devdata->pdata->keycode_cnt; i++)
 			input_report_key(devdata->input_dev,
 				devdata->pdata->keycode[i],
 				!!(data & (1U << i)));
+
+#if defined(CONFIG_TOUCH_WAKE) || defined(CONFIG_BLD)
+		for (i = 0; i < devdata->pdata->keycode_cnt; i++)
+		    {
+			if(!!(data & (1U << i)))
+			    {
+#ifdef CONFIG_BLD			
+				touchkey_pressed();
+#endif
+				break;
+			    }
+		    }
+#endif
 	}
 
 	input_sync(devdata->input_dev);
@@ -401,6 +430,24 @@ static struct bln_implementation cypress_touchkey_bln = {
 	.disable = cypress_touchkey_disable_led_notification,
 };
 
+#ifdef CONFIG_BLD
+static void cypress_touchkey_bld_disable(void)
+{
+    i2c_touchkey_write_byte(blddevdata, blddevdata->backlight_off);
+}
+
+static void cypress_touchkey_bld_enable(void)
+{
+    i2c_touchkey_write_byte(blddevdata, blddevdata->backlight_on);
+}
+
+static struct bld_implementation cypress_touchkey_bld = 
+    {
+	.enable = cypress_touchkey_bld_enable,
+	.disable = cypress_touchkey_bld_disable,
+    };
+#endif
+
 static int cypress_touchkey_probe(struct i2c_client *client,
 		const struct i2c_device_id *id)
 {
@@ -504,6 +551,12 @@ static int cypress_touchkey_probe(struct i2c_client *client,
 	blndevdata = devdata;
 	register_bln_implementation(&cypress_touchkey_bln);
 #endif
+
+#ifdef CONFIG_BLD
+	blddevdata = devdata;
+	register_bld_implementation(&cypress_touchkey_bld);
+#endif
+
 	return 0;
 
 

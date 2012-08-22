@@ -18,6 +18,10 @@
 #include <linux/bln.h>
 #include <asm/mach-types.h>
 
+#ifdef CONFIG_BLD
+#include <linux/bld.h>
+#endif
+
 #include "herring.h"
 
 static int led_gpios[] = { 2, 3, 6, 7 };
@@ -45,6 +49,24 @@ static struct bln_implementation herring_touchkey_bln = {
 	.enable = herring_touchkey_bln_enable,
 	.disable = herring_touchkey_bln_disable,
 };
+#endif
+
+#ifdef CONFIG_BLD
+static void herring_touchkey_bld_enable(void)
+{
+    herring_touchkey_led_onoff(1);
+}
+
+static void herring_touchkey_bld_disable(void)
+{
+    herring_touchkey_led_onoff(0);
+}
+
+static struct bld_implementation herring_touchkey_bld = 
+    {
+	.enable = herring_touchkey_bld_enable,
+	.disable = herring_touchkey_bld_disable,
+    };
 #endif
 
 static void herring_touchkey_led_early_suspend(struct early_suspend *h)
@@ -90,6 +112,9 @@ static int __init herring_init_touchkey_led(void)
 
 #ifdef CONFIG_GENERIC_BLN
 	register_bln_implementation(&herring_touchkey_bln);
+#endif
+#ifdef CONFIG_BLD
+	register_bld_implementation(&herring_touchkey_bld);
 #endif
 
 	return 0;

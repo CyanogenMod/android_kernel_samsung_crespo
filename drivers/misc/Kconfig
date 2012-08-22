@@ -581,5 +581,10 @@ config GENERIC_BLN
        help
          Say Y here to enable the backlight notification
          for android led-notification (modified liblight needed)
+config BLD
+       bool "Support for Backlight Dimmer"
+       default y
+       help
+         Say Y here to enable Backlight Dimmer
 
 endif # MISC_DEVICES
