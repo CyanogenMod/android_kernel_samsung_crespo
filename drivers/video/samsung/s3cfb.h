@@ -232,7 +232,7 @@ struct s3cfb_global {
 	int			irq;
 	struct fb_info		**fb;
 
-	wait_queue_head_t	vsync_wq;
+	wait_queue_head_t	vsync_wait;
 	ktime_t			vsync_timestamp;
 
 	int			vsync_state;
@@ -318,6 +318,8 @@ struct s3cfb_next_info {
 #define S3CFB_SET_WIN_ADDR		_IOW('F', 309, unsigned long)
 #define S3CFB_SET_WIN_MEM		_IOW('F', 310, \
 						enum s3cfb_mem_owner_t)
+// New IOCTL that waits for vsync and returns a timestamp
+#define S3CFB_WAIT_FOR_VSYNC  _IOR('F', 311, u64)
 
 /*
  * E X T E R N S
