@@ -390,8 +390,12 @@ static ssize_t store_boostpulse(struct kobject *kobj, struct attribute *attr,
 	if (ret < 0)
 		return ret;
 
-	if (input > 1 && input <= MAX_FREQ_BOOST_TIME)
-		dbs_tuners_ins.freq_boost_time = input;
+	if (input > 1) {
+		if (input <= MAX_FREQ_BOOST_TIME) {
+			dbs_tuners_ins.freq_boost_time = input;
+		} else {
+			dbs_tuners_ins.freq_boost_time = MAX_FREQ_BOOST_TIME;
+		}
 	else
 		dbs_tuners_ins.freq_boost_time = DEFAULT_FREQ_BOOST_TIME;
 
