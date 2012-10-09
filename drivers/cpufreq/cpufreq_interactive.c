@@ -810,10 +810,15 @@ static ssize_t store_boostpulse(struct kobject *kobj, struct attribute *attr,
 		return ret;
 
 	boostpulse_boosted_time = ktime_to_us(ktime_get());
-	if (val > 1 && val <= MAX_BOOSTPULSE_DURATION)
-		boostpulse_duration = val;
-	else
+	if (val > 1) {
+		if (val <= MAX_BOOSTPULSE_DURATION) {
+			boostpulse_duration = val;
+		} else {
+			boostpulse_duration = MAX_BOOSTPULSE_DURATION;
+		}
+	} else {
 		boostpulse_duration = DEFAULT_BOOSTPULSE_DURATION;
+	}
 
 	trace_cpufreq_interactive_boost("pulse");
 	cpufreq_interactive_boost();
