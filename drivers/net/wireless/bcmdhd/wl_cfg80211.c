@@ -7304,8 +7304,7 @@ s32 wl_update_wiphybands(struct wl_priv *wl)
 			wiphy->bands[IEEE80211_BAND_2GHZ] =
 				&__wl_band_2ghz;
 			index = IEEE80211_BAND_2GHZ;
-
-			if (bandlist[i] == WLC_BAND_2G && bw_cap == WLC_N_BW_40ALL)
+			if (bw_cap == WLC_N_BW_40ALL)
 				wiphy->bands[index]->ht_cap.cap |= IEEE80211_HT_CAP_SGI_40;
 		}
 		if ((index >= 0) && nmode) {
