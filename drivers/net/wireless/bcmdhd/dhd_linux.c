@@ -542,7 +542,7 @@ static int dhd_set_suspend(int value, dhd_pub_t *dhd)
 		if (value && dhd->in_suspend) {
 
 			/* Kernel suspended */
-			DHD_ERROR(("%s: force extra Suspend setting \n", __FUNCTION__));
+			DHD_ERROR(("%s: force extra Suspend setting\n", __FUNCTION__));
 
 			dhd_wl_ioctl_cmd(dhd, WLC_SET_PM, (char *)&power_mode,
 			                 sizeof(power_mode), TRUE, 0);
@@ -566,7 +566,7 @@ static int dhd_set_suspend(int value, dhd_pub_t *dhd)
 		} else {
 
 			/* Kernel resumed  */
-			DHD_TRACE(("%s: Remove extra suspend setting \n", __FUNCTION__));
+			DHD_ERROR(("%s: Remove extra suspend setting\n", __FUNCTION__));
 
 			power_mode = PM_FAST;
 			dhd_wl_ioctl_cmd(dhd, WLC_SET_PM, (char *)&power_mode,
@@ -4380,6 +4380,9 @@ int net_os_set_suspend(struct net_device *dev, int val, int force)
 		ret = dhd_set_suspend(val, &dhd->pub);
 #else
 		ret = dhd_suspend_resume_helper(dhd, val, force);
+#endif
+#ifdef WL_CFG80211
+		wl_cfg80211_update_power_mode(dev);
 #endif
 	}
 	return ret;
