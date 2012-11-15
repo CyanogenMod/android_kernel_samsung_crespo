@@ -137,9 +137,9 @@ int security_binder_transaction(struct task_struct *from, struct task_struct *to
 	return security_ops->binder_transaction(from, to);
 }
 
-int security_binder_transfer_binder(struct task_struct *from, struct task_struct *to, struct task_struct *owner)
+int security_binder_transfer_binder(struct task_struct *from, struct task_struct *to)
 {
-	return security_ops->binder_transfer_binder(from, to, owner);
+	return security_ops->binder_transfer_binder(from, to);
 }
 
 int security_binder_transfer_file(struct task_struct *from, struct task_struct *to, struct file *file)

@@ -22,7 +22,7 @@ static int cap_binder_transaction(struct task_struct *from, struct task_struct *
 	return 0;
 }
 
-static int cap_binder_transfer_binder(struct task_struct *from, struct task_struct *to, struct task_struct *owner)
+static int cap_binder_transfer_binder(struct task_struct *from, struct task_struct *to)
 {
 	return 0;
 }
