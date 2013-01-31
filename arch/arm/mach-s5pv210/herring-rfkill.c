@@ -48,6 +48,7 @@ static struct wake_lock rfkill_wake_lock;
 
 static struct rfkill *bt_rfk;
 static const char bt_name[] = "bcm4329";
+static bool current_blocked = true;
 
 #ifdef CONFIG_CPU_DIDLE
 static bool bt_running = false;
@@ -189,6 +190,13 @@ static int bt_rfkill_set_block(void *data, bool blocked)
 {
 	unsigned int ret = 0;
 
+	if (current_blocked == blocked) {
+		pr_debug("[BT] keeping current blocked state %d\n", blocked);
+		return ret;
+	}
+
+	current_blocked = blocked;
+
 	ret = bluetooth_set_power(data, blocked ?
 			RFKILL_USER_STATE_SOFT_BLOCKED :
 			RFKILL_USER_STATE_UNBLOCKED);
@@ -254,7 +262,7 @@ static int __init herring_rfkill_probe(struct platform_device *pdev)
 	}
 
 	rfkill_set_sw_state(bt_rfk, 1);
-	bluetooth_set_power(NULL, RFKILL_USER_STATE_SOFT_BLOCKED);
+	bt_rfkill_set_block(NULL, true);
 
 	return ret;
 
