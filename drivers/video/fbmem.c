@@ -36,7 +36,7 @@
 #include <asm/fb.h>
 
 #ifdef CONFIG_FB_S3C
-#include <samsung/s3cfb.h>
+#include "samsung/s3cfb.h"
 #endif
 
     /*
