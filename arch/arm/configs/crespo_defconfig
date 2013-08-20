@@ -1,6 +1,6 @@
 #
 # Automatically generated make config: don't edit
-# Linux/arm 3.0.46 Kernel Configuration
+# Linux/arm 3.0.89 Kernel Configuration
 #
 CONFIG_ARM=y
 CONFIG_HAVE_PWM=y
@@ -402,6 +402,7 @@ CONFIG_CPU_HAS_PMU=y
 # CONFIG_ARM_ERRATA_460075 is not set
 # CONFIG_ARM_ERRATA_743622 is not set
 # CONFIG_ARM_ERRATA_754322 is not set
+# CONFIG_ARM_ERRATA_775420 is not set
 CONFIG_ARM_VIC=y
 CONFIG_ARM_VIC_NR=4
 CONFIG_PL330=y
@@ -1980,7 +1981,6 @@ CONFIG_USB_STORAGE=y
 # CONFIG_USB_STORAGE_KARMA is not set
 # CONFIG_USB_STORAGE_CYPRESS_ATACB is not set
 # CONFIG_USB_STORAGE_ENE_UB6250 is not set
-# CONFIG_USB_UAS is not set
 # CONFIG_USB_LIBUSUAL is not set
 
 #
