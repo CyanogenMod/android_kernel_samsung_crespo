@@ -31,6 +31,9 @@
 #include <linux/firmware.h>
 #include <linux/bln.h>
 
+#include <linux/device.h>
+#include <linux/miscdevice.h>
+
 #define SCANCODE_MASK		0x07
 #define UPDOWN_EVENT_MASK	0x08
 #define ESD_STATE_MASK		0x10
@@ -58,6 +61,7 @@ struct cypress_touchkey_devdata {
 };
 
 static struct cypress_touchkey_devdata *blndevdata;
+static int touchkey_enabled = 0;
 
 static int i2c_touchkey_read_byte(struct cypress_touchkey_devdata *devdata,
 					u8 *val)
@@ -401,6 +405,48 @@ static struct bln_implementation cypress_touchkey_bln = {
 	.disable = cypress_touchkey_disable_led_notification,
 };
 
+static ssize_t cypress_touchkey_set_enabled(struct device *dev,
+                                        struct device_attribute *attr,
+                                        const char *buf, size_t size)
+{
+    int val = 0;
+    sscanf(buf, "%d\n", &val);
+    if (val == 0 ) {
+        touchkey_enabled = 0;
+        i2c_touchkey_write_byte(blndevdata, blndevdata->backlight_off);
+    } else {
+        touchkey_enabled = 1;
+        i2c_touchkey_write_byte(blndevdata, blndevdata->backlight_on);
+    }
+    return size;
+}
+
+static ssize_t cypress_touchkey_show_enabled(struct device *dev,
+                                        struct device_attribute *attr,
+                                        const char *buf)
+{
+    return sprintf(buf, "%d", touchkey_enabled);
+}
+
+static DEVICE_ATTR(enabled, S_IRUGO | S_IWUGO,
+                   cypress_touchkey_show_enabled,
+                   cypress_touchkey_set_enabled);
+
+static struct attribute *cypress_touchkey_attributes[] = {
+        &dev_attr_enabled,
+        NULL
+};
+
+static struct attribute_group cypress_touchkey_group = {
+        .attrs = cypress_touchkey_attributes,
+};
+
+static struct miscdevice cypress_touchkey_device = {
+        .minor = MISC_DYNAMIC_MINOR,
+        .name = "cypress_touchkey",
+};
+
+
 static int cypress_touchkey_probe(struct i2c_client *client,
 		const struct i2c_device_id *id)
 {
@@ -504,6 +550,15 @@ static int cypress_touchkey_probe(struct i2c_client *client,
 	blndevdata = devdata;
 	register_bln_implementation(&cypress_touchkey_bln);
 #endif
+
+    if (misc_register(&cypress_touchkey_device))
+        printk("%s misc_register(%s) failed\n", __FUNCTION__, cypress_touchkey_device.name);
+    else {
+        if (sysfs_create_group(&cypress_touchkey_device.this_device->kobj, &cypress_touchkey_group))
+            dev_err(&cypress_touchkey_device, "failed to create sysfs group for device %s\n", cypress_touchkey_device.name);
+    }
+
+
 	return 0;
 
 
