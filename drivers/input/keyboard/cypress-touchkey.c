@@ -31,6 +31,9 @@
 #include <linux/firmware.h>
 #include <linux/bln.h>
 
+#include <linux/device.h>
+#include <linux/miscdevice.h>
+
 #define SCANCODE_MASK		0x07
 #define UPDOWN_EVENT_MASK	0x08
 #define ESD_STATE_MASK		0x10
@@ -58,6 +61,7 @@ struct cypress_touchkey_devdata {
 };
 
 static struct cypress_touchkey_devdata *blndevdata;
+static int touchkey_backlight_enabled = 0;
 
 static int i2c_touchkey_read_byte(struct cypress_touchkey_devdata *devdata,
 					u8 *val)
@@ -184,6 +188,8 @@ static irqreturn_t touchkey_interrupt_thread(int irq, void *touchkey_devdata)
 	}
 
 	input_sync(devdata->input_dev);
+
+    touchkey_backlight_enabled = 1;
 err:
 	return IRQ_HANDLED;
 }
@@ -227,6 +233,26 @@ static void cypress_touchkey_early_suspend(struct early_suspend *h)
 	devdata->pdata->touchkey_onoff(TOUCHKEY_OFF);
 
 	all_keys_up(devdata);
+
+    touchkey_backlight_enabled = 0;
+}
+
+static int cypress_touchkey_backlight_enable(struct cypress_touchkey_devdata *devdata)
+{
+	int ret = i2c_touchkey_write_byte(devdata, devdata->backlight_on);
+    if (!ret) {
+        touchkey_backlight_enabled = 1;
+    }
+    return ret;
+}
+
+static int cypress_touchkey_backlight_disable(struct cypress_touchkey_devdata *devdata)
+{
+	int ret = i2c_touchkey_write_byte(devdata, devdata->backlight_off);
+    if (!ret) {
+        touchkey_backlight_enabled = 0;
+    }
+    return ret;
 }
 
 static void cypress_touchkey_early_resume(struct early_suspend *h)
@@ -235,7 +261,7 @@ static void cypress_touchkey_early_resume(struct early_suspend *h)
 		container_of(h, struct cypress_touchkey_devdata, early_suspend);
 
 	devdata->pdata->touchkey_onoff(TOUCHKEY_ON);
-	if (i2c_touchkey_write_byte(devdata, devdata->backlight_on)) {
+	if (cypress_touchkey_backlight_enable(devdata)) {
 		devdata->is_dead = true;
 		devdata->pdata->touchkey_onoff(TOUCHKEY_OFF);
 		dev_err(&devdata->client->dev, "%s: touch keypad not responding"
@@ -307,12 +333,12 @@ static int update_firmware(struct cypress_touchkey_devdata *devdata)
 	return ret;
 }
 
-static void enable_touchkey_backlights(void){
-       i2c_touchkey_write_byte(blndevdata, blndevdata->backlight_on);
+static void enable_touchkey_backlights(void) {
+    cypress_touchkey_backlight_enable(blndevdata);
 }
 
 static void disable_touchkey_backlights(void){
-       i2c_touchkey_write_byte(blndevdata, blndevdata->backlight_off);
+    cypress_touchkey_backlight_disable(blndevdata);
 }
 
 static int cypress_touchkey_open(struct input_dev *input_dev)
@@ -341,7 +367,7 @@ static int cypress_touchkey_open(struct input_dev *input_dev)
 	devdata->pdata->touchkey_onoff(TOUCHKEY_OFF);
 	devdata->pdata->touchkey_onoff(TOUCHKEY_ON);
 
-	ret = i2c_touchkey_write_byte(devdata, devdata->backlight_on);
+	ret = cypress_touchkey_backlight_enable(devdata);
 	if (ret) {
 		dev_err(dev, "%s: touch keypad backlight on failed\n",
 				__func__);
@@ -400,6 +426,48 @@ static struct bln_implementation cypress_touchkey_bln = {
 	.enable = cypress_touchkey_enable_led_notification,
 	.disable = cypress_touchkey_disable_led_notification,
 };
+
+static ssize_t cypress_touchkey_set_backlight_status(struct device *dev,
+                                        struct device_attribute *attr,
+                                        const char *buf, size_t size)
+{
+    int val = 0;
+    if (!blndevdata->is_powering_on) {
+        sscanf(buf, "%d\n", &val);
+        if (val == 0 && touchkey_backlight_enabled == 1) {
+            cypress_touchkey_backlight_disable(blndevdata);
+        } else if (touchkey_backlight_enabled == 0) {
+            cypress_touchkey_backlight_enable(blndevdata);
+        }
+    }
+    return size;
+}
+
+static ssize_t cypress_touchkey_show_backlight_status(struct device *dev,
+                                        struct device_attribute *attr,
+                                        const char *buf)
+{
+    return sprintf(buf, "%d", touchkey_backlight_enabled);
+}
+
+static DEVICE_ATTR(backlight_status, S_IRUGO | S_IWUGO,
+                   cypress_touchkey_show_backlight_status,
+                   cypress_touchkey_set_backlight_status);
+
+static struct attribute *cypress_touchkey_attributes[] = {
+        &dev_attr_backlight_status,
+        NULL
+};
+
+static struct attribute_group cypress_touchkey_group = {
+        .attrs = cypress_touchkey_attributes,
+};
+
+static struct miscdevice cypress_touchkey_device = {
+        .minor = MISC_DYNAMIC_MINOR,
+        .name = "cypress_touchkey",
+};
+
 
 static int cypress_touchkey_probe(struct i2c_client *client,
 		const struct i2c_device_id *id)
@@ -473,7 +541,7 @@ static int cypress_touchkey_probe(struct i2c_client *client,
 
 	set_device_params(devdata, data);
 
-	err = i2c_touchkey_write_byte(devdata, devdata->backlight_on);
+	err = cypress_touchkey_backlight_enable(devdata);
 	if (err) {
 		dev_err(dev, "%s: touch keypad backlight on failed\n",
 				__func__);
@@ -504,6 +572,15 @@ static int cypress_touchkey_probe(struct i2c_client *client,
 	blndevdata = devdata;
 	register_bln_implementation(&cypress_touchkey_bln);
 #endif
+
+    if (misc_register(&cypress_touchkey_device))
+        printk("%s misc_register(%s) failed\n", __FUNCTION__, cypress_touchkey_device.name);
+    else {
+        if (sysfs_create_group(&cypress_touchkey_device.this_device->kobj, &cypress_touchkey_group))
+            dev_err(&cypress_touchkey_device, "failed to create sysfs group for device %s\n", cypress_touchkey_device.name);
+    }
+
+
 	return 0;
 
 
