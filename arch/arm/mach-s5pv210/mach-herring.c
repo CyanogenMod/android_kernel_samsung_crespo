@@ -6106,7 +6106,7 @@ MACHINE_START(HERRING, "herring")
 	.map_io		= herring_map_io,
 	.init_machine	= herring_machine_init,
 #ifdef CONFIG_S5P_HIGH_RES_TIMERS
-	.timer		= &s5p_systimer,
+	.timer		= &s5p_sys_timer,
 #else
 	.timer		= &s5p_timer,
 #endif

@@ -562,7 +562,7 @@ static int check_mem_type(void __iomem *dmc_reg)
 	return val >> 8;
 }
 
-static int __init s5pv210_cpu_init(struct cpufreq_policy *policy)
+static int __devinit s5pv210_cpu_init(struct cpufreq_policy *policy)
 {
 	unsigned long mem_type;
 
@@ -682,7 +682,7 @@ static struct notifier_block s5pv210_cpufreq_reboot_notifier = {
 	.notifier_call	= s5pv210_cpufreq_reboot_notifier_event,
 };
 
-static int __init s5pv210_cpufreq_probe(struct platform_device *pdev)
+static int __devinit s5pv210_cpufreq_probe(struct platform_device *pdev)
 {
 	struct s5pv210_cpufreq_data *pdata = dev_get_platdata(&pdev->dev);
 	int i, j;
@@ -722,7 +722,7 @@ finish:
 	return cpufreq_register_driver(&s5pv210_driver);
 }
 
-static struct platform_driver s5pv210_cpufreq_drv = {
+static struct platform_driver s5pv210_cpufreq_driver = {
 	.probe		= s5pv210_cpufreq_probe,
 	.driver		= {
 		.owner	= THIS_MODULE,
@@ -734,7 +734,7 @@ static int __init s5pv210_cpufreq_init(void)
 {
 	int ret;
 
-	ret = platform_driver_register(&s5pv210_cpufreq_drv);
+	ret = platform_driver_register(&s5pv210_cpufreq_driver);
 	if (!ret)
 		pr_info("%s: S5PV210 cpu-freq driver\n", __func__);
 

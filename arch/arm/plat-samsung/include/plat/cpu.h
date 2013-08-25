@@ -67,7 +67,7 @@ extern void s3c24xx_init_uartdevs(char *name,
 
 struct sys_timer;
 #if	defined(CONFIG_S5P_HIGH_RES_TIMERS)
-extern struct sys_timer s5p_systimer;
+extern struct sys_timer s5p_sys_timer;
 #else
 extern struct sys_timer s3c24xx_timer;
 #endif

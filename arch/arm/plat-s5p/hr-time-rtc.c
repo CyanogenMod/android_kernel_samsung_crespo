@@ -365,7 +365,7 @@ struct clocksource clocksource_s5p = {
 	.flags		= CLOCK_SOURCE_IS_CONTINUOUS,
 };
 
-static void s5p_init_clocksource(unsigned long rate)
+static void __init s5p_init_clocksource(unsigned long rate)
 {
 	static char err[] __initdata = KERN_ERR
 			"%s: can't register clocksource!\n";
@@ -428,7 +428,7 @@ unsigned long long sched_clock(void)
 /*
  *  Event/Sched Timer initialization
  */
-static void s5p_timer_setup(void)
+static void __init s5p_timer_setup(void)
 {
 	unsigned long rate;
 	unsigned int tmp;
@@ -506,7 +506,7 @@ static void __init s5p_timer_init(void)
 #endif
 }
 
-struct sys_timer s5p_systimer = {
+struct sys_timer s5p_sys_timer = {
 	.init		= s5p_timer_init,
 };
 
