@@ -120,7 +120,7 @@ do {									\
 #else				/* !(WL_DBG_LEVEL > 0) */
 #define	WL_DBG(args)
 #endif				/* (WL_DBG_LEVEL > 0) */
-
+#define	WL_PNO(args)
 
 #define WL_SCAN_RETRY_MAX	3
 #define WL_NUM_PMKIDS_MAX	MAXPMKID
@@ -548,6 +548,29 @@ wl_get_status_all(struct wl_priv *wl, s32 status)
 	return cnt? true: false;
 }
 
+
+static inline void
+wl_set_status_all(struct wl_priv *wl, s32 status, u32 op)
+{
+	struct net_info *_net_info, *next;
+
+	list_for_each_entry_safe(_net_info, next, &wl->net_list, list) {
+		switch (op) {
+			case 1:
+				return; /* set all status is not allowed */
+			case 2:
+				clear_bit(status, &_net_info->sme_state);
+				break;
+			case 4:
+				return; /* change all status is not allowed */
+			default:
+				return; /* unknown operation */
+		}
+	}
+
+}
+
+
 static inline void
 wl_set_status_by_netdev(struct wl_priv *wl, s32 status,
 	struct net_device *ndev, u32 op)
@@ -638,6 +661,8 @@ wl_get_profile_by_netdev(struct wl_priv *wl, struct net_device *ndev)
 	(wl_set_status_by_netdev(wl, WL_STATUS_ ## stat, ndev, 1))
 #define wl_clr_drv_status(wl, stat, ndev)  \
 	(wl_set_status_by_netdev(wl, WL_STATUS_ ## stat, ndev, 2))
+#define wl_clr_drv_status_all(wl, stat)  \
+	(wl_set_status_all(wl, WL_STATUS_ ## stat, 2))
 #define wl_chg_drv_status(wl, stat, ndev)  \
 	(wl_set_status_by_netdev(wl, WL_STATUS_ ## stat, ndev, 4))
 
@@ -688,4 +713,5 @@ void wl_cfg80211_enable_trace(int level);
 extern s32 wl_update_wiphybands(struct wl_priv *wl);
 extern s32 wl_cfg80211_if_is_group_owner(void);
 extern int wl_cfg80211_update_power_mode(struct net_device *dev);
+extern s32 wl_add_remove_eventmsg(struct net_device *ndev, u16 event, bool add);
 #endif				/* _wl_cfg80211_h_ */
