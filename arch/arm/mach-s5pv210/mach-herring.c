@@ -378,7 +378,7 @@ static struct s3cfb_lcd r61408 = {
 					     (CONFIG_FB_S3C_NR_BUFFERS + \
 						 (CONFIG_FB_S3C_NUM_OVLY_WIN * \
 						  CONFIG_FB_S3C_NUM_BUF_OVLY_WIN)))
-#define  S5PV210_VIDEO_SAMSUNG_MEMSIZE_JPEG (4092 * SZ_1K)
+#define  S5PV210_VIDEO_SAMSUNG_MEMSIZE_JPEG (916 * SZ_1K)
 
 static struct s5p_media_device herring_media_devs[] = {
 	[0] = {
@@ -2735,10 +2735,10 @@ static struct s3c_platform_fimc fimc_plat_lsi = {
 
 #ifdef CONFIG_VIDEO_JPEG_V2
 static struct s3c_platform_jpeg jpeg_plat __initdata = {
-	.max_main_width	= 800,
+	.max_main_width	= 640,
 	.max_main_height	= 480,
-	.max_thumb_width	= 320,
-	.max_thumb_height	= 240,
+	.max_thumb_width	= 0,
+	.max_thumb_height	= 0,
 };
 #endif
 
