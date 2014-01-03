@@ -215,6 +215,7 @@ static long s3c_jpeg_ioctl(struct file *file,
 {
 	struct s5pc110_jpg_ctx		*jpg_reg_ctx;
 	struct jpg_args			param;
+	struct jpg_info			info;
 	enum BOOL			result = TRUE;
 	unsigned long			ret;
 	int				out;
@@ -322,6 +323,23 @@ static long s3c_jpeg_ioctl(struct file *file,
 		jpg_dbg("IOCTL_JPG_GET_PHY_THUMB_FRMBUF\n");
 		unlock_jpg_mutex();
 		return jpg_data_base_addr + jpg_reg_ctx->bufinfo->thumb_frame_start;
+
+	case IOCTL_JPG_GET_INFO:
+		jpg_dbg("IOCTL_JPG_GET_INFO\n");
+		info.frame_buf_size = jpg_reg_ctx->bufinfo->main_frame_size;
+		info.thumb_frame_buf_size = jpg_reg_ctx->bufinfo->thumb_frame_size;
+		info.stream_buf_size = jpg_reg_ctx->bufinfo->main_stream_size;
+		info.thumb_stream_buf_size = jpg_reg_ctx->bufinfo->thumb_stream_size;
+		info.total_buf_size = jpg_reg_ctx->bufinfo->total_buf_size;
+		info.max_width = jpg_reg_ctx->limits->max_main_width;
+		info.max_height = jpg_reg_ctx->limits->max_main_height;
+		info.max_thumb_width = jpg_reg_ctx->limits->max_thumb_width;
+		info.max_thumb_height = jpg_reg_ctx->limits->max_thumb_height;
+		out = copy_to_user((void *)arg, (void *)&info,
+				   sizeof(struct jpg_info));
+		// Any other (positive or negative) return value is treated as error
+		result = 0;
+		break;
 
 	default:
 		jpg_dbg("JPG Invalid ioctl : 0x%X\n", cmd);

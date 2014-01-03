@@ -28,9 +28,22 @@
 #define IOCTL_JPG_GET_THUMB_FRMBUF		_IO(JPEG_IOCTL_MAGIC, 6)
 #define IOCTL_JPG_GET_PHY_FRMBUF		_IO(JPEG_IOCTL_MAGIC, 7)
 #define IOCTL_JPG_GET_PHY_THUMB_FRMBUF		_IO(JPEG_IOCTL_MAGIC, 8)
+#define IOCTL_JPG_GET_INFO			_IO(JPEG_IOCTL_MAGIC, 9)
 #define JPG_CLOCK_DIVIDER_RATIO_QUARTER	4
 
 /* Driver Helper function */
 #define to_jpeg_plat(d)		(to_platform_device(d)->dev.platform_data)
+
+struct jpg_info {
+	unsigned int	frame_buf_size;
+	unsigned int	thumb_frame_buf_size;
+	unsigned int	stream_buf_size;
+	unsigned int	thumb_stream_buf_size;
+	unsigned int	total_buf_size;
+	int	max_width;
+	int	max_height;
+	int	max_thumb_width;
+	int	max_thumb_height;
+};
 
 #endif /*__JPEG_DRIVER_H__*/
