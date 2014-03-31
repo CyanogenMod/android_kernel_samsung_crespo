@@ -16,14 +16,18 @@
 #include <linux/gpio.h>
 #include <linux/earlysuspend.h>
 #include <linux/bln.h>
+#include <linux/touchkey.h>
 #include <asm/mach-types.h>
 
 #include "herring.h"
+
+static int herring_touchkey_led_status = 0;
 
 static int led_gpios[] = { 2, 3, 6, 7 };
 
 static void herring_touchkey_led_onoff(int onoff)
 {
+	herring_touchkey_led_status = !!onoff;
 	int i;
 
 	for (i = 0; i < ARRAY_SIZE(led_gpios); i++)
@@ -46,6 +50,27 @@ static struct bln_implementation herring_touchkey_bln = {
 	.disable = herring_touchkey_bln_disable,
 };
 #endif
+
+static void herring_touchkey_backlight_enable(void)
+{
+	herring_touchkey_led_onoff(1);
+}
+
+static void herring_touchkey_backlight_disable(void)
+{
+	herring_touchkey_led_onoff(0);
+}
+
+static int herring_touchkey_backlight_status(void)
+{
+	return herring_touchkey_led_status;
+}
+
+static struct touchkey_implementation herring_touchkey_touchkey = {
+	.enable = herring_touchkey_backlight_enable,
+	.disable = herring_touchkey_backlight_disable,
+	.status= herring_touchkey_backlight_status,
+};
 
 static void herring_touchkey_led_early_suspend(struct early_suspend *h)
 {
@@ -91,6 +116,8 @@ static int __init herring_init_touchkey_led(void)
 #ifdef CONFIG_GENERIC_BLN
 	register_bln_implementation(&herring_touchkey_bln);
 #endif
+
+	register_touchkey_implementation(&herring_touchkey_touchkey);
 
 	return 0;
 
