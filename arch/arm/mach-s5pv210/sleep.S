@@ -45,7 +45,7 @@ ENTRY(s3c_cpu_save)
 	bl	cpu_suspend
 
 	ldr	r0, =pm_cpu_sleep
-	ldr	r0, [ r0 ]
+	ldr	r0, [r0]
 	mov	pc, r0
 
 resume_with_mmu:
