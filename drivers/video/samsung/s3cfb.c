@@ -195,6 +195,7 @@ static int s3cfb_map_video_memory(struct fb_info *fb)
 	return 0;
 }
 
+#if 0
 static int s3cfb_map_default_video_memory(struct fb_info *fb)
 {
 #if defined(CONFIG_FB_S3C_VIRTUAL)
@@ -223,6 +224,7 @@ static int s3cfb_map_default_video_memory(struct fb_info *fb)
 #endif
 	return 0;
 }
+#endif
 
 static int s3cfb_unmap_video_memory(struct fb_info *fb)
 {

@@ -200,7 +200,7 @@ static const struct rfkill_ops bt_rfkill_ops = {
 	.set_block = bt_rfkill_set_block,
 };
 
-static int __init herring_rfkill_probe(struct platform_device *pdev)
+static int herring_rfkill_probe(struct platform_device *pdev)
 {
 	int irq;
 	int ret;

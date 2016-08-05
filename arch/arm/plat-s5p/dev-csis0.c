@@ -54,7 +54,7 @@ void __init s3c_csis_set_platdata(struct s3c_platform_csis *pd)
 		printk(KERN_ERR "%s: no memory for platform data\n", __func__);
 
 	npd->cfg_gpio = NULL;
-	npd->cfg_phy_global = s5p_csis_phy_enable;
+	npd->cfg_phy_global = (void *)s5p_csis_phy_enable;
 
 	s5p_device_mipi_csis0.dev.platform_data = npd;
 }

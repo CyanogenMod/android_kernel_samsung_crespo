@@ -271,7 +271,7 @@ static int s5ka3dfx_write_regs(struct v4l2_subdev *sd,
 			       struct s5ka3dfx_reg regs[], int size)
 {
 	struct i2c_client *client = v4l2_get_subdevdata(sd);
-	int i, err;
+	int i, err = 0;
 
 	for (i = 0; i < size; i++) {
 		err = s5ka3dfx_i2c_write_multi(client,

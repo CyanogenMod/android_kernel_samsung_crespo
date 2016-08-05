@@ -640,7 +640,7 @@ void __init mem_init(void)
 #ifdef CONFIG_MMU
 			"    DMA     : 0x%08lx - 0x%08lx   (%4ld MB)\n"
 #endif
-			"    vmalloc : 0x%08lx - 0x%08lx   (%4ld MB)\n"
+			"    vmalloc : 0x%08lx - 0x%08u   (%4ld MB)\n"
 			"    lowmem  : 0x%08lx - 0x%08lx   (%4ld MB)\n"
 #ifdef CONFIG_HIGHMEM
 			"    pkmap   : 0x%08lx - 0x%08lx   (%4ld MB)\n"

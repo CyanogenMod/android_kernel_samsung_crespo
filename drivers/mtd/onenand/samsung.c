@@ -200,7 +200,7 @@ struct s3c_onenand {
 
 static struct s3c_onenand *onenand;
 
-static const char *part_probes[] = { "cmdlinepart", NULL, };
+//static const char *part_probes[] = { "cmdlinepart", NULL, };
 
 static inline int s3c_read_reg(int offset)
 {
