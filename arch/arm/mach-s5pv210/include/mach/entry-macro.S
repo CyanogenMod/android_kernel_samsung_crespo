@@ -28,25 +28,25 @@
 
 	@ check the vic0
 	mov	\irqnr, # S5P_IRQ_OFFSET + 31
-	ldr	\irqstat, [ \base, # VIC_IRQ_STATUS ]
+	ldr	\irqstat, [\base, # VIC_IRQ_STATUS]
 	teq	\irqstat, #0
 
 	@ otherwise try vic1
 	addeq	\tmp, \base, #(VA_VIC1 - VA_VIC0)
 	addeq	\irqnr, \irqnr, #32
-	ldreq	\irqstat, [ \tmp, # VIC_IRQ_STATUS ]
+	ldreq	\irqstat, [\tmp, # VIC_IRQ_STATUS]
 	teqeq	\irqstat, #0
 
 	@ otherwise try vic2
 	addeq	\tmp, \base, #(VA_VIC2 - VA_VIC0)
 	addeq	\irqnr, \irqnr, #32
-	ldreq	\irqstat, [ \tmp, # VIC_IRQ_STATUS ]
+	ldreq	\irqstat, [\tmp, # VIC_IRQ_STATUS]
 	teqeq	\irqstat, #0
 
 	@ otherwise try vic3
 	addeq	\tmp, \base, #(VA_VIC3 - VA_VIC0)
 	addeq	\irqnr, \irqnr, #32
-	ldreq	\irqstat, [ \tmp, # VIC_IRQ_STATUS ]
+	ldreq	\irqstat, [\tmp, # VIC_IRQ_STATUS]
 	teqeq	\irqstat, #0
 
 	clzne	\irqstat, \irqstat
